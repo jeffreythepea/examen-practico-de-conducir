@@ -1,0 +1,702 @@
+[
+  {
+    "id": "c-der",
+    "actionId": "turn-right",
+    "category": "dir",
+    "phase": "driving",
+    "responseType": "spoken-direction",
+    "surfaceId": "junction-v1",
+    "icon": "➡️",
+    "acceptedResult": "turn-right",
+    "phrasings": [
+      {
+        "id": "c-der-canonical",
+        "es": "Gire a la derecha cuando pueda",
+        "en": "turn right when you can",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Gire a la derecha (o izquierda) cuando pueda"
+      }
+    ]
+  },
+  {
+    "id": "c-izq",
+    "actionId": "turn-left",
+    "category": "dir",
+    "phase": "driving",
+    "responseType": "spoken-direction",
+    "surfaceId": "junction-v1",
+    "icon": "⬅️",
+    "acceptedResult": "turn-left",
+    "phrasings": [
+      {
+        "id": "c-izq-canonical",
+        "es": "Gire a la izquierda cuando pueda",
+        "en": "turn left when you can",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Gire a la derecha (o izquierda) cuando pueda"
+      }
+    ]
+  },
+  {
+    "id": "c-sentido",
+    "actionId": "change-direction",
+    "category": "dir",
+    "phase": "driving",
+    "responseType": "terminology-maneuver",
+    "surfaceId": "junction-v1",
+    "icon": "🔄",
+    "acceptedResult": "change-direction",
+    "phrasings": [
+      {
+        "id": "c-sentido-canonical",
+        "es": "Cambio de sentido",
+        "en": "change of direction",
+        "wording": "verbatim",
+        "validation": "guide-only",
+        "sourcePage": 6,
+        "sourceText": "Cambio de sentido"
+      }
+    ]
+  },
+  {
+    "id": "c-volante",
+    "actionId": "steering-straight",
+    "category": "dir",
+    "phase": "driving",
+    "responseType": "control-instruction",
+    "surfaceId": "junction-v1",
+    "icon": "⬆️",
+    "acceptedResult": "steering-straight",
+    "phrasings": [
+      {
+        "id": "c-volante-canonical",
+        "es": "Volante recto",
+        "en": "steering wheel straight",
+        "wording": "verbatim",
+        "validation": "guide-only",
+        "sourcePage": 6,
+        "sourceText": "Volante recto"
+      }
+    ]
+  },
+  {
+    "id": "c-rot1",
+    "actionId": "roundabout-exit-1",
+    "category": "rot",
+    "phase": "driving",
+    "responseType": "spoken-direction",
+    "surfaceId": "roundabout-v1",
+    "icon": "1️⃣",
+    "acceptedResult": "roundabout-exit-1",
+    "phrasings": [
+      {
+        "id": "c-rot1-canonical",
+        "es": "Tome la primera salida en la glorieta",
+        "en": "take the first exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Tome la primera (segunda, tercera) salida en la glorieta"
+      }
+    ]
+  },
+  {
+    "id": "c-rot2",
+    "actionId": "roundabout-exit-2",
+    "category": "rot",
+    "phase": "driving",
+    "responseType": "spoken-direction",
+    "surfaceId": "roundabout-v1",
+    "icon": "2️⃣",
+    "acceptedResult": "roundabout-exit-2",
+    "phrasings": [
+      {
+        "id": "c-rot2-canonical",
+        "es": "Tome la segunda salida en la glorieta",
+        "en": "take the second exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Tome la primera (segunda, tercera) salida en la glorieta"
+      }
+    ]
+  },
+  {
+    "id": "c-rot3",
+    "actionId": "roundabout-exit-3",
+    "category": "rot",
+    "phase": "driving",
+    "responseType": "spoken-direction",
+    "surfaceId": "roundabout-v1",
+    "icon": "3️⃣",
+    "acceptedResult": "roundabout-exit-3",
+    "phrasings": [
+      {
+        "id": "c-rot3-canonical",
+        "es": "Tome la tercera salida en la glorieta",
+        "en": "take the third exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Tome la primera (segunda, tercera) salida en la glorieta"
+      }
+    ]
+  },
+  {
+    "id": "c-rot4",
+    "actionId": "roundabout-exit-4",
+    "category": "rot",
+    "phase": "driving",
+    "responseType": "terminology-direction",
+    "surfaceId": "roundabout-v1",
+    "icon": "4️⃣",
+    "acceptedResult": "roundabout-exit-4",
+    "phrasings": [
+      {
+        "id": "c-rot4-canonical",
+        "es": "Cuarta salida",
+        "en": "fourth exit",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 6,
+        "sourceText": "Primera (segunda, tercera, cuarta, quinta) salida"
+      }
+    ]
+  },
+  {
+    "id": "c-rot5",
+    "actionId": "roundabout-exit-5",
+    "category": "rot",
+    "phase": "driving",
+    "responseType": "terminology-direction",
+    "surfaceId": "roundabout-v1",
+    "icon": "5️⃣",
+    "acceptedResult": "roundabout-exit-5",
+    "phrasings": [
+      {
+        "id": "c-rot5-canonical",
+        "es": "Quinta salida",
+        "en": "fifth exit",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 6,
+        "sourceText": "Primera (segunda, tercera, cuarta, quinta) salida"
+      }
+    ]
+  },
+  {
+    "id": "c-parada",
+    "actionId": "voluntary-stop",
+    "category": "spd",
+    "phase": "driving",
+    "responseType": "spoken-maneuver",
+    "surfaceId": "option-grid-v1",
+    "icon": "🛑",
+    "acceptedResult": "voluntary-stop",
+    "phrasings": [
+      {
+        "id": "c-parada-canonical",
+        "es": "Realice una parada",
+        "en": "make a voluntary stop",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Realice una parada (o estacionamiento)"
+      }
+    ]
+  },
+  {
+    "id": "c-detencion",
+    "actionId": "involuntary-stop",
+    "category": "spd",
+    "phase": "driving",
+    "responseType": "terminology",
+    "surfaceId": "option-grid-v1",
+    "icon": "🚧",
+    "acceptedResult": "involuntary-stop",
+    "phrasings": [
+      {
+        "id": "c-detencion-canonical",
+        "es": "Detención",
+        "en": "involuntary stop",
+        "wording": "verbatim",
+        "validation": "guide-only",
+        "sourcePage": 6,
+        "sourceText": "Detención"
+      }
+    ]
+  },
+  {
+    "id": "c-adapte",
+    "actionId": "adapt-speed",
+    "category": "spd",
+    "phase": "driving",
+    "responseType": "spoken-speed",
+    "surfaceId": "option-grid-v1",
+    "icon": "⏬",
+    "acceptedResult": "adapt-speed",
+    "phrasings": [
+      {
+        "id": "c-adapte-canonical",
+        "es": "Adapte la velocidad a la vía",
+        "en": "adapt your speed to the road",
+        "wording": "verbatim",
+        "validation": "guide-only",
+        "sourcePage": 6,
+        "sourceText": "Adapte la velocidad a la vía"
+      }
+    ]
+  },
+  {
+    "id": "c-est",
+    "actionId": "park",
+    "category": "man",
+    "phase": "driving",
+    "responseType": "spoken-maneuver",
+    "surfaceId": "option-grid-v1",
+    "icon": "🅿️",
+    "acceptedResult": "park",
+    "phrasings": [
+      {
+        "id": "c-est-canonical",
+        "es": "Realice un estacionamiento",
+        "en": "park the vehicle",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Realice una parada (o estacionamiento)"
+      }
+    ]
+  },
+  {
+    "id": "c-inmov",
+    "actionId": "secure-vehicle",
+    "category": "man",
+    "phase": "driving",
+    "responseType": "spoken-multi-step",
+    "surfaceId": "option-grid-v1",
+    "icon": "✋",
+    "acceptedResult": "secure-vehicle",
+    "phrasings": [
+      {
+        "id": "c-inmov-canonical",
+        "es": "Inmovilice el vehículo",
+        "en": "secure the vehicle",
+        "wording": "verbatim",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Inmovilice el vehículo"
+      }
+    ]
+  },
+  {
+    "id": "c-adel",
+    "actionId": "overtake",
+    "category": "man",
+    "phase": "driving",
+    "responseType": "terminology-maneuver",
+    "surfaceId": "option-grid-v1",
+    "icon": "⏩",
+    "acceptedResult": "overtake",
+    "phrasings": [
+      {
+        "id": "c-adel-canonical",
+        "es": "Adelantamiento",
+        "en": "overtaking",
+        "wording": "verbatim",
+        "validation": "guide-only",
+        "sourcePage": 6,
+        "sourceText": "Adelantamiento"
+      }
+    ]
+  },
+  {
+    "id": "c-final",
+    "actionId": "exam-finish",
+    "category": "man",
+    "phase": "driving",
+    "responseType": "exam-state",
+    "surfaceId": "option-grid-v1",
+    "icon": "🏁",
+    "acceptedResult": "exam-finish",
+    "phrasings": [
+      {
+        "id": "c-final-canonical",
+        "es": "Finalización del examen",
+        "en": "end of the test",
+        "wording": "verbatim",
+        "validation": "spoken-use-unverified",
+        "sourcePage": 5,
+        "sourceText": "Finalización del examen"
+      }
+    ]
+  },
+  {
+    "id": "c-pre-bateria",
+    "actionId": "locate-battery",
+    "category": "pre-eng",
+    "phase": "precheck",
+    "responseType": "component-location",
+    "surfaceId": "yaris-manual-v1-eng",
+    "icon": "🔋",
+    "acceptedResult": "locate-battery",
+    "phrasings": [
+      {
+        "id": "c-pre-bateria-canonical",
+        "es": "Localice la batería",
+        "en": "locate the battery",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 3,
+        "sourceText": "Localizar: Batería, Liquido de frenos, Nivel de aceite y Nivel de líquido refrigerante"
+      }
+    ],
+    "vehicle": {
+      "page": 493,
+      "answer": "La batería de 12 V está debajo del asiento trasero derecho, bajo una tapa.",
+      "answerEn": "The 12 V battery is beneath the right rear seat, under a cover."
+    }
+  },
+  {
+    "id": "c-pre-aceite",
+    "actionId": "locate-oil-check",
+    "category": "pre-eng",
+    "phase": "precheck",
+    "responseType": "component-location",
+    "surfaceId": "yaris-manual-v1-eng",
+    "icon": "🛢️",
+    "acceptedResult": "locate-oil-check",
+    "phrasings": [
+      {
+        "id": "c-pre-aceite-canonical",
+        "es": "Localice dónde se comprueba el nivel de aceite",
+        "en": "locate where the oil level is checked",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 3,
+        "sourceText": "Localizar: Batería, Liquido de frenos, Nivel de aceite y Nivel de líquido refrigerante"
+      }
+    ],
+    "vehicle": {
+      "page": 483,
+      "answer": "El nivel se comprueba con la varilla de aceite del compartimento del motor.",
+      "answerEn": "Check the level with the engine-oil dipstick in the engine compartment."
+    }
+  },
+  {
+    "id": "c-pre-refrigerante",
+    "actionId": "locate-coolant-check",
+    "category": "pre-eng",
+    "phase": "precheck",
+    "responseType": "component-location",
+    "surfaceId": "yaris-manual-v1-eng",
+    "icon": "💧",
+    "acceptedResult": "locate-coolant-check",
+    "phrasings": [
+      {
+        "id": "c-pre-refrigerante-canonical",
+        "es": "Localice dónde se comprueba el nivel de líquido refrigerante",
+        "en": "locate where the coolant level is checked",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 3,
+        "sourceText": "Localizar: Batería, Liquido de frenos, Nivel de aceite y Nivel de líquido refrigerante"
+      }
+    ],
+    "vehicle": {
+      "page": 483,
+      "answer": "El depósito de refrigerante del motor está bajo el capó. El híbrido tiene además otro depósito para la unidad de control de potencia.",
+      "answerEn": "The engine-coolant reservoir is under the bonnet. The hybrid also has a separate reservoir for the power control unit."
+    }
+  },
+  {
+    "id": "c-pre-capo",
+    "actionId": "open-bonnet-check-levels",
+    "category": "pre-eng",
+    "phase": "precheck",
+    "responseType": "multi-step-demonstration",
+    "surfaceId": "yaris-manual-v1-eng",
+    "icon": "🚘",
+    "acceptedResult": "open-bonnet-check-levels",
+    "phrasings": [
+      {
+        "id": "c-pre-capo-canonical",
+        "es": "Abra el capó y diga qué niveles se deben revisar",
+        "en": "open the bonnet and say which levels should be checked",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 4,
+        "sourceText": "Abrir el capo y decir qué niveles se deben revisar"
+      }
+    ],
+    "vehicle": {
+      "page": 479,
+      "answer": "Tire de la palanca interior, libere el cierre auxiliar y coloque la varilla de apoyo. Bajo el capó: aceite, dos depósitos de refrigerante y líquido lavaparabrisas.",
+      "answerEn": "Pull the interior release, release the secondary catch, and fit the support rod. Under the bonnet, check the engine oil, two coolant reservoirs, and windscreen-washer fluid."
+    }
+  },
+  {
+    "id": "c-pre-combustible",
+    "actionId": "locate-fuel-level",
+    "category": "pre-dash",
+    "phase": "precheck",
+    "responseType": "dashboard-location",
+    "surfaceId": "yaris-manual-v1-dash",
+    "icon": "⛽",
+    "acceptedResult": "locate-fuel-level",
+    "phrasings": [
+      {
+        "id": "c-pre-combustible-canonical",
+        "es": "Indique dónde se comprueba el nivel de combustible",
+        "en": "show where the fuel level is checked",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 4,
+        "sourceText": "Dónde comprobar nivel combustible o temperatura motor"
+      }
+    ],
+    "vehicle": {
+      "page": 130,
+      "answer": "El indicador de combustible está en el cuadro de instrumentos; su forma cambia entre la pantalla monocroma y la de color.",
+      "answerEn": "The fuel gauge is in the instrument cluster; its layout differs between the monochrome and colour displays."
+    }
+  },
+  {
+    "id": "c-pre-temperatura",
+    "actionId": "locate-engine-temperature",
+    "category": "pre-dash",
+    "phase": "precheck",
+    "responseType": "dashboard-location",
+    "surfaceId": "yaris-manual-v1-dash",
+    "icon": "🌡️",
+    "acceptedResult": "locate-engine-temperature",
+    "phrasings": [
+      {
+        "id": "c-pre-temperatura-canonical",
+        "es": "Indique dónde se comprueba la temperatura del motor",
+        "en": "show where the engine temperature is checked",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 4,
+        "sourceText": "Dónde comprobar nivel combustible o temperatura motor"
+      }
+    ],
+    "vehicle": {
+      "page": 134,
+      "answer": "La pantalla de color tiene un indicador de temperatura del refrigerante. En otras versiones, una luz de advertencia avisa del sobrecalentamiento.",
+      "answerEn": "The colour display has a coolant-temperature gauge. On other versions, a warning light indicates overheating."
+    }
+  },
+  {
+    "id": "c-pre-bloquear-elevalunas",
+    "actionId": "lock-rear-windows",
+    "category": "pre-dash",
+    "phase": "precheck",
+    "responseType": "control-operation",
+    "surfaceId": "yaris-manual-v1-dash",
+    "icon": "🔒",
+    "acceptedResult": "lock-rear-windows",
+    "phrasings": [
+      {
+        "id": "c-pre-bloquear-elevalunas-canonical",
+        "es": "Active el bloqueo infantil de los elevalunas traseros",
+        "en": "activate the rear-window child lock",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 4,
+        "sourceText": "Bloqueo o desbloqueo infantil de elevalunas traseros"
+      }
+    ],
+    "vehicle": {
+      "page": 230,
+      "answer": "Pulse el interruptor de bloqueo de las ventanillas en la puerta del conductor. Bloquea los mandos de los pasajeros.",
+      "answerEn": "Press the window-lock switch on the driver's door. This disables the passenger window controls."
+    }
+  },
+  {
+    "id": "c-pre-desbloquear-elevalunas",
+    "actionId": "unlock-rear-windows",
+    "category": "pre-dash",
+    "phase": "precheck",
+    "responseType": "control-operation",
+    "surfaceId": "yaris-manual-v1-dash",
+    "icon": "🔓",
+    "acceptedResult": "unlock-rear-windows",
+    "phrasings": [
+      {
+        "id": "c-pre-desbloquear-elevalunas-canonical",
+        "es": "Desactive el bloqueo infantil de los elevalunas traseros",
+        "en": "deactivate the rear-window child lock",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 4,
+        "sourceText": "Bloqueo o desbloqueo infantil de elevalunas traseros"
+      }
+    ],
+    "vehicle": {
+      "page": 230,
+      "answer": "Vuelva a pulsar el interruptor de bloqueo en la puerta del conductor para devolver el control a los pasajeros.",
+      "answerEn": "Press the window-lock switch on the driver's door again to return window control to the passengers."
+    }
+  },
+  {
+    "id": "c-pre-largo-alcance",
+    "actionId": "high-beams",
+    "category": "pre-light",
+    "phase": "precheck",
+    "responseType": "control-operation",
+    "surfaceId": "yaris-manual-v1-light",
+    "icon": "🔦",
+    "acceptedResult": "high-beams",
+    "phrasings": [
+      {
+        "id": "c-pre-largo-alcance-canonical",
+        "es": "Encienda las luces de largo alcance",
+        "en": "turn on the high beams",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 4,
+        "sourceText": "Encender cualquier luz: largo alcance, niebla delantera o trasera"
+      }
+    ],
+    "vehicle": {
+      "page": 271,
+      "answer": "Con los faros encendidos, empuje la palanca izquierda hacia delante para encender las luces largas.",
+      "answerEn": "With the headlights on, push the left-hand stalk forwards to turn on the high beams."
+    }
+  },
+  {
+    "id": "c-pre-niebla-delantera",
+    "actionId": "front-fog-lights",
+    "category": "pre-light",
+    "phase": "precheck",
+    "responseType": "control-operation",
+    "surfaceId": "yaris-manual-v1-light",
+    "icon": "🌁",
+    "acceptedResult": "front-fog-lights",
+    "phrasings": [
+      {
+        "id": "c-pre-niebla-delantera-canonical",
+        "es": "Encienda las luces antiniebla delanteras",
+        "en": "turn on the front fog lights",
+        "wording": "source-derived",
+        "validation": "trim-dependent",
+        "sourcePage": 4,
+        "sourceText": "Encender cualquier luz: largo alcance, niebla delantera o trasera"
+      }
+    ],
+    "vehicle": {
+      "page": 277,
+      "answer": "Si el coche las equipa, gire el aro de antiniebla a la primera posición con los faros o las luces de posición encendidos.",
+      "answerEn": "If fitted, turn the fog-light ring to its first position while the headlights or position lights are on."
+    }
+  },
+  {
+    "id": "c-pre-niebla-trasera",
+    "actionId": "rear-fog-light",
+    "category": "pre-light",
+    "phase": "precheck",
+    "responseType": "control-operation",
+    "surfaceId": "yaris-manual-v1-light",
+    "icon": "🌫️",
+    "acceptedResult": "rear-fog-light",
+    "phrasings": [
+      {
+        "id": "c-pre-niebla-trasera-canonical",
+        "es": "Encienda la luz antiniebla trasera",
+        "en": "turn on the rear fog light",
+        "wording": "source-derived",
+        "validation": "trim-dependent",
+        "sourcePage": 4,
+        "sourceText": "Encender cualquier luz: largo alcance, niebla delantera o trasera"
+      }
+    ],
+    "vehicle": {
+      "page": 276,
+      "answer": "Gire el aro de antiniebla a la posición trasera. El manual muestra una versión trasera sola y otra combinada con antinieblas delanteros.",
+      "answerEn": "Turn the fog-light ring to the rear-fog position. The manual shows both a rear-only version and one combined with front fog lights."
+    }
+  },
+  {
+    "id": "c-pre-maletero",
+    "actionId": "open-boot",
+    "category": "pre-body",
+    "phase": "precheck",
+    "responseType": "physical-demonstration",
+    "surfaceId": "yaris-manual-v1-body",
+    "icon": "🧳",
+    "acceptedResult": "open-boot",
+    "phrasings": [
+      {
+        "id": "c-pre-maletero-canonical",
+        "es": "Abra el maletero",
+        "en": "open the boot",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 4,
+        "sourceText": "Abrir el maletero"
+      }
+    ],
+    "vehicle": {
+      "page": 178,
+      "answer": "Pulse hacia arriba el abridor situado bajo el borde de la puerta trasera y levante el portón.",
+      "answerEn": "Press the opener upwards beneath the edge of the rear door, then lift the tailgate."
+    }
+  },
+  {
+    "id": "c-pre-desempanar-delantera",
+    "actionId": "front-demist",
+    "category": "pre-body",
+    "phase": "precheck",
+    "responseType": "control-explanation",
+    "surfaceId": "yaris-manual-v1-body",
+    "icon": "🪟",
+    "acceptedResult": "front-demist",
+    "phrasings": [
+      {
+        "id": "c-pre-desempanar-delantera-canonical",
+        "es": "Indique cómo desempañar la luna delantera",
+        "en": "show how to demist the front windscreen",
+        "wording": "source-derived",
+        "validation": "trim-dependent",
+        "sourcePage": 4,
+        "sourceText": "Cómo desempañar la luna delantera o trasera"
+      }
+    ],
+    "vehicle": {
+      "page": 435,
+      "answer": "Use el botón del desempañador del parabrisas. La disposición exacta depende del sistema de climatización.",
+      "answerEn": "Use the windscreen-demister button. Its exact position depends on the climate-control system."
+    }
+  },
+  {
+    "id": "c-pre-desempanar-trasera",
+    "actionId": "rear-demist",
+    "category": "pre-body",
+    "phase": "precheck",
+    "responseType": "control-explanation",
+    "surfaceId": "yaris-manual-v1-body",
+    "icon": "♨️",
+    "acceptedResult": "rear-demist",
+    "phrasings": [
+      {
+        "id": "c-pre-desempanar-trasera-canonical",
+        "es": "Indique cómo desempañar la luna trasera",
+        "en": "show how to demist the rear window",
+        "wording": "source-derived",
+        "validation": "trim-dependent",
+        "sourcePage": 4,
+        "sourceText": "Cómo desempañar la luna delantera o trasera"
+      }
+    ],
+    "vehicle": {
+      "page": 435,
+      "answer": "Pulse el interruptor del desempañador de la luneta trasera; algunas versiones también desempañan los retrovisores.",
+      "answerEn": "Press the rear-window demister switch; on some versions it also demists the door mirrors."
+    }
+  }
+]

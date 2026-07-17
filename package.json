@@ -1,0 +1,13 @@
+{
+  "name": "examen-practico-de-conducir",
+  "version": "0.1.0",
+  "description": "Standalone bilingual daily practice for Spanish practical-driving-exam commands",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "serve": "node scripts/serve.mjs",
+    "release:check": "npm test && git diff --check"
+  },
+  "engines": { "node": ">=20" }
+}
