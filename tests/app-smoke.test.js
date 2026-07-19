@@ -64,6 +64,14 @@ test('app wires best-effort feedback cues without coupling them to command audio
   assert.match(source, /void feedbackPlayer\.play/);
 });
 
+test('app enables incomplete static-audio sessions only through supported browser speech', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /hasAudio\(command, state\.settings\.speed\)\s*\|\|\s*player\.supportsFallback\(\)/);
+  assert.match(source, /selectPlaybackVariant\(manifest, command, state\.settings\.speed, player\.supportsFallback\(\)\)/);
+  assert.match(source, /player\.play\(variant, \{ text: phrasing\.es, speed: variant\.speed \}\)/);
+});
+
 test('daily-practice controls and SVG response targets preserve 44px touch minimums', async () => {
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(css, /\.surface-option[\s\S]*?min-height:\s*44px;/);

@@ -12,7 +12,8 @@ import {
   resolvePhrasing,
   restoreFocusSnapshot,
   restoreOrDeferFocus,
-  selectAudioVariant
+  selectAudioVariant,
+  selectPlaybackVariant
 } from '../src/app.js';
 import { defaultState, loadState, saveState } from '../src/storage.js';
 import { renderSurfaceModel } from '../src/surfaces.js';
@@ -731,6 +732,48 @@ test('audio selection samples all playable phrasings at the requested speed', ()
   assert.equal(selectAudioVariant(manifest, selection, () => 0).phrasingId, 'c-der-canonical');
   assert.equal(selectAudioVariant(manifest, selection, () => 0.999).phrasingId, 'c-der-alt-1');
   assert.throws(() => selectAudioVariant(manifest, { ...selection, speed: 0.75 }, () => 0), /Audio unavailable/);
+});
+
+test('playback selection prefers recordings and creates a stable browser-speech descriptor only when needed', () => {
+  const command = {
+    id: 'c-pre-cruce',
+    phrasings: [
+      { id: 'c-pre-cruce-canonical', es: 'Encienda las luces de cruce' },
+      { id: 'c-pre-cruce-alt-1', es: 'Conecte las luces de cruce' }
+    ]
+  };
+  const recorded = {
+    ...rightVariant,
+    id: 'cruce-roger',
+    commandId: command.id,
+    phrasingId: command.phrasings[0].id,
+    provider: 'elevenlabs',
+    model: 'eleven_multilingual_v2'
+  };
+
+  assert.strictEqual(
+    selectPlaybackVariant([recorded], command, 0.9, true, () => 0).id,
+    recorded.id
+  );
+  assert.deepEqual(selectPlaybackVariant([], command, 0.9, true, () => 0), {
+    id: 'browser-speech--c-pre-cruce--c-pre-cruce-canonical--0.9',
+    commandId: 'c-pre-cruce',
+    phrasingId: 'c-pre-cruce-canonical',
+    voiceId: 'browser-speech',
+    speed: 0.9,
+    provider: 'browser-speech',
+    model: 'web-speech-api',
+    path: null
+  });
+  assert.equal(
+    selectPlaybackVariant([], command, 0.9, true, () => 0.999).phrasingId,
+    'c-pre-cruce-alt-1'
+  );
+  assert.throws(
+    () => selectPlaybackVariant([], command, 0.9, false, () => 0),
+    /Audio unavailable/
+  );
+  assert.ok(Object.isFrozen(selectPlaybackVariant([], command, 0.9, true, () => 0)));
 });
 
 test('prompt and reveal phrasing resolves from the retained audio variant', () => {

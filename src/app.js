@@ -373,6 +373,32 @@ export function selectAudioVariant(manifest, selection, rng = Math.random) {
   return Object.freeze({ ...candidates[index] });
 }
 
+export function selectPlaybackVariant(manifest, command, speed, fallbackSupported, rng = Math.random) {
+  const recorded = manifest.filter(variant =>
+    variant.commandId === command.id
+    && variant.speed === speed
+  );
+  if (recorded.length > 0) {
+    return selectAudioVariant(manifest, { commandId: command.id, speed }, rng);
+  }
+  if (!fallbackSupported) throw new Error(`Audio unavailable for ${command.id}`);
+  const phrasingIndex = Math.min(
+    command.phrasings.length - 1,
+    Math.floor(rng() * command.phrasings.length)
+  );
+  const phrasing = command.phrasings[phrasingIndex];
+  return Object.freeze({
+    id: `browser-speech--${command.id}--${phrasing.id}--${speed}`,
+    commandId: command.id,
+    phrasingId: phrasing.id,
+    voiceId: 'browser-speech',
+    speed,
+    provider: 'browser-speech',
+    model: 'web-speech-api',
+    path: null
+  });
+}
+
 export function resolvePhrasing(command, variant) {
   if (!variant) return command.phrasings[0];
   const phrasing = command.phrasings.find(candidate => candidate.id === variant.phrasingId);
@@ -543,7 +569,9 @@ async function bootstrap() {
 
   function renderSetup() {
     const pool = commandsForPhase(selectableCommands, state.settings.phase);
-    const canStart = pool.length > 0 && pool.every(command => hasAudio(command, state.settings.speed));
+    const canStart = pool.length > 0 && pool.every(command =>
+      hasAudio(command, state.settings.speed) || player.supportsFallback()
+    );
     return `<section class="panel" aria-labelledby="setup-title">
       <h2 id="setup-title" data-screen-focus tabindex="-1">${translate(locale(), 'screen.setup')}</h2>
       ${recoveryError ? `<p class="notice" role="alert">${translate(locale(), 'error.recovery')}</p>` : ''}
@@ -821,12 +849,10 @@ async function bootstrap() {
     let variant = model.variant;
     try {
       if (!variant) {
-        variant = selectAudioVariant(manifest, {
-          commandId: command.id,
-          speed: state.settings.speed
-        });
+        variant = selectPlaybackVariant(manifest, command, state.settings.speed, player.supportsFallback());
       }
-      const result = await player.play(variant);
+      const phrasing = resolvePhrasing(command, variant);
+      const result = await player.play(variant, { text: phrasing.es, speed: variant.speed });
       if (operation !== audioOperation) return;
       if (!result.scored) {
         model = reduceScreen(model, { type: 'AUDIO_FAILED', reason: result.reason });
