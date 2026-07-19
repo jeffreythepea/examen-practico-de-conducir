@@ -122,6 +122,9 @@ function validateAttempt(attempt, path) {
   if (typeof attempt.textShown !== 'boolean') throw new Error(`Invalid ${path}.textShown`);
   if (typeof attempt.timed !== 'boolean') throw new Error(`Invalid ${path}.timed`);
   if (typeof attempt.timeout !== 'boolean') throw new Error(`Invalid ${path}.timeout`);
+  if (attempt.audioProvider !== undefined) {
+    requireNonEmptyString(attempt.audioProvider, `${path}.audioProvider`);
+  }
   if (attempt.missReason !== undefined) requireNonEmptyString(attempt.missReason, `${path}.missReason`);
   if (attempt.surfaceVersion !== undefined && (!Number.isSafeInteger(attempt.surfaceVersion) || attempt.surfaceVersion < 1)) {
     throw new Error(`Invalid ${path}.surfaceVersion`);

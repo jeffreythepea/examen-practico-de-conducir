@@ -914,6 +914,7 @@ async function bootstrap() {
       actionId: command.actionId,
       phrasingId: before.variant.phrasingId,
       voiceId: before.variant.voiceId,
+      audioProvider: before.variant.provider,
       speed: before.variant.speed,
       phase: command.phase,
       surfaceId: command.surfaceId,

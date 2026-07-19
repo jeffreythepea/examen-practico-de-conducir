@@ -157,6 +157,17 @@ test('records a complete immutable scored attempt with injected time and identif
   assert.equal(timeout.attempt.weight, 0);
 });
 
+test('records browser-speech provider provenance without changing scoring', () => {
+  const result = record(
+    { attempts: [], actionProgress: {} },
+    { audioProvider: 'browser-speech', voiceId: 'browser-speech' }
+  );
+
+  assert.equal(result.scored, true);
+  assert.equal(result.attempt.audioProvider, 'browser-speech');
+  assert.equal(result.attempt.voiceId, 'browser-speech');
+});
+
 test('records optional surface-model provenance alongside a scored attempt', () => {
   const surfaceModel = {
     version: 2,

@@ -277,6 +277,27 @@ test('validates optional Stage 2 surface provenance without requiring it on prio
   );
 });
 
+test('round-trips optional audio-provider provenance while accepting older attempts', () => {
+  const withProvider = {
+    ...defaultState(),
+    attempts: [completedAttempt({ audioProvider: 'browser-speech' })]
+  };
+  assert.deepEqual(importState(JSON.stringify(withProvider)).attempts, withProvider.attempts);
+
+  const legacy = { ...defaultState(), attempts: [completedAttempt()] };
+  assert.deepEqual(importState(JSON.stringify(legacy)).attempts, legacy.attempts);
+
+  for (const audioProvider of ['', 42, null]) {
+    assert.throws(
+      () => importState(JSON.stringify({
+        ...defaultState(),
+        attempts: [completedAttempt({ audioProvider })]
+      })),
+      /Invalid attempts\[0\]\.audioProvider/
+    );
+  }
+});
+
 test('imports historical provenance but never restores an imported active surface model', () => {
   const futureAttempt = completedAttempt({
     surfaceVersion: 99,

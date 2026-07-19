@@ -98,6 +98,7 @@ export function recordAttempt(state, input, {
     timed: Boolean(input.timed),
     timeout: Boolean(input.timeout)
   };
+  if (input.audioProvider !== undefined) attempt.audioProvider = input.audioProvider;
   if (input.missReason) attempt.missReason = input.missReason;
   if (input.surfaceModel) {
     attempt.surfaceVersion = input.surfaceModel.version;
