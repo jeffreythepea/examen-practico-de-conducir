@@ -146,6 +146,101 @@ test('does not replay a prior command after the next command fails to start', as
   assert.equal(fixture.instances.length, 2);
 });
 
+test('prefers a recorded asset and does not invoke browser speech when the MP3 completes', async () => {
+  const audio = audioFixture();
+  const fallback = fallbackFixture();
+  const player = createAudioPlayer({ ...audio.dependencies, fallbackPlayer: fallback.player });
+
+  const result = player.play(variant, { text: 'Gire a la derecha', speed: 0.9 });
+  await audio.instances[0].started;
+  audio.instances[0].emit('ended');
+
+  assert.deepEqual(await result, { scored: true, replays: 0 });
+  assert.equal(fallback.calls.length, 0);
+});
+
+test('uses exact browser speech after an MP3 error or rejected play start', async () => {
+  for (const failure of ['event', 'rejection']) {
+    const audio = audioFixture({ rejectStarts: [failure === 'rejection'] });
+    const fallback = fallbackFixture();
+    const player = createAudioPlayer({ ...audio.dependencies, fallbackPlayer: fallback.player });
+    const request = { text: 'Encienda las luces de cruce', speed: 0.75 };
+
+    const result = player.play(variant, request);
+    await audio.instances[0].started;
+    if (failure === 'event') audio.instances[0].emit('error');
+
+    assert.deepEqual(await result, { scored: true, replays: 0 });
+    assert.deepEqual(fallback.calls, [request]);
+  }
+});
+
+test('a browser-speech descriptor bypasses HTML audio entirely', async () => {
+  const audio = audioFixture();
+  const fallback = fallbackFixture();
+  const player = createAudioPlayer({ ...audio.dependencies, fallbackPlayer: fallback.player });
+  const speechVariant = {
+    ...variant,
+    provider: 'browser-speech',
+    model: 'web-speech-api',
+    voiceId: 'browser-speech',
+    path: null
+  };
+
+  assert.deepEqual(
+    await player.play(speechVariant, { text: 'Compruebe el líquido de frenos', speed: 0.9 }),
+    { scored: true, replays: 0 }
+  );
+  assert.equal(audio.instances.length, 0);
+  assert.equal(fallback.calls.length, 1);
+});
+
+test('replay retains successful fallback mode, exact text, and speed without retrying a broken MP3', async () => {
+  const audio = audioFixture();
+  const fallback = fallbackFixture();
+  const player = createAudioPlayer({ ...audio.dependencies, fallbackPlayer: fallback.player });
+  const request = { text: 'Accione el intermitente', speed: 1 };
+
+  const initial = player.play(variant, request);
+  await audio.instances[0].started;
+  audio.instances[0].emit('error');
+  assert.deepEqual(await initial, { scored: true, replays: 0 });
+
+  assert.deepEqual(await player.replay(), { scored: true, replays: 1 });
+  assert.equal(audio.instances.length, 1);
+  assert.deepEqual(fallback.calls, [request, request]);
+});
+
+test('total recorded and browser-speech failure remains unscored and clears replay', async () => {
+  const audio = audioFixture();
+  const fallback = fallbackFixture({ results: [{ scored: false, reason: 'unsupported' }] });
+  const player = createAudioPlayer({ ...audio.dependencies, fallbackPlayer: fallback.player });
+
+  const result = player.play(variant, { text: 'Siga todo recto', speed: 0.9 });
+  await audio.instances[0].started;
+  audio.instances[0].emit('error');
+
+  assert.deepEqual(await result, { scored: false, reason: 'unsupported' });
+  assert.deepEqual(await player.replay(), { scored: false, reason: 'no-audio' });
+});
+
+test('reports whether browser speech fallback is supported', () => {
+  const audio = audioFixture();
+  const supported = createAudioPlayer({
+    ...audio.dependencies,
+    fallbackPlayer: fallbackFixture().player,
+    fallbackSupported: true
+  });
+  const unsupported = createAudioPlayer({
+    ...audio.dependencies,
+    fallbackPlayer: fallbackFixture().player,
+    fallbackSupported: false
+  });
+
+  assert.equal(supported.supportsFallback(), true);
+  assert.equal(unsupported.supportsFallback(), false);
+});
+
 function audioFixture({ rejectStarts = [] } = {}) {
   const instances = [];
   const document = eventTarget({ hidden: false });
@@ -181,6 +276,20 @@ function audioFixture({ rejectStarts = [] } = {}) {
     }
   }
   return { instances, document, dependencies: { AudioCtor: FakeAudio, document } };
+}
+
+function fallbackFixture({ results = [] } = {}) {
+  const calls = [];
+  return {
+    calls,
+    player: {
+      play: async request => {
+        calls.push(structuredClone(request));
+        return results.shift() ?? { scored: true };
+      },
+      cancel: () => {}
+    }
+  };
 }
 
 function eventTarget(properties) {

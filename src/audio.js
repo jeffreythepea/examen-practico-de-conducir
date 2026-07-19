@@ -1,3 +1,5 @@
+import { createBrowserSpeechPlayer, supportsBrowserSpeech } from './browser-speech.js';
+
 export const AUDIO_SPEEDS = Object.freeze([0.75, 0.9, 1]);
 
 const VARIANT_FIELDS = Object.freeze([
@@ -39,66 +41,145 @@ export function findAudioVariant(manifest, selection) {
   return Object.freeze({ ...variant });
 }
 
-export function createAudioPlayer({ AudioCtor = Audio, document = globalThis.document } = {}) {
+export function createAudioPlayer(options = {}) {
+  const {
+    AudioCtor = globalThis.Audio,
+    document = globalThis.document,
+    speechSynthesis = globalThis.speechSynthesis,
+    UtteranceCtor = globalThis.SpeechSynthesisUtterance
+  } = options;
+  const fallbackPlayer = options.fallbackPlayer ?? createBrowserSpeechPlayer({
+    speechSynthesis,
+    UtteranceCtor,
+    document
+  });
+  const fallbackAvailable = options.fallbackSupported
+    ?? (options.fallbackPlayer
+      ? true
+      : supportsBrowserSpeech({ speechSynthesis, UtteranceCtor }));
   let active = null;
-  let lastStartedVariant = null;
+  let lastPlayback = null;
   let replayCount = 0;
 
-  function play(variant) {
-    lastStartedVariant = null;
+  function play(variant, speechRequest) {
+    lastPlayback = null;
     replayCount = 0;
-    return start(variant, false);
+    return start(variant, speechRequest, false);
   }
 
   function replay() {
-    if (!lastStartedVariant) return Promise.resolve({ scored: false, reason: 'no-audio' });
-    return start(lastStartedVariant, true);
+    if (!lastPlayback) return Promise.resolve({ scored: false, reason: 'no-audio' });
+    return start(lastPlayback.variant, lastPlayback.speechRequest, true, lastPlayback.mode);
   }
 
   function cancel(reason = 'cancelled') {
-    active?.finish({ scored: false, reason });
+    active?.cancel(reason);
   }
 
-  function start(variant, isReplay) {
+  function start(variant, speechRequest, isReplay, retainedMode = null) {
     cancel('replaced');
-    const audio = new AudioCtor(variant.path);
     return new Promise(resolve => {
       let settled = false;
-      const finish = result => {
+      const finish = (result, mode = null) => {
         if (settled) return;
         settled = true;
+        if (active?.finish === finish) active = null;
+        if (result.scored) {
+          lastPlayback = Object.freeze({
+            variant: Object.freeze({ ...variant }),
+            speechRequest: Object.freeze({ ...speechRequest }),
+            mode
+          });
+          if (isReplay) replayCount += 1;
+          resolve({ scored: true, replays: replayCount });
+        } else {
+          if (!isReplay) lastPlayback = null;
+          resolve(result);
+        }
+      };
+
+      const startSpeech = originalReason => {
+        if (!fallbackAvailable || !speechRequest?.text) {
+          finish({ scored: false, reason: originalReason });
+          return;
+        }
+        active = {
+          finish,
+          cancel: reason => {
+            fallbackPlayer.cancel(reason);
+            finish({ scored: false, reason });
+          }
+        };
+        Promise.resolve(fallbackPlayer.play(speechRequest))
+          .then(result => finish(result, 'speech'))
+          .catch(() => finish({ scored: false, reason: 'error' }));
+      };
+
+      if (retainedMode === 'speech' || variant.provider === 'browser-speech' || !variant.path) {
+        startSpeech('unsupported');
+        return;
+      }
+
+      let audio;
+      try {
+        audio = new AudioCtor(variant.path);
+      } catch {
+        startSpeech('error');
+        return;
+      }
+
+      let mediaSettled = false;
+      const cleanMedia = ({ pause = false } = {}) => {
+        if (mediaSettled) return false;
+        mediaSettled = true;
         audio.removeEventListener?.('ended', onEnded);
         audio.removeEventListener?.('error', onError);
         audio.removeEventListener?.('abort', onAbort);
         document?.removeEventListener?.('visibilitychange', onVisibilityChange);
-        if (!result.scored) audio.pause?.();
-        if (active?.finish === finish) active = null;
-        resolve(result);
+        if (pause) audio.pause?.();
+        return true;
       };
-      const onEnded = () => finish({ scored: true, replays: replayCount });
-      const onError = () => finish({ scored: false, reason: 'error' });
-      const onAbort = () => finish({ scored: false, reason: 'abort' });
+      const onEnded = () => {
+        if (!cleanMedia()) return;
+        finish({ scored: true }, 'recorded');
+      };
+      const onError = () => {
+        if (!cleanMedia({ pause: true })) return;
+        startSpeech('error');
+      };
+      const onAbort = () => {
+        if (!cleanMedia({ pause: true })) return;
+        startSpeech('abort');
+      };
       const onVisibilityChange = () => {
-        if (document?.hidden) finish({ scored: false, reason: 'visibilitychange' });
+        if (!document?.hidden || !cleanMedia({ pause: true })) return;
+        finish({ scored: false, reason: 'visibilitychange' });
       };
 
-      active = { finish };
+      active = {
+        finish,
+        cancel: reason => {
+          cleanMedia({ pause: true });
+          finish({ scored: false, reason });
+        }
+      };
       audio.addEventListener?.('ended', onEnded);
       audio.addEventListener?.('error', onError);
       audio.addEventListener?.('abort', onAbort);
       document?.addEventListener?.('visibilitychange', onVisibilityChange);
 
       Promise.resolve(audio.play())
-        .then(() => {
-          if (settled) return;
-          lastStartedVariant = Object.freeze({ ...variant });
-          if (isReplay) replayCount += 1;
-        })
+        .then(() => {})
         .catch(onError);
     });
   }
 
-  return Object.freeze({ play, replay, cancel });
+  return Object.freeze({
+    play,
+    replay,
+    cancel,
+    supportsFallback: () => fallbackAvailable
+  });
 }
 
 function requireField(value, variantId, field) {
