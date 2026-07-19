@@ -17,6 +17,16 @@
         "validation": "guide-only",
         "sourcePage": 5,
         "sourceText": "Gire a la derecha (o izquierda) cuando pueda"
+      },
+      {
+        "id": "c-der-supplementary-1",
+        "es": "Gire a la derecha en la próxima",
+        "en": "turn right at the next one",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_02/right",
+        "sourceText": "Gire a la derecha en la próxima",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ]
   },
@@ -38,6 +48,38 @@
         "validation": "guide-only",
         "sourcePage": 5,
         "sourceText": "Gire a la derecha (o izquierda) cuando pueda"
+      },
+      {
+        "id": "c-izq-supplementary-1",
+        "es": "Gire a la izquierda en la próxima",
+        "en": "turn left at the next one",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_02/left",
+        "sourceText": "Gire a la izquierda en la próxima",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      }
+    ]
+  },
+  {
+    "id": "c-recto",
+    "actionId": "continue-forward",
+    "category": "dir",
+    "phase": "driving",
+    "responseType": "spoken-direction",
+    "surfaceId": "junction-v2",
+    "icon": "⬆️",
+    "acceptedResult": "continue-forward",
+    "phrasings": [
+      {
+        "id": "c-recto-canonical",
+        "es": "Siga todo recto",
+        "en": "continue straight ahead",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite rg_04",
+        "sourceText": "Siga todo recto salvo que le diga",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ]
   },
@@ -59,6 +101,16 @@
         "validation": "guide-only",
         "sourcePage": 6,
         "sourceText": "Cambio de sentido"
+      },
+      {
+        "id": "c-sentido-supplementary-1",
+        "es": "Cambie de sentido cuando pueda",
+        "en": "change direction when you can",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite ft_02/general",
+        "sourceText": "Cambie de sentido cuando pueda",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ]
   },
@@ -101,6 +153,16 @@
         "validation": "guide-only",
         "sourcePage": 5,
         "sourceText": "Tome la primera (segunda, tercera) salida en la glorieta"
+      },
+      {
+        "id": "c-rot1-supplementary-1",
+        "es": "Primera salida, por favor",
+        "en": "first exit, please",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_01/first",
+        "sourceText": "Primera salida, por favor",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ]
   },
@@ -122,6 +184,16 @@
         "validation": "guide-only",
         "sourcePage": 5,
         "sourceText": "Tome la primera (segunda, tercera) salida en la glorieta"
+      },
+      {
+        "id": "c-rot2-supplementary-1",
+        "es": "Segunda salida",
+        "en": "second exit",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_01/second",
+        "sourceText": "Segunda salida",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ]
   },
@@ -143,6 +215,16 @@
         "validation": "guide-only",
         "sourcePage": 5,
         "sourceText": "Tome la primera (segunda, tercera) salida en la glorieta"
+      },
+      {
+        "id": "c-rot3-supplementary-1",
+        "es": "Tercera salida",
+        "en": "third exit",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_01/third",
+        "sourceText": "Tercera salida",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ]
   },
@@ -164,6 +246,16 @@
         "validation": "guide-only",
         "sourcePage": 6,
         "sourceText": "Primera (segunda, tercera, cuarta, quinta) salida"
+      },
+      {
+        "id": "c-rot4-supplementary-1",
+        "es": "Tome la cuarta salida",
+        "en": "take the fourth exit",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite ft_01",
+        "sourceText": "Primera / Segunda / Tercera / Cuarta / Quinta salida",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ]
   },
@@ -185,6 +277,16 @@
         "validation": "guide-only",
         "sourcePage": 6,
         "sourceText": "Primera (segunda, tercera, cuarta, quinta) salida"
+      },
+      {
+        "id": "c-rot5-supplementary-1",
+        "es": "Tome la quinta salida",
+        "en": "take the fifth exit",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite ft_01",
+        "sourceText": "Primera / Segunda / Tercera / Cuarta / Quinta salida",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ]
   },
@@ -206,6 +308,16 @@
         "validation": "guide-only",
         "sourcePage": 5,
         "sourceText": "Realice una parada (o estacionamiento)"
+      },
+      {
+        "id": "c-parada-supplementary-1",
+        "es": "Haga una parada",
+        "en": "make a stop",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_03/stop",
+        "sourceText": "Haga una parada",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ]
   },
@@ -252,6 +364,28 @@
     ]
   },
   {
+    "id": "c-intermitente",
+    "actionId": "operate-indicator",
+    "category": "spd",
+    "phase": "driving",
+    "responseType": "safety-correction-control",
+    "surfaceId": "yaris-dashboard-v2",
+    "icon": "↔️",
+    "acceptedResult": "operate-indicator",
+    "phrasings": [
+      {
+        "id": "c-intermitente-canonical",
+        "es": "Ponga el intermitente",
+        "en": "use the indicator",
+        "wording": "verbatim",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite safety_corrections",
+        "sourceText": "Intermitente / Ponga el intermitente",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      }
+    ]
+  },
+  {
     "id": "c-est",
     "actionId": "park",
     "category": "man",
@@ -269,6 +403,16 @@
         "validation": "guide-only",
         "sourcePage": 5,
         "sourceText": "Realice una parada (o estacionamiento)"
+      },
+      {
+        "id": "c-est-supplementary-1",
+        "es": "Aparque",
+        "en": "park",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_03/park",
+        "sourceText": "Aparque",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ]
   },
@@ -290,6 +434,16 @@
         "validation": "guide-only",
         "sourcePage": 5,
         "sourceText": "Inmovilice el vehículo"
+      },
+      {
+        "id": "c-inmov-supplementary-1",
+        "es": "Deje el coche inmovilizado",
+        "en": "leave the car secured",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_04/general",
+        "sourceText": "Deje el coche inmovilizado",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ],
     "procedure": {
@@ -338,6 +492,16 @@
         "validation": "spoken-use-unverified",
         "sourcePage": 5,
         "sourceText": "Finalización del examen"
+      },
+      {
+        "id": "c-final-supplementary-1",
+        "es": "Ha terminado",
+        "en": "you have finished",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_05/general",
+        "sourceText": "Ha terminado",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ]
   },
@@ -359,6 +523,16 @@
         "validation": "manual-baseline",
         "sourcePage": 3,
         "sourceText": "Localizar: Batería, Liquido de frenos, Nivel de aceite y Nivel de líquido refrigerante"
+      },
+      {
+        "id": "c-pre-bateria-supplementary-1",
+        "es": "¿Dónde está la batería?",
+        "en": "where is the battery?",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite pc_01/general",
+        "sourceText": "¿Dónde está la batería?",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ],
     "vehicle": {
@@ -386,6 +560,16 @@
         "validation": "manual-baseline",
         "sourcePage": 3,
         "sourceText": "Localizar: Batería, Liquido de frenos, Nivel de aceite y Nivel de líquido refrigerante"
+      },
+      {
+        "id": "c-pre-aceite-supplementary-1",
+        "es": "¿Dónde se mira el aceite?",
+        "en": "where do you check the oil?",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite pc_01/general",
+        "sourceText": "¿Dónde se mira el aceite?",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ],
     "vehicle": {
@@ -412,12 +596,76 @@
         "validation": "manual-baseline",
         "sourcePage": 3,
         "sourceText": "Localizar: Batería, Liquido de frenos, Nivel de aceite y Nivel de líquido refrigerante"
+      },
+      {
+        "id": "c-pre-refrigerante-supplementary-1",
+        "es": "Líquido refrigerante, ¿dónde está?",
+        "en": "where is the coolant?",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite pc_01/general",
+        "sourceText": "Líquido refrigerante, ¿dónde está?",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ],
     "vehicle": {
       "page": 483,
       "answer": "El depósito de refrigerante del motor está bajo el capó. El híbrido tiene además otro depósito para la unidad de control de potencia.",
       "answerEn": "The engine-coolant reservoir is under the bonnet. The hybrid also has a separate reservoir for the power control unit."
+    }
+  },
+  {
+    "id": "c-pre-frenos",
+    "actionId": "locate-brake-fluid",
+    "category": "pre-eng",
+    "phase": "precheck",
+    "responseType": "component-location",
+    "surfaceId": "yaris-engine-bay-v2",
+    "icon": "🛑",
+    "acceptedResult": "locate-brake-fluid",
+    "phrasings": [
+      {
+        "id": "c-pre-frenos-canonical",
+        "es": "Localice el líquido de frenos",
+        "en": "locate the brake fluid",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 3,
+        "sourceText": "Localizar: Batería, Liquido de frenos, Nivel de aceite y Nivel de líquido refrigerante"
+      }
+    ],
+    "vehicle": {
+      "page": "Fermín 3",
+      "reference": "fermin-spanish-authoritative-generic",
+      "answer": "En este compartimento ilustrativo, el depósito del líquido de frenos es el depósito pequeño junto al cortafuegos. Confirme la ubicación en el coche del examen.",
+      "answerEn": "In this illustrative engine bay, the brake-fluid reservoir is the small reservoir beside the firewall. Confirm its position in the test car."
+    }
+  },
+  {
+    "id": "c-pre-lavaparabrisas",
+    "actionId": "locate-washer-fluid",
+    "category": "pre-eng",
+    "phase": "precheck",
+    "responseType": "component-location",
+    "surfaceId": "yaris-engine-bay-v2",
+    "icon": "💦",
+    "acceptedResult": "locate-washer-fluid",
+    "phrasings": [
+      {
+        "id": "c-pre-lavaparabrisas-canonical",
+        "es": "Localice el líquido lavaparabrisas",
+        "en": "locate the windscreen-washer fluid",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 3,
+        "sourceText": "Windscreen wiper fluid (B)"
+      }
+    ],
+    "vehicle": {
+      "page": 491,
+      "reference": "generic-conventional",
+      "answer": "El depósito del líquido lavaparabrisas se identifica por el tapón azul con el símbolo del parabrisas.",
+      "answerEn": "The windscreen-washer reservoir is identified by the blue cap with the windscreen symbol."
     }
   },
   {
@@ -438,6 +686,16 @@
         "validation": "manual-baseline",
         "sourcePage": 4,
         "sourceText": "Abrir el capo y decir qué niveles se deben revisar"
+      },
+      {
+        "id": "c-pre-capo-supplementary-1",
+        "es": "Abra el capó y diga los niveles",
+        "en": "open the bonnet and state the fluid levels",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite pc_02/general",
+        "sourceText": "Abra el capó y diga los niveles",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ],
     "vehicle": {
@@ -464,6 +722,16 @@
         "validation": "manual-baseline",
         "sourcePage": 4,
         "sourceText": "Dónde comprobar nivel combustible o temperatura motor"
+      },
+      {
+        "id": "c-pre-combustible-supplementary-1",
+        "es": "¿Dónde ve el nivel de gasolina?",
+        "en": "where do you see the fuel level?",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite pc_03/general",
+        "sourceText": "¿Dónde ve el nivel de gasolina?",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ],
     "vehicle": {
@@ -490,6 +758,16 @@
         "validation": "manual-baseline",
         "sourcePage": 4,
         "sourceText": "Dónde comprobar nivel combustible o temperatura motor"
+      },
+      {
+        "id": "c-pre-temperatura-supplementary-1",
+        "es": "Muestre el indicador de temperatura",
+        "en": "show the temperature gauge",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite pc_03/general",
+        "sourceText": "Muestre el indicador de temperatura",
+        "sourceDocument": "spanish_driving_exam_commands.json"
       }
     ],
     "vehicle": {
@@ -548,6 +826,60 @@
       "page": 230,
       "answer": "Vuelva a pulsar el interruptor de bloqueo en la puerta del conductor para devolver el control a los pasajeros.",
       "answerEn": "Press the window-lock switch on the driver's door again to return window control to the passengers."
+    }
+  },
+  {
+    "id": "c-pre-posicion",
+    "actionId": "position-lights",
+    "category": "pre-light",
+    "phase": "precheck",
+    "responseType": "control-operation",
+    "surfaceId": "yaris-dashboard-v2",
+    "icon": "💡",
+    "acceptedResult": "position-lights",
+    "phrasings": [
+      {
+        "id": "c-pre-posicion-canonical",
+        "es": "Encienda las luces de posición",
+        "en": "turn on the position lights",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": "composite pc_06/general",
+        "sourceText": "Luces de posición",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      }
+    ],
+    "vehicle": {
+      "page": 270,
+      "answer": "Gire el mando de luces hasta el símbolo de las luces de posición.",
+      "answerEn": "Turn the lighting control to the position-light symbol."
+    }
+  },
+  {
+    "id": "c-pre-cruce",
+    "actionId": "dipped-headlights",
+    "category": "pre-light",
+    "phase": "precheck",
+    "responseType": "control-operation",
+    "surfaceId": "yaris-dashboard-v2",
+    "icon": "🔅",
+    "acceptedResult": "dipped-headlights",
+    "phrasings": [
+      {
+        "id": "c-pre-cruce-canonical",
+        "es": "Encienda las luces de cruce",
+        "en": "turn on the dipped headlights",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": "composite pc_06/general",
+        "sourceText": "Encienda los cortos",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      }
+    ],
+    "vehicle": {
+      "page": 270,
+      "answer": "Gire el mando de luces hasta el símbolo de las luces de cruce.",
+      "answerEn": "Turn the lighting control to the dipped-headlight symbol."
     }
   },
   {

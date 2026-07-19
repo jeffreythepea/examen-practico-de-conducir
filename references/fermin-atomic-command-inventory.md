@@ -9,7 +9,8 @@ that source-derived wording is an exact DGT examiner quotation.
 
 - **Source:** *20200303 Fermin - Practical Driving Test Student Guide.pdf*
 - **Publisher/date:** Autoescuela Fermín, 2020
-- **PDF SHA-256:** `9dc80c298db1e3c5f7566e7dbb69abf500f15a39d0b9acab0d19dfba9c4f615b`
+- **Reviewed PDF SHA-256:**
+  `da85b5e8adf782c917a0127b3c0538c61352cfd2bdd65c8659d7be102524ed17`
 - **Repository policy:** the copyrighted PDF is not committed. Verify a local
   copy against the checksum when the original layout must be inspected.
 - **Wording policy:** `verbatim` reproduces a complete source phrase or
@@ -23,10 +24,11 @@ that source-derived wording is an exact DGT examiner quotation.
 ## Source discrepancies requiring care
 
 1. **Page 3, reservoir B:** Spanish says `Liquido de frenos`; English says
-   `Windscreen wiper fluid`. The B marker is placed at a yellow-capped reservoir
-   consistent with washer fluid, but the diagram alone is not sufficient
-   authority. Withhold this atomic card until Fermín confirms the intended
-   component.
+   `Windscreen wiper fluid`. Jeffrey directed the 2026-07-20 expansion to treat
+   the Spanish source as authoritative for brake fluid. Washer fluid remains a
+   separate useful precheck supported by the English diagram key, the page-4
+   under-bonnet context, and Toyota manual page 491. Neither card claims that
+   letter B identifies both reservoirs.
 2. **Page 4, lights:** Spanish lists `largo alcance, niebla delantera o trasera`.
    English additionally says `position lights`. The atomic inventory follows
    the Spanish list and does not add a position-light card without confirmation.
@@ -82,7 +84,8 @@ ambiguous grouped cards must not be assigned arbitrarily to one child variant.
 | Proposed stable ID | Page | Exact source text | Natural drill wording | Response type | Status / migration |
 |---|---:|---|---|---|---|
 | `c-pre-bateria` | 3 | `Localizar: Batería, Liquido de frenos, Nivel de aceite y Nivel de líquido refrigerante` | `Localice la batería` | component location | `source-derived`; new ID |
-| `c-pre-deposito-b` | 3 | same grouped line | **Pending Fermín confirmation; do not seed** | component location | blocked by brake-fluid/washer-fluid conflict |
+| `c-pre-frenos` | 3 | same grouped line | `Localice el líquido de frenos` | component location | Spanish source authoritative; generic photo pending actual-car confirmation |
+| `c-pre-lavaparabrisas` | 3 | English diagram key `Windscreen wiper fluid (B)` | `Localice el líquido lavaparabrisas` | component location | separate useful precheck; Toyota manual p. 491 |
 | `c-pre-aceite` | 3 | same grouped line | `Localice dónde se comprueba el nivel de aceite` | component/check location | `source-derived`; new ID |
 | `c-pre-refrigerante` | 3 | same grouped line | `Localice dónde se comprueba el nivel de líquido refrigerante` | component/check location | `source-derived`; new ID |
 | `c-pre-capo` | 4 | `Abrir el capo y decir qué niveles se deben revisar` | `Abra el capó y diga qué niveles se deben revisar` | multi-step demonstration/explanation | `source-derived`; preserve existing ID |

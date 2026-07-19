@@ -7,13 +7,64 @@ const commands = JSON.parse(await readFile(new URL('../data/commands.json', impo
 
 test('catalog contains the complete safe atomic command inventory', () => {
   assert.doesNotThrow(() => validateCatalog(commands));
-  assert.equal(commands.length, 30);
-  assert.equal(commandsForPhase(commands, 'driving').length, 16);
-  assert.equal(commandsForPhase(commands, 'precheck').length, 14);
-  assert.equal(commandsForPhase(commands, 'mixed').length, 30);
-  assert.equal(new Set(commands.map(command => command.id)).size, 30);
-  assert.equal(new Set(commands.map(command => command.actionId)).size, 30);
+  assert.equal(commands.length, 36);
+  assert.equal(commandsForPhase(commands, 'driving').length, 18);
+  assert.equal(commandsForPhase(commands, 'precheck').length, 18);
+  assert.equal(commandsForPhase(commands, 'mixed').length, 36);
+  assert.equal(new Set(commands.map(command => command.id)).size, 36);
+  assert.equal(new Set(commands.map(command => command.actionId)).size, 36);
   assert.equal(commands.some(command => command.id === 'c-pre-deposito-b'), false);
+});
+
+test('expanded inventory keeps six source-labeled atomic additions', () => {
+  const additions = new Map([
+    ['c-recto', ['continue-forward', 'driving']],
+    ['c-intermitente', ['operate-indicator', 'driving']],
+    ['c-pre-frenos', ['locate-brake-fluid', 'precheck']],
+    ['c-pre-lavaparabrisas', ['locate-washer-fluid', 'precheck']],
+    ['c-pre-posicion', ['position-lights', 'precheck']],
+    ['c-pre-cruce', ['dipped-headlights', 'precheck']]
+  ]);
+
+  for (const [id, [actionId, phase]] of additions) {
+    const command = commandById(commands, id);
+    assert.equal(command.actionId, actionId);
+    assert.equal(command.acceptedResult, actionId);
+    assert.equal(command.phase, phase);
+    assert.match(command.phrasings[0].sourceText, /\S/);
+  }
+});
+
+test('selected high-value commands include one traceable supplementary phrasing', () => {
+  const expandedIds = [
+    'c-der', 'c-izq', 'c-sentido',
+    'c-rot1', 'c-rot2', 'c-rot3', 'c-rot4', 'c-rot5',
+    'c-parada', 'c-est', 'c-inmov', 'c-final',
+    'c-pre-bateria', 'c-pre-aceite', 'c-pre-refrigerante',
+    'c-pre-capo', 'c-pre-combustible', 'c-pre-temperatura'
+  ];
+
+  for (const id of expandedIds) {
+    const command = commandById(commands, id);
+    assert.equal(command.phrasings.length, 2, `${id} should have one alternative`);
+    const alternative = command.phrasings[1];
+    assert.equal(alternative.id, `${id}-supplementary-1`);
+    assert.equal(alternative.validation, 'supplementary-composite');
+    assert.equal(alternative.sourceDocument, 'spanish_driving_exam_commands.json');
+    assert.match(String(alternative.sourcePage), /composite/);
+    assert.match(alternative.sourceText, /\S/);
+  }
+});
+
+test('Fermín Spanish is authoritative for brake fluid while washer fluid remains separate', () => {
+  const brake = commandById(commands, 'c-pre-frenos');
+  const washer = commandById(commands, 'c-pre-lavaparabrisas');
+  assert.match(brake.phrasings[0].es, /líquido de frenos/i);
+  assert.match(brake.phrasings[0].sourceText, /Liquido de frenos/i);
+  assert.equal(brake.vehicle.reference, 'fermin-spanish-authoritative-generic');
+  assert.match(washer.phrasings[0].es, /lavaparabrisas/i);
+  assert.equal(washer.vehicle.page, 491);
+  assert.notEqual(brake.actionId, washer.actionId);
 });
 
 test('right-turn action retains source-backed canonical phrasing', () => {
