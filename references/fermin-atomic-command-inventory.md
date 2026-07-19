@@ -34,27 +34,32 @@ that source-derived wording is an exact DGT examiner quotation.
    English translation uses `and`. They remain separate atomic prompts because
    either display may be requested independently.
 
-## Yaris schematic provenance
+## Photo-backed precheck provenance
 
-The provisional Stage 2 precheck diagrams are manual-derived original schematics,
-not copies of Toyota artwork or page layouts. They use the confirmed vehicle
-baseline, Toyota Yaris Hybrid 2019, and official owner-manual publication
-`PZ49X-52A96-EN` (`PZ49X-52A96-EN.pdf`, SHA-256
-`6627e19c6dc8efee4aa1e24d8dad08594fa3a63eb62e7e437fc0d7778105b287`). The
-copyrighted manual remains local and is not committed.
+The active Stage 2 prechecks use seven AI-generated, photo-backed illustrative
+generic scenes. They are not photographs of the test car and do not reproduce
+Toyota artwork. Each translucent response ring is placed on the precise physical
+feature the learner would identify or operate; a separate fully opaque icon is
+shown only where the photographed control does not already communicate its
+function clearly. This keeps the assessment focused on language comprehension.
 
-| Stable diagram | Manual evidence inspected visually | Stable hotspots |
+| Stable diagram | Packaged illustrative scene | Stable hotspots |
 |---|---|---|
-| `yaris-dashboard-v2` | Monochrome and color instrument displays, pages 130 and 133-134; headlight/high-beam controls, pages 270-271; fog controls, pages 276-277 | `fuel-gauge`, `temperature-gauge`, `high-beam`, `front-fog`, `rear-fog` |
-| `yaris-climate-v2` | Automatic climate panel and defogger operation, pages 434-435 and 438 | `front-demist`, `rear-demist` |
-| `yaris-door-v2` | Driver-door power-window and window-lock controls, page 230 | `window-lock` |
-| `yaris-body-v2` | Back-door opener, page 178; hood release, page 481; 12 V battery under the rear-right seat, page 493 | `boot-release`, `bonnet-release`, `battery-under-rear-right-seat` |
-| `yaris-engine-bay-v2` | Engine overview and oil/coolant checks, pages 485-486 and 489 | `engine-oil`, `coolant` |
+| `yaris-dashboard-v2` | Generic instrument cluster and generic lighting stalk | `fuel-gauge`, `temperature-gauge`, `high-beam`, `front-fog`, `rear-fog` |
+| `yaris-climate-v2` | Generic climate-control panel | `front-demist`, `rear-demist` |
+| `yaris-door-v2` | Generic driver-door switch panel | `window-lock` |
+| `yaris-body-v2` | Generic bonnet release, tailgate release, and engine bay | `boot-release`, `bonnet-release`, `battery-under-rear-right-seat` |
+| `yaris-engine-bay-v2` | Generic engine bay | `engine-oil`, `coolant` |
 
-Pages 485-486 and 489 place the oil dipstick and the engine and power-control-unit
-coolant reservoirs in the engine compartment. Page 493 places the 12 V battery
-under the rear-right seat, so the battery must never appear in the engine-bay
-diagram.
+The active generic conventional baseline places the 12 V battery under the
+bonnet. Its historical hotspot ID remains `battery-under-rear-right-seat` solely
+to preserve progress and response provenance; that name no longer describes the
+active photograph. The oil target is on the dipstick handle, not the filler cap.
+
+Generic manual immobilization follows RGC Article 92: stop the engine, apply the
+hand parking brake, select first gear uphill, or select reverse downhill. The
+actual test vehicle, transmission, control locations, equipment, and procedure
+still require confirmation with the driving school.
 
 The manual documents different instrument displays: the color display includes
 an engine coolant temperature gauge, while the monochrome version uses an
@@ -64,7 +69,7 @@ demister may additionally operate mirror defoggers on equipped vehicles. These
 variants are flagged in model provenance and must be confirmed against the
 actual test car instead of guessed.
 
-Actual-vehicle photographs may later replace schematic backgrounds while
+Actual-vehicle photographs may later replace the illustrative backgrounds while
 retaining every stable diagram and hotspot ID, so response history and
 provenance remain comparable.
 

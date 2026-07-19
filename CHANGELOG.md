@@ -3,9 +3,11 @@
 ## Stage 2 action surfaces — implemented for release review
 
 - Replaced eligible arbitrary choices with seeded, action-matched junction, roundabout, manoeuvre, steering, vehicle-securing, and Yaris precheck response surfaces while preserving stable command, action, phrasing, target, and provenance IDs.
-- Added original manual-derived Toyota Yaris Hybrid 2019 schematics, with actual-vehicle photographs able to replace the schematic backgrounds later without changing hotspot IDs.
+- Replaced abstract vehicle schematics with seven photo-backed, icon-first precheck scenes whose targets are precisely anchored to recognizable caps, handles, gauges, switches, rings, and levers.
+- Used illustrative generic vehicle images, including a conventional under-bonnet battery baseline, while retaining stable diagram and hotspot IDs and requiring confirmation in the actual test car.
+- Replaced the provisional automatic interaction with a generic manual immobilization exercise grounded in RGC Article 92: engine stopped, hand parking brake applied, first gear uphill or reverse downhill.
 - Retained exactly three honest semantic exceptions: speed adaptation, involuntary stopping, and exam finish. Parking and voluntary-stopping scenarios remain provisional pending practical-lesson evidence.
-- Recorded landscape-iPad and same-Wi-Fi hardened `serve:lan` guidance, the automatic-hybrid reference versus intended manual test-vehicle uncertainty, and the browser-automation limitation for backup export/import smoke.
+- Recorded landscape-iPad and same-Wi-Fi hardened `serve:lan` guidance, actual-test-vehicle uncertainty, and the browser-automation limitation for backup export/import smoke.
 - Kept road simulation, additional phrasing variation, and deeper phrasing/voice mastery reporting deferred for evidence from real practice sessions.
 
 ## v0.1.0 — Standalone daily-practice baseline

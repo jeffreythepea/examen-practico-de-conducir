@@ -122,7 +122,7 @@ export const PRECHECK_SCENES = deepFreeze({
       'window-lock': {
         resultId: 'lock-rear-windows', x: 25.6, y: 58.3, width: 9, height: 15,
         kind: 'window-lock-button', interaction: 'operate', iconKey: 'native-symbol',
-        labelKey: 'surface.yaris.windowLock', labelPlacement: { x: 23, y: 78, width: 34 },
+        labelKey: 'surface.yaris.windowLock', labelPlacement: { x: 20, y: 78, width: 34 },
         stateKind: 'locked', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the separate crossed-window passenger-window lock switch'
       },
@@ -136,7 +136,7 @@ export const PRECHECK_SCENES = deepFreeze({
       'window-switch': {
         resultId: 'operate-window', x: 47.5, y: 57.2, width: 9, height: 15,
         kind: 'window-switch', interaction: 'operate', iconKey: 'native-symbol',
-        labelKey: 'surface.yaris.windowSwitch', labelPlacement: { x: 46, y: 78, width: 28 },
+        labelKey: 'surface.yaris.windowSwitch', labelPlacement: { x: 55, y: 78, width: 28 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the rear-right power-window rocker switch'
       }
@@ -182,21 +182,21 @@ export const PRECHECK_SCENES = deepFreeze({
       'high-beam': {
         resultId: 'high-beams', x: 29.1, y: 51.5, width: 8, height: 15,
         kind: 'stalk-movement', interaction: 'operate', iconKey: 'native-symbol',
-        labelKey: 'surface.yaris.highBeam', labelPlacement: { x: 22, y: 65, width: 28 },
+        labelKey: 'surface.yaris.highBeam', labelPlacement: { x: 17, y: 78, width: 28 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Offset just below the native high-beam symbol on the stalk movement ring'
       },
       'front-fog': {
         resultId: 'front-fog-lights', x: 37.2, y: 42, width: 8, height: 15,
         kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
-        labelKey: 'surface.yaris.frontFog', labelPlacement: { x: 35, y: 67, width: 29 },
+        labelKey: 'surface.yaris.frontFog', labelPlacement: { x: 47, y: 78, width: 28 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Offset just above the native front fog-light symbol on its rotating ring'
       },
       'rear-fog': {
         resultId: 'rear-fog-light', x: 51.2, y: 44, width: 8, height: 15,
         kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
-        labelKey: 'surface.yaris.rearFog', labelPlacement: { x: 52, y: 69, width: 29 },
+        labelKey: 'surface.yaris.rearFog', labelPlacement: { x: 80, y: 78, width: 28 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Offset just above the native rear fog-light symbol on its rotating ring'
       }

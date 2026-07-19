@@ -162,8 +162,10 @@ Stage 2 uses action-matched static responses at the landscape-iPad baseline:
   entering from the bottom; roundabout exits use four- and five-exit geometry.
 - **U-turn and overtaking:** tap the completed direction or overtaking path.
 - **Steering:** centre a large on-screen wheel.
-- **Secure vehicle:** operate the Yaris parking brake then selector P in its
-  actual short sequence.
+- **Secure vehicle:** follow RGC Article 92 by completing a generic manual
+  immobilization state in any control order: stop the engine, apply the hand
+  parking brake, and select first gear uphill or reverse downhill. The stable
+  external surface ID remains unchanged for progress compatibility.
 - **Stopping and parking:** tap a legal roadside or parking target. These
   scenarios are provisional hypotheses to correct during practical lessons.
 
@@ -179,12 +181,21 @@ responses are the limiting factor.
 
 ### Precheck surfaces
 
-- Use recognizable driver-view and vehicle diagrams.
+- Use seven photo-backed, icon-first illustrative scenes rather than abstract
+  schematics. They cover the instrument cluster, lighting stalk, climate panel,
+  driver-door controls, bonnet release, tailgate release, and engine bay.
+- Place each response ring on a precise physical anchor: the relevant native
+  symbol, switch, gauge, cap, battery body, or oil dipstick handle. Where the
+  photographed control already has a clear symbol, the translucent ring does
+  not repeat or obscure it.
 - Manipulate stalks, climate controls, window switches, bonnet/hatch releases,
-  and dashboard indicators directly.
-- Tap actual vehicle regions for reservoirs, battery, and location checks.
-- Mark trim-dependent or instructor-unverified controls visibly and preserve
-  their evidence status.
+  and dashboard indicators directly. Use recognizable icons for every other
+  correct and incorrect option so the task measures language comprehension.
+- Use a conventional under-bonnet 12 V battery for the generic training scene.
+  Preserve the historical stable target ID even though the superseded hybrid
+  manual placed its battery elsewhere.
+- Mark all imagery as illustrative and require confirmation of trim-dependent
+  controls, equipment, locations, and procedures in the actual test car.
 
 The shared action vocabulary is intentionally small: tap a road or physical
 location, centre the wheel, or press a control. Pointer input on Mac mirrors

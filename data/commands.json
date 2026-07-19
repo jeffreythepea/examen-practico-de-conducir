@@ -291,7 +291,13 @@
         "sourcePage": 5,
         "sourceText": "Inmovilice el vehículo"
       }
-    ]
+    ],
+    "procedure": {
+      "reference": "RGC Article 92",
+      "status": "generic-manual-test-car-confirmation-required",
+      "answer": "Detener el motor, accionar el freno de estacionamiento y seleccionar primera cuesta arriba o marcha atrás cuesta abajo.",
+      "answerEn": "Stop the engine, apply the parking brake, and select first gear uphill or reverse downhill."
+    }
   },
   {
     "id": "c-adel",

@@ -155,7 +155,8 @@ test('release identity, isolation, scope, and bilingual AI voice disclosure are 
     readFile(resolve(ROOT, 'src/i18n.js'), 'utf8'),
     readFile(resolve(ROOT, 'src/storage.js'), 'utf8'),
     readFile(resolve(ROOT, 'README.md'), 'utf8'),
-    readFile(resolve(ROOT, 'docs/design.md'), 'utf8')
+    readFile(resolve(ROOT, 'docs/design.md'), 'utf8'),
+    readFile(resolve(ROOT, 'references/fermin-atomic-command-inventory.md'), 'utf8')
   ]);
 
   assert.match(i18n, /'audio\.disclosure': 'These voices are AI-generated\.'/);
@@ -171,11 +172,12 @@ test('release identity, isolation, scope, and bilingual AI voice disclosure are 
 });
 
 test('Stage 2 release documents the activated action surfaces and review limits', async () => {
-  const [catalogText, readme, changelog, design] = await Promise.all([
+  const [catalogText, readme, changelog, design, inventory] = await Promise.all([
     readFile(resolve(ROOT, 'data/commands.json'), 'utf8'),
     readFile(resolve(ROOT, 'README.md'), 'utf8'),
     readFile(resolve(ROOT, 'CHANGELOG.md'), 'utf8'),
-    readFile(resolve(ROOT, 'docs/design.md'), 'utf8')
+    readFile(resolve(ROOT, 'docs/design.md'), 'utf8'),
+    readFile(resolve(ROOT, 'references/fermin-atomic-command-inventory.md'), 'utf8')
   ]);
   const catalog = JSON.parse(catalogText);
 
@@ -193,17 +195,26 @@ test('Stage 2 release documents the activated action surfaces and review limits'
   assert.match(readme, /exactly three semantic exceptions/i);
   assert.match(readme, /c-adapte.*c-detencion.*c-final/s);
   assert.match(readme, /parking.*stopping.*provisional/i);
-  assert.match(readme, /Toyota Yaris Hybrid 2019/i);
-  assert.match(readme, /manual-derived original schematics/i);
-  assert.match(readme, /photographs.*replace/i);
+  assert.match(readme, /photo-backed.*icon-first prechecks/i);
+  assert.match(readme, /precise physical anchors/i);
+  assert.match(readme, /illustrative generic images/i);
+  assert.match(readme, /conventional.*battery.*under the bonnet/i);
+  assert.match(readme, /Article 92.*manual immobilization/i);
+  assert.match(readme, /actual test car.*confirm/i);
   assert.match(readme, /npm --prefix \/Users\/jeffreypease\/Projects\/examen-practico-de-conducir run serve:lan/);
   assert.doesNotMatch(readme, /python3 -m http\.server/);
   assert.match(readme, /rejects dotfiles.*\.git.*\.superpowers/i);
-  assert.match(readme, /automatic hybrid.*manual-transmission test vehicle/i);
-  assert.match(readme, /no manual-transmission-specific training is included/i);
-  assert.match(readme, /current `c-inmov` parking-brake\/selector-P sequence comes from the provisional automatic-hybrid reference and must be confirmed or replaced after the school identifies the actual manual test vehicle and securing procedure/i);
+  assert.doesNotMatch(readme, /battery is represented beneath the rear-right seat|battery.*never in the engine bay/i);
+  assert.doesNotMatch(readme, /securing the vehicle uses.*selector-P|current `c-inmov`.*selector-P/i);
   assert.match(readme, /browser.*automation.*export.*import.*manual.*smoke/i);
   assert.match(changelog, /Stage 2 action surfaces/i);
   assert.match(design, /Stage 2 implemented for review/i);
+  assert.match(design, /photo-backed.*precise.*anchor/is);
+  assert.match(design, /Article 92.*first.*uphill.*reverse.*downhill/is);
+  assert.match(changelog, /photo-backed.*precheck/i);
+  assert.match(changelog, /generic manual.*Article 92/i);
+  assert.match(inventory, /photo-backed.*illustrative.*precise physical\s+feature/is);
+  assert.match(inventory, /conventional.*battery.*under the\s+bonnet/is);
+  assert.match(inventory, /manual immobilization.*Article 92|Article 92.*manual immobilization/is);
   assert.match(design, /simulation.*phrasing.*mastery.*deferred/is);
 });

@@ -45,6 +45,14 @@ test('prechecks retain vehicle evidence and uncertainty status', () => {
   assert.doesNotMatch(battery.vehicle.answerEn, /rear seat/i);
 });
 
+test('immobilization catalog metadata records the generic manual legal baseline', () => {
+  const immobilization = commandById(commands, 'c-inmov');
+  assert.equal(immobilization.procedure.reference, 'RGC Article 92');
+  assert.equal(immobilization.procedure.status, 'generic-manual-test-car-confirmation-required');
+  assert.match(immobilization.procedure.answerEn, /stop the engine.*parking brake.*first gear.*uphill.*reverse.*downhill/i);
+  assert.match(immobilization.procedure.answer, /detener el motor.*freno de estacionamiento.*primera.*cuesta arriba.*marcha atrás.*cuesta abajo/i);
+});
+
 test('phase and lookup APIs reject invalid input', () => {
   assert.throws(() => commandsForPhase(commands, 'sequential'), /Unknown phase: sequential/);
   assert.throws(() => commandById(commands, 'missing'), /Unknown command: missing/);

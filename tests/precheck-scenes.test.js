@@ -91,6 +91,19 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
   assert.match(lighting.targets['high-beam'].anchorDescription, /stalk.*movement/i);
   assert.match(lighting.targets['front-fog'].anchorDescription, /front.*fog.*ring/i);
   assert.match(lighting.targets['rear-fog'].anchorDescription, /rear.*fog.*ring/i);
+  assert.deepEqual(
+    ['high-beam', 'front-fog', 'rear-fog'].map(id => lighting.targets[id].labelPlacement),
+    [
+      { x: 17, y: 78, width: 28 },
+      { x: 47, y: 78, width: 28 },
+      { x: 80, y: 78, width: 28 }
+    ],
+    'lighting reveal labels must form three separate columns below the controls'
+  );
+
+  const door = PRECHECK_SCENES['generic-driver-door'];
+  assert.deepEqual(door.targets['window-lock'].labelPlacement, { x: 20, y: 78, width: 34 });
+  assert.deepEqual(door.targets['window-switch'].labelPlacement, { x: 55, y: 78, width: 28 });
 
   const bonnet = PRECHECK_SCENES['generic-bonnet-release'];
   assert.ok(Object.keys(bonnet.targets).length >= 3);

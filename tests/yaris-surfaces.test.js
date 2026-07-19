@@ -315,19 +315,20 @@ test('v2 diagram IDs are exported and every precheck is atomically activated', (
   assert.equal(precheckCommands.some(command => command.surfaceId.startsWith('yaris-manual-v1-')), false);
 });
 
-test('documentation records provisional original-schematic provenance and stable photo replacement', async () => {
+test('documentation records photo-backed illustrative provenance and stable IDs', async () => {
   const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
   const inventory = await readFile(new URL('../references/fermin-atomic-command-inventory.md', import.meta.url), 'utf8');
 
-  assert.match(readme, /manual-derived original schematics/i);
-  assert.match(readme, /PZ49X-52A96-EN/);
-  assert.match(readme, /beneath the rear-right seat/i);
-  assert.match(readme, /photographs[^.]+retain[^.]+diagram and hotspot IDs/i);
+  assert.match(readme, /seven packaged photo-backed scenes/i);
+  assert.match(readme, /illustrative generic images/i);
+  assert.match(readme, /precise physical anchors/i);
+  assert.match(readme, /stable diagram and target IDs/i);
+  assert.match(readme, /battery is under the bonnet/i);
 
-  assert.match(inventory, /Yaris schematic provenance/);
-  assert.match(inventory, /PZ49X-52A96-EN/);
-  assert.match(inventory, /pages 485-486 and 489/);
-  assert.match(inventory, /page 493[^.]+rear-right seat/i);
+  assert.match(inventory, /Photo-backed precheck provenance/);
+  assert.match(inventory, /not photographs of the test car/i);
+  assert.match(inventory, /oil target is on the dipstick handle/i);
+  assert.match(inventory, /historical hotspot ID[^.]+preserve progress/i);
   assert.match(inventory, /front fog lights[^.]+if equipped/i);
   assert.match(inventory, /color display[^.]+temperature gauge/i);
 });
