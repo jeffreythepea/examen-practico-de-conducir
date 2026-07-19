@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Driving surface mockups / Maquetas de conducción</title>
+  <link rel="stylesheet" href="mockups.css">
+</head>
+<body>
+  <main>
+    <header class="review-header">
+      <p class="eyebrow">Examen Práctico</p>
+      <h1>Photo-like driving surfaces</h1>
+      <p class="subtitle">Superficies de conducción de aspecto fotográfico</p>
+      <p class="review-notice">Review mockup — not active in the game<br><span lang="es">Maqueta para revisión — no activa en el juego</span></p>
+      <label class="reveal-switch"><input type="checkbox"> Show correct routes and spaces / <span lang="es">Mostrar rutas y espacios correctos</span></label>
+    </header>
+
+    <section class="scene-grid" aria-label="Driving surface mockups">
+      <figure class="scene-card" data-scene="overtaking">
+        <figcaption><strong>Overtaking</strong><span lang="es">Adelantamiento</span></figcaption>
+        <div class="scene-frame">
+          <img class="scene-base" src="overtaking-v1.png" alt="Photo-like two-way road with the test vehicle entering from the bottom and a lead vehicle ahead. / Carretera bidireccional de aspecto fotográfico con el vehículo de examen entrando desde abajo y otro vehículo delante.">
+          <span class="vehicle-identity" data-role="learner-vehicle" aria-hidden="true"></span>
+          <span class="lead-identity" data-role="lead-vehicle" aria-hidden="true"></span>
+          <button class="target passing-target" data-target="passing-lane" aria-label="Select the passing lane / Seleccionar el carril de adelantamiento"></button>
+          <button class="target follow-target" data-target="safe-follow" aria-label="Select a safe following position / Seleccionar una distancia segura de seguimiento"></button>
+          <svg class="route-layer" viewBox="0 0 100 100" aria-hidden="true"><path class="route" data-correct-route d="M60 82 C59 67 55 58 43 52 C35 45 36 31 40 24 C44 16 50 12 54 12"></path></svg>
+        </div>
+      </figure>
+
+      <figure class="scene-card" data-scene="roundabout-four-exit">
+        <figcaption><strong>Four-exit roundabout</strong><span lang="es">Glorieta de cuatro salidas</span></figcaption>
+        <div class="scene-frame" data-entry="bottom">
+          <img class="scene-base" src="roundabout-four-exit-v1.png" alt="Photo-like four-exit roundabout approached by the test vehicle from the bottom. / Glorieta de cuatro salidas de aspecto fotográfico a la que llega el vehículo de examen desde abajo.">
+          <button class="target exit-one" data-exit="1" aria-label="Select exit one / Seleccionar la primera salida"></button>
+          <button class="target exit-two" data-exit="2" aria-label="Select exit two / Seleccionar la segunda salida"></button>
+          <button class="target exit-three" data-exit="3" aria-label="Select exit three / Seleccionar la tercera salida"></button>
+          <button class="target exit-four" data-exit="4" aria-label="Select exit four / Seleccionar la cuarta salida"></button>
+          <svg class="route-layer" viewBox="0 0 100 100" aria-hidden="true"><path class="route" d="M50 96 C50 70 58 60 69 57 C77 55 82 51 86 44"></path></svg>
+        </div>
+      </figure>
+
+      <figure class="scene-card" data-scene="legal-stopping">
+        <figcaption><strong>Legal stopping location</strong><span lang="es">Lugar legal para detenerse</span></figcaption>
+        <div class="scene-frame">
+          <img class="scene-base" src="legal-stopping-v1.png" alt="Photo-like urban street with a clear curb, driveway, and pedestrian crossing. / Calle urbana de aspecto fotográfico con un bordillo libre, un acceso y un paso de peatones.">
+          <button class="target stopping-clear" data-legality="legal" data-context="clear-curb" aria-label="Select the clear curb / Seleccionar el bordillo libre"></button>
+          <button class="target stopping-driveway" data-legality="illegal" data-context="driveway" aria-label="Select the driveway area / Seleccionar la zona del acceso"></button>
+          <button class="target stopping-crossing" data-legality="illegal" data-context="crossing" aria-label="Select the pedestrian crossing approach / Seleccionar la proximidad del paso de peatones"></button>
+        </div>
+      </figure>
+    </section>
+  </main>
+</body>
+</html>

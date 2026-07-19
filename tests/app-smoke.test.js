@@ -45,9 +45,23 @@ test('app shell persists setup settings and exposes atomic backup controls', asy
   assert.match(source, /removeItem\(STORAGE_KEY\)/);
   assert.match(source, /from '\.\/catalog\.js'/);
   assert.match(source, /from '\.\/audio\.js'/);
+  assert.match(source, /selectControl\('feedbackSounds', 'setting\.feedbackSounds'/);
+  assert.match(source, /setting === 'timed' \|\| setting === 'feedbackSounds'/);
   assert.match(source, /from '\.\/surfaces\.js'/);
   assert.match(source, /data\/commands\.json/);
   assert.match(source, /data\/audio-manifest\.json/);
+});
+
+test('app wires best-effort feedback cues without coupling them to command audio scoring', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /import \{ createFeedbackCuePlayer \} from '\.\/feedback-audio\.js'/);
+  assert.match(source, /feedbackPlayer = createFeedbackCuePlayer\(\)/);
+  assert.match(source, /feedbackCueForTransition\(before, model, event\)/);
+  assert.match(source, /enabled: state\.settings\.feedbackSounds/);
+  assert.match(source, /busy: audioBusy/);
+  assert.match(source, /feedbackPlayer\.stop\(\)/);
+  assert.match(source, /void feedbackPlayer\.play/);
 });
 
 test('daily-practice controls and SVG response targets preserve 44px touch minimums', async () => {

@@ -163,7 +163,8 @@ function completionEvents(model, correctTarget) {
     return [
       { type: 'activate', targetId: 'engine-stop' },
       { type: 'activate', targetId: 'parking-brake' },
-      { type: 'select-gear', targetId: 'manual-gear', gear: model.meta.requiredGear }
+      { type: 'select-gear', targetId: 'manual-gear', gear: model.meta.requiredGear },
+      { type: 'submit-secure' }
     ];
   }
   if (model.family === 'yaris') return [{ type: 'activate', targetId: correctTarget.id }];

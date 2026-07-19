@@ -51,7 +51,7 @@ function completedAttempt(overrides = {}) {
   };
 }
 
-test('creates fresh version 1 defaults for English driving practice at 0.9 speed', () => {
+test('creates fresh version 1 defaults for English mixed practice with 10 commands', () => {
   const first = defaultState();
   const second = defaultState();
 
@@ -59,17 +59,38 @@ test('creates fresh version 1 defaults for English driving practice at 0.9 speed
     schemaVersion: 1,
     settings: {
       locale: 'en',
-      phase: 'driving',
+      phase: 'mixed',
       speed: 0.9,
       hintPolicy: 'available',
       timed: false,
-      length: 'short'
+      feedbackSounds: true,
+      length: 'medium'
     },
     attempts: [],
     actionProgress: {}
   });
   assert.notEqual(first, second);
   assert.notEqual(first.settings, second.settings);
+});
+
+test('feedback-sound preference persists, validates, and safely defaults for older backups', () => {
+  const disabled = {
+    ...defaultState(),
+    settings: { ...defaultState().settings, feedbackSounds: false }
+  };
+  assert.equal(importState(exportState(disabled)).settings.feedbackSounds, false);
+
+  const older = defaultState();
+  delete older.settings.feedbackSounds;
+  assert.equal(importState(JSON.stringify(older)).settings.feedbackSounds, true);
+
+  assert.throws(
+    () => importState(JSON.stringify({
+      ...defaultState(),
+      settings: { ...defaultState().settings, feedbackSounds: 'on' }
+    })),
+    /Invalid settings\.feedbackSounds/
+  );
 });
 
 test('round trips a validated state through the dedicated storage key', () => {

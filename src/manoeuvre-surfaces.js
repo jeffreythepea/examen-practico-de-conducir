@@ -1,4 +1,5 @@
 import { translate } from './i18n.js';
+import { drivingScene } from './driving-scenes.js';
 import { assertNonOverlappingTargets, svgRoadPath, targetBox } from './surface-geometry.js';
 import { createSurfaceModel, seededRandom } from './surface-model.js';
 
@@ -46,20 +47,28 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       id: 'clear-two-lane-pass',
       expectedResult: 'overtake',
       features: ['two-lane-road', 'vehicle-ahead', 'clear-opposing-lane'],
-      correctRoute: [{ x: 66, y: 94 }, { x: 66, y: 72 }, { x: 34, y: 55 }, { x: 34, y: 28 }],
+      correctRouteTargetIndex: 2,
+      correctRoute: [
+        { x: 59, y: 68 }, { x: 53, y: 56 }, { x: 44, y: 37 },
+        { x: 44, y: 18 }, { x: 53, y: 14 }
+      ],
       targets: [
-        { id: 'passing-lane', resultId: 'overtake', kind: 'overtaking-route', feature: 'passing-lane', x: 34, y: 28 },
-        { id: 'following-position', resultId: 'follow-vehicle', kind: 'lane-choice', feature: 'follow-lane', x: 66, y: 70 }
+        { id: 'passing-lane', resultId: 'overtake', kind: 'overtaking-route', feature: 'passing-lane', x: 44, y: 37 },
+        { id: 'following-position', resultId: 'follow-vehicle', kind: 'lane-choice', feature: 'follow-lane', x: 58.5, y: 54 }
       ]
     },
     {
       id: 'clear-return-lane',
       expectedResult: 'overtake',
       features: ['two-lane-road', 'vehicle-ahead-high', 'clear-return-gap'],
-      correctRoute: [{ x: 66, y: 94 }, { x: 66, y: 70 }, { x: 34, y: 52 }, { x: 34, y: 24 }],
+      correctRouteTargetIndex: 2,
+      correctRoute: [
+        { x: 59, y: 68 }, { x: 53, y: 57 }, { x: 44, y: 39 },
+        { x: 44, y: 18 }, { x: 53, y: 14 }
+      ],
       targets: [
-        { id: 'passing-path', resultId: 'overtake', kind: 'overtaking-route', feature: 'passing-lane', x: 34, y: 24 },
-        { id: 'wait-behind', resultId: 'follow-vehicle', kind: 'lane-choice', feature: 'follow-lane', x: 66, y: 70 }
+        { id: 'passing-path', resultId: 'overtake', kind: 'overtaking-route', feature: 'passing-lane', x: 44, y: 39 },
+        { id: 'wait-behind', resultId: 'follow-vehicle', kind: 'lane-choice', feature: 'follow-lane', x: 58.5, y: 56 }
       ]
     }
   ],
@@ -69,9 +78,9 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       expectedResult: 'park',
       features: ['marked-bays', 'driveway', 'restricted-marking'],
       targets: [
-        { id: 'open-bay', resultId: 'park', kind: 'legal-space', feature: 'open-bay', x: 28, y: 30 },
-        { id: 'driveway-bay', resultId: 'blocked-access', kind: 'illegal-space', feature: 'driveway', explanationKey: 'surface.restricted.blockedAccess', x: 72, y: 30 },
-        { id: 'hatched-bay', resultId: 'marked-restriction', kind: 'illegal-space', feature: 'restricted-marking', explanationKey: 'surface.restricted.markedRestriction', x: 50, y: 72 }
+        { id: 'open-bay', resultId: 'park', kind: 'legal-space', feature: 'open-bay', x: 74, y: 37 },
+        { id: 'driveway-bay', resultId: 'blocked-access', kind: 'illegal-space', feature: 'driveway', explanationKey: 'surface.restricted.blockedAccess', x: 86, y: 15 },
+        { id: 'hatched-bay', resultId: 'marked-restriction', kind: 'illegal-space', feature: 'restricted-marking', explanationKey: 'surface.restricted.markedRestriction', x: 40, y: 50 }
       ]
     },
     {
@@ -79,9 +88,9 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       expectedResult: 'park',
       features: ['curb-bays', 'crosswalk', 'no-parking-sign'],
       targets: [
-        { id: 'clear-curb-bay', resultId: 'park', kind: 'legal-space', feature: 'open-bay', x: 72, y: 30 },
-        { id: 'crosswalk-bay', resultId: 'crosswalk', kind: 'illegal-space', feature: 'crosswalk', explanationKey: 'surface.restricted.crosswalk', x: 28, y: 30 },
-        { id: 'no-parking-bay', resultId: 'signed-no-parking', kind: 'illegal-space', feature: 'no-parking-sign', explanationKey: 'surface.restricted.noParkingSign', x: 50, y: 72 }
+        { id: 'clear-curb-bay', resultId: 'park', kind: 'legal-space', feature: 'open-bay', x: 74, y: 37 },
+        { id: 'crosswalk-bay', resultId: 'crosswalk', kind: 'illegal-space', feature: 'crosswalk', explanationKey: 'surface.restricted.crosswalk', x: 43, y: 15 },
+        { id: 'no-parking-bay', resultId: 'signed-no-parking', kind: 'illegal-space', feature: 'no-parking-sign', explanationKey: 'surface.restricted.noParkingSign', x: 85, y: 86 }
       ]
     }
   ],
@@ -91,9 +100,9 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       expectedResult: 'voluntary-stop',
       features: ['curb', 'driveway', 'crosswalk'],
       targets: [
-        { id: 'clear-curb', resultId: 'voluntary-stop', kind: 'legal-stop', feature: 'clear-curb', x: 78, y: 34 },
-        { id: 'driveway', resultId: 'blocked-access', kind: 'restricted-stop', feature: 'driveway', explanationKey: 'surface.restricted.blockedAccess', x: 78, y: 62 },
-        { id: 'crosswalk', resultId: 'crosswalk', kind: 'restricted-stop', feature: 'crosswalk', explanationKey: 'surface.restricted.crosswalk', x: 42, y: 18 }
+        { id: 'clear-curb', resultId: 'voluntary-stop', kind: 'legal-stop', feature: 'clear-curb', x: 70.5, y: 60 },
+        { id: 'driveway', resultId: 'blocked-access', kind: 'restricted-stop', feature: 'driveway', explanationKey: 'surface.restricted.blockedAccess', x: 84, y: 37 },
+        { id: 'crosswalk', resultId: 'crosswalk', kind: 'restricted-stop', feature: 'crosswalk', explanationKey: 'surface.restricted.crosswalk', x: 40, y: 15 }
       ]
     },
     {
@@ -101,9 +110,9 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       expectedResult: 'voluntary-stop',
       features: ['curb', 'no-stopping-sign', 'crosswalk'],
       targets: [
-        { id: 'clear-left-curb', resultId: 'voluntary-stop', kind: 'legal-stop', feature: 'clear-curb', x: 22, y: 34 },
-        { id: 'no-stopping-curb', resultId: 'signed-no-stopping', kind: 'restricted-stop', feature: 'no-stopping-sign', explanationKey: 'surface.restricted.noStoppingSign', x: 22, y: 62 },
-        { id: 'upper-crosswalk', resultId: 'crosswalk', kind: 'restricted-stop', feature: 'crosswalk', explanationKey: 'surface.restricted.crosswalk', x: 58, y: 18 }
+        { id: 'clear-left-curb', resultId: 'voluntary-stop', kind: 'legal-stop', feature: 'clear-curb', x: 70.5, y: 60 },
+        { id: 'no-stopping-curb', resultId: 'signed-no-stopping', kind: 'restricted-stop', feature: 'no-stopping-sign', explanationKey: 'surface.restricted.noStoppingSign', x: 72, y: 37 },
+        { id: 'upper-crosswalk', resultId: 'crosswalk', kind: 'restricted-stop', feature: 'crosswalk', explanationKey: 'surface.restricted.crosswalk', x: 40, y: 15 }
       ]
     }
   ]
@@ -157,16 +166,17 @@ export function generateManoeuvreSurface(command, seed) {
       entry: 'bottom',
       templateId: template.id,
       features: template.features,
+      ...(contract.family === 'u-turn' ? { sceneId: 'u-turn-photo-v1' } : {}),
+      ...(contract.family === 'overtake' ? { sceneId: 'overtaking-photo-v1' } : {}),
+      ...(contract.family === 'parking' ? { sceneId: 'parallel-parking-gap-photo-v1' } : {}),
+      ...(contract.family === 'stopping' ? { sceneId: 'urban-roadside-photo-v1' } : {}),
       ...(contract.family === 'overtake' ? {
-        learnerVehicle: { x: 66, y: 92, width: 12, height: 18 },
-        leadVehicle: {
-          x: 66,
-          y: template.features.includes('vehicle-ahead-high') ? 35 : 42,
-          width: 12,
-          height: 18
-        }
+        learnerVehicle: { x: 59, y: 80, width: 14, height: 22 },
+        leadVehicle: { x: 53, y: 26, width: 7, height: 10 }
       } : {}),
-      ...(template.correctRoute ? { correctRoute: routeToTarget(template.correctRoute, correctTarget) } : {})
+      ...(template.correctRoute ? {
+        correctRoute: routeToTarget(template.correctRoute, correctTarget, template.correctRouteTargetIndex)
+      } : {})
     },
     meta: {
       commandId: command.id,
@@ -202,11 +212,17 @@ export function renderManoeuvreSurface(model, locale, state = {}) {
     ? `<path data-correct-route d="${escapeAttribute(svgRoadPath(model.geometry.correctRoute))}"/>`
     : '';
 
+  const scene = model.geometry.sceneId ? drivingScene(model.geometry.sceneId) : null;
+  const sceneImage = scene
+    ? `<img class="driving-scene-image" data-scene="${escapeAttribute(scene.id)}" data-provenance="${escapeAttribute(scene.provenance)}" src="${escapeAttribute(scene.asset)}" alt="${escapeAttribute(locale === 'es' ? scene.alt.es : scene.alt.en)}">`
+    : '';
+
   return `<div class="manoeuvre-surface">
     <p class="surface-instruction">${escapeHtml(translate(locale, instructionKey))}</p>
-    <div class="surface-stage manoeuvre ${model.family}" data-surface="${surfaceId}">
-      <svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
-        ${manoeuvreDrawing(model)}
+    <div class="surface-stage manoeuvre ${model.family}${scene ? ' driving-photo-stage' : ''}" data-surface="${surfaceId}">
+      ${sceneImage}
+      <svg viewBox="0 0 100 100"${scene ? ' preserveAspectRatio="none"' : ''} aria-hidden="true" focusable="false">
+        ${manoeuvreDrawing(model, Boolean(scene))}
         ${correctRoute}
       </svg>
       ${model.targets.map(target => targetButton(
@@ -244,8 +260,8 @@ function jitterPosition(base, rng) {
   return Math.round((base + (rng() * 2 - 1) * POSITION_JITTER) * 100) / 100;
 }
 
-function routeToTarget(route, target) {
-  return route.map((point, index) => index === route.length - 1
+function routeToTarget(route, target, targetIndex = route.length - 1) {
+  return route.map((point, index) => index === targetIndex
     ? { x: target.x, y: target.y }
     : { ...point });
 }
@@ -268,11 +284,12 @@ function targetButton(target, model, ariaLabel, state) {
       ? '<span class="target-status-marker wrong" aria-hidden="true">×</span>'
       : '';
   const disabled = state.disabled ? ' disabled' : '';
-  return `<button class="manoeuvre-target" type="button" data-target="${escapeAttribute(target.id)}" data-result="${escapeAttribute(target.resultId)}"${selectedAttributes}${current} aria-pressed="${selected}" aria-label="${escapeAttribute(accessibleLabel)}"${disabled} style="--target-x:${target.x}%;--target-y:${target.y}%;--target-width:${target.width}%;--target-height:${target.height}%">${marker}</button>`;
+  return `<button class="manoeuvre-target" type="button" data-target="${escapeAttribute(target.id)}" data-result="${escapeAttribute(target.resultId)}" data-feature="${escapeAttribute(target.feature)}"${selectedAttributes}${current} aria-pressed="${selected}" aria-label="${escapeAttribute(accessibleLabel)}"${disabled} style="--target-x:${target.x}%;--target-y:${target.y}%;--target-width:${target.width}%;--target-height:${target.height}%">${marker}</button>`;
 }
 
-function manoeuvreDrawing(model) {
+function manoeuvreDrawing(model, photoBacked = false) {
   if (model.family === 'u-turn') {
+    if (photoBacked) return '';
     const side = model.geometry.templateId === 'clear-two-way-turnaround'
       ? '<path d="M 50 48 L 8 48" class="manoeuvre-side-road"/>'
       : '<path d="M 8 48 L 92 48" class="manoeuvre-side-road"/>';
@@ -282,6 +299,7 @@ function manoeuvreDrawing(model) {
   }
 
   if (model.family === 'overtake') {
+    if (photoBacked) return '';
     const learner = model.geometry.learnerVehicle;
     const lead = model.geometry.leadVehicle;
     return `<rect x="18" y="0" width="64" height="100" class="manoeuvre-road-fill"/>
@@ -291,23 +309,26 @@ function manoeuvreDrawing(model) {
       <path d="M ${learner.x} ${learner.y - 4} L ${learner.x} ${learner.y - 17}" class="vehicle-direction"/>`;
   }
 
-  const features = model.targets.map(target => featureDrawing(target)).join('');
+  const features = model.targets.map(target => featureDrawing(target, photoBacked)).join('');
   if (model.family === 'parking') {
+    if (photoBacked) return features;
     return `<rect x="4" y="8" width="92" height="84" class="manoeuvre-road-fill"/>
       <path d="M 5 50 L 95 50" class="parking-curb"/>
       <path d="M 13 12 V 45 M 40 12 V 45 M 60 12 V 45 M 87 12 V 45" class="parking-bays"/>
       ${features}`;
   }
 
+  if (photoBacked) return features;
   return `<rect x="12" y="0" width="76" height="100" class="manoeuvre-road-fill"/>
     <path d="M 12 0 V 100 M 88 0 V 100" class="parking-curb"/>
     <path d="M 50 0 V 100" class="road-marking"/>
     ${features}`;
 }
 
-function featureDrawing(target) {
+function featureDrawing(target, photoBacked = false) {
   const x = target.x;
   const y = target.y;
+  if (photoBacked && (target.feature === 'crosswalk' || target.feature === 'driveway')) return '';
   if (target.feature === 'crosswalk') {
     return `<path d="M ${x - 8} ${y - 5} H ${x + 8} M ${x - 8} ${y} H ${x + 8} M ${x - 8} ${y + 5} H ${x + 8}" class="scenario-crosswalk"/>`;
   }
@@ -315,19 +336,27 @@ function featureDrawing(target) {
     return `<path d="M ${x - 9} ${y + 7} V ${y - 7} H ${x + 9} V ${y + 7}" class="scenario-driveway"/>`;
   }
   if (target.feature === 'restricted-marking') {
+    if (photoBacked) {
+      return `<g transform="translate(${x} ${y}) scale(0.666667 1)">
+        <path d="M -7 -6 L 7 6 M 7 -6 L -7 6" class="scenario-restriction"/>
+      </g>`;
+    }
     return `<path d="M ${x - 7} ${y - 6} L ${x + 7} ${y + 6} M ${x + 7} ${y - 6} L ${x - 7} ${y + 6}" class="scenario-restriction"/>`;
   }
-  if (target.feature === 'no-parking-sign') return prohibitionSign(x, y, 'no-parking');
-  if (target.feature === 'no-stopping-sign') return prohibitionSign(x, y, 'no-stopping');
+  if (target.feature === 'no-parking-sign') return prohibitionSign(x, y, 'no-parking', photoBacked);
+  if (target.feature === 'no-stopping-sign') return prohibitionSign(x, y, 'no-stopping', photoBacked);
   return '';
 }
 
-function prohibitionSign(x, y, type) {
+function prohibitionSign(x, y, type, photoBacked = false) {
   const centerY = roundCoordinate(y - 7);
   const lines = type === 'no-stopping'
     ? '<path d="M -3.5 -3.5 L 3.5 3.5" class="road-sign-prohibition"/><path d="M 3.5 -3.5 L -3.5 3.5" class="road-sign-prohibition"/>'
     : '<path d="M -3.5 3.5 L 3.5 -3.5" class="road-sign-prohibition"/>';
-  return `<g data-road-sign="${type}" transform="translate(${x} ${centerY})">
+  const transform = photoBacked
+    ? `translate(${x} ${centerY}) scale(0.666667 1)`
+    : `translate(${x} ${centerY})`;
+  return `<g data-road-sign="${type}" transform="${transform}">
     <circle r="5" class="road-sign-face"/>
     ${lines}
     <path d="M 0 5 V 14" class="scenario-sign-post"/>

@@ -45,7 +45,7 @@ test('precheck scene and icon lookups reject unsupported identifiers', () => {
   assert.throws(() => renderPrecheckIcon('mystery'), /Unsupported precheck icon: mystery/);
 });
 
-test('cabin prechecks map to three packaged scenes with distinct, described icon targets', async () => {
+test('cabin prechecks map to three packaged scenes with described native-control targets', async () => {
   const expectedMappings = {
     'c-pre-combustible': ['generic-instrument-cluster', 'assets/precheck/generic-instrument-cluster.png'],
     'c-pre-temperatura': ['generic-instrument-cluster', 'assets/precheck/generic-instrument-cluster.png'],
@@ -65,12 +65,17 @@ test('cabin prechecks map to three packaged scenes with distinct, described icon
     assert.ok(asset.size > 0);
   }
 
-  assert.notEqual(PRECHECK_SCENES['generic-instrument-cluster'].targets['fuel-gauge'].iconKey,
-    PRECHECK_SCENES['generic-instrument-cluster'].targets['temperature-gauge'].iconKey);
-  assert.equal(PRECHECK_SCENES['generic-driver-door'].targets['window-lock'].iconKey, 'native-symbol');
-  assert.equal(PRECHECK_SCENES['generic-driver-door'].targets['door-lock'].iconKey, 'native-symbol');
-  assert.notEqual(PRECHECK_SCENES['generic-climate-panel'].targets['front-demist'].iconKey,
-    PRECHECK_SCENES['generic-climate-panel'].targets['rear-demist'].iconKey);
+  for (const sceneId of [
+    'generic-instrument-cluster',
+    'generic-driver-door',
+    'generic-climate-panel'
+  ]) {
+    assert.ok(
+      Object.values(PRECHECK_SCENES[sceneId].targets)
+        .every(target => target.iconKey === 'native-symbol'),
+      `${sceneId} must expose photographed controls without drawn overlay icons`
+    );
+  }
 });
 
 test('lighting and exterior-release prechecks map to precise photo targets with clear distractors', async () => {
@@ -88,7 +93,11 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
   const lighting = PRECHECK_SCENES['generic-lighting-stalk'];
   assert.deepEqual(Object.keys(lighting.targets).sort(), ['front-fog', 'high-beam', 'rear-fog']);
   assert.ok(Object.values(lighting.targets).every(target => target.iconKey === 'native-symbol'));
-  assert.match(lighting.targets['high-beam'].anchorDescription, /stalk.*movement/i);
+  assert.deepEqual(
+    [lighting.targets['high-beam'].x, lighting.targets['high-beam'].y],
+    [29.1, 46.5]
+  );
+  assert.match(lighting.targets['high-beam'].anchorDescription, /centred.*native high-beam symbol/i);
   assert.match(lighting.targets['front-fog'].anchorDescription, /front.*fog.*ring/i);
   assert.match(lighting.targets['rear-fog'].anchorDescription, /rear.*fog.*ring/i);
   assert.deepEqual(
@@ -107,10 +116,28 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
 
   const bonnet = PRECHECK_SCENES['generic-bonnet-release'];
   assert.ok(Object.keys(bonnet.targets).length >= 3);
+  assert.ok(Object.values(bonnet.targets).every(target => target.iconKey === 'native-symbol'));
   assert.match(bonnet.targets['bonnet-release'].anchorDescription, /bonnet.*release lever/i);
+  assert.deepEqual(
+    ['fuel-door-release', 'bonnet-release'].map(id => bonnet.targets[id].labelPlacement),
+    [
+      { x: 27, y: 55, width: 25 },
+      { x: 59, y: 55, width: 25 }
+    ],
+    'adjacent footwell controls need separated reveal labels'
+  );
   const tailgate = PRECHECK_SCENES['generic-tailgate-release'];
   assert.ok(Object.keys(tailgate.targets).length >= 3);
+  assert.ok(Object.values(tailgate.targets).every(target => target.iconKey === 'native-symbol'));
   assert.match(tailgate.targets['boot-release'].anchorDescription, /tailgate.*release/i);
+  assert.deepEqual(
+    ['rear-camera', 'boot-release'].map(id => tailgate.targets[id].labelPlacement),
+    [
+      { x: 33, y: 62, width: 23 },
+      { x: 62, y: 62, width: 23 }
+    ],
+    'adjacent tailgate controls need separated reveal labels'
+  );
 
   for (const scene of [lighting, bonnet, tailgate]) {
     assert.ok(Object.values(scene.targets).every(target => target.iconKey && target.anchorDescription));

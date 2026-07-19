@@ -1,4 +1,5 @@
 import { createSurfaceModel, seededRandom } from './surface-model.js';
+import { drivingScene } from './driving-scenes.js';
 import {
   assertNonOverlappingTargets,
   jitterAngle,
@@ -7,9 +8,14 @@ import {
   targetBox
 } from './surface-geometry.js';
 
-const FOUR_EXIT_ANGLES = Object.freeze([-18, -90, -162, -228]);
-const FIVE_EXIT_ANGLES = Object.freeze([-12, -55, -98, -141, -184]);
-const JUNCTION_RESULTS = Object.freeze(['turn-right', 'turn-left']);
+const FOUR_EXIT_ANGLES = Object.freeze([-12, -83, -163, -206]);
+const FIVE_EXIT_ANGLES = Object.freeze([24, -22, -90, -154, -200]);
+const JUNCTION_ACTION_RESULTS = Object.freeze(['turn-right', 'turn-left']);
+const JUNCTION_TARGETS = Object.freeze([
+  Object.freeze({ id: 'left', resultId: 'turn-left', x: 15, y: 42 }),
+  Object.freeze({ id: 'straight', resultId: 'continue-forward', x: 50, y: 15 }),
+  Object.freeze({ id: 'right', resultId: 'turn-right', x: 85, y: 42 })
+]);
 const STAGE = Object.freeze({ stageWidth: 400, stageHeight: 300 });
 const ROAD_LABELS = Object.freeze({
   en: Object.freeze({
@@ -19,6 +25,7 @@ const ROAD_LABELS = Object.freeze({
     prefix: 'Correct road: ',
     'turn-right': 'turn right',
     'turn-left': 'turn left',
+    'continue-forward': 'continue straight',
     'roundabout-exit-1': 'first exit',
     'roundabout-exit-2': 'second exit',
     'roundabout-exit-3': 'third exit',
@@ -32,6 +39,7 @@ const ROAD_LABELS = Object.freeze({
     prefix: 'Vía correcta: ',
     'turn-right': 'giro a la derecha',
     'turn-left': 'giro a la izquierda',
+    'continue-forward': 'continúe de frente',
     'roundabout-exit-1': 'primera salida',
     'roundabout-exit-2': 'segunda salida',
     'roundabout-exit-3': 'tercera salida',
@@ -74,7 +82,12 @@ export function generateSpatialSurface(command, seed, options = {}) {
     seed,
     expectedResult: command.acceptedResult,
     targets,
-    geometry: { entry: 'bottom', exitCount, angles },
+    geometry: {
+      entry: 'bottom',
+      exitCount,
+      angles,
+      sceneId: exitCount === 5 ? 'roundabout-five-photo-v1' : 'roundabout-four-photo-v1'
+    },
     meta: { commandId: command.id }
   });
 }
@@ -101,8 +114,14 @@ export function renderSpatialSurface(model, locale, state = {}) {
     ? `<p class="surface-result-label">${escapeHtml(labels.prefix + labels[model.expectedResult])}</p>`
     : '';
 
-  return `<div class="surface-stage ${model.family}" data-surface="${surfaceId}">
-    <svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+  const scene = model.geometry.sceneId ? drivingScene(model.geometry.sceneId) : null;
+  const sceneImage = scene
+    ? `<img class="driving-scene-image" data-scene="${escapeAttribute(scene.id)}" data-provenance="${escapeAttribute(scene.provenance)}" src="${escapeAttribute(scene.asset)}" alt="${escapeAttribute(locale === 'es' ? scene.alt.es : scene.alt.en)}">`
+    : '';
+
+  return `<div class="surface-stage ${model.family}${scene ? ' driving-photo-stage' : ''}" data-surface="${surfaceId}">
+    ${sceneImage}
+    <svg viewBox="0 0 100 100"${scene ? ' preserveAspectRatio="none"' : ''} aria-hidden="true" focusable="false">
       ${roadDrawing(model)}
       ${route}
     </svg>
@@ -112,15 +131,17 @@ export function renderSpatialSurface(model, locale, state = {}) {
 }
 
 function generateJunction(command, seed) {
-  if (!JUNCTION_RESULTS.includes(command?.acceptedResult) || command.actionId !== command.acceptedResult) {
+  if (!JUNCTION_ACTION_RESULTS.includes(command?.acceptedResult) || command.actionId !== command.acceptedResult) {
     throw new Error(`Unsupported junction action: ${command?.actionId}`);
   }
   const rng = seededRandom(seed);
-  const angles = [0, -180].map(angle => jitterAngle(angle, 8, rng));
-  const targets = JUNCTION_RESULTS.map((resultId, index) => {
-    const point = polarPoint(50, 45, 38, angles[index]);
-    return targetBox(resultId.replace('turn-', ''), resultId, point.x, point.y, STAGE);
-  });
+  const targets = JUNCTION_TARGETS.map(target => targetBox(
+    target.id,
+    target.resultId,
+    jitterCoordinate(target.x, rng),
+    jitterCoordinate(target.y, rng),
+    STAGE
+  ));
   assertNonOverlappingTargets(targets);
 
   return createSurfaceModel({
@@ -130,9 +151,13 @@ function generateJunction(command, seed) {
     seed,
     expectedResult: command.acceptedResult,
     targets,
-    geometry: { entry: 'bottom', angles },
+    geometry: { entry: 'bottom', sceneId: 'four-way-intersection-photo-v1' },
     meta: { commandId: command.id }
   });
+}
+
+function jitterCoordinate(base, rng) {
+  return Math.round((base + (rng() * 3 - 1.5)) * 100) / 100;
 }
 
 function roundaboutOrdinal(command) {
@@ -150,6 +175,8 @@ function roadExitTarget(ordinal, angle) {
 }
 
 function roadDrawing(model) {
+  if (model.geometry.sceneId) return '';
+
   if (model.family === 'junction') {
     const outgoingRoads = model.targets.map(target =>
       `<path d="${svgRoadPath([{ x: 50, y: 45 }, target])}" class="spatial-road"/>`

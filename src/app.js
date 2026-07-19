@@ -1,5 +1,6 @@
 import { createAudioPlayer, validateAudioManifest } from './audio.js';
 import { commandsForPhase, validateCatalog } from './catalog.js';
+import { createFeedbackCuePlayer } from './feedback-audio.js';
 import { setDocumentLocale, translate } from './i18n.js';
 import {
   STORAGE_KEY,
@@ -32,6 +33,17 @@ const RESULT_ONLY_SURFACE_FAMILIES = Object.freeze([
 
 export function promptControlsDisabled(model) {
   return model.screen !== 'prompt' || Boolean(model.replayPending) || !model.activeSurfaceModel;
+}
+
+export function feedbackCueForTransition(before, after, event) {
+  if (before === after) return null;
+  if (event.type === 'SHOW_SPANISH' && !before.textShown && after.textShown) {
+    return 'spanish-hint';
+  }
+  if (before.screen !== 'prompt' || after.screen !== 'reveal' || after.timeout) return null;
+  if (after.outcome === 'incorrect') return 'incorrect';
+  if (after.outcome === 'unaided' || after.outcome === 'assisted') return 'correct';
+  return null;
 }
 
 export function nextSurfaceSeed(cryptoRef = globalThis.crypto) {
@@ -419,6 +431,7 @@ async function bootstrap() {
   let selectableCommands;
   let manifest;
   let player;
+  let feedbackPlayer;
   let state;
   let model;
   let importError = '';
@@ -450,6 +463,7 @@ async function bootstrap() {
     };
     model = { screen: 'setup', settings: state.settings, session: [], index: 0 };
     player = createAudioPlayer({ AudioCtor: window.Audio, document });
+    feedbackPlayer = createFeedbackCuePlayer();
   } catch (error) {
     const locale = 'en';
     app.innerHTML = `<p class="notice error" role="alert">${escapeHtml(translate(locale, 'error.init'))}</p>`;
@@ -535,6 +549,9 @@ async function bootstrap() {
           ['available', 'hint.available'], ['shown', 'hint.shown'], ['unavailable', 'hint.unavailable']
         ])}
         ${selectControl('timed', 'setting.timing', [[false, 'timing.off'], [true, 'timing.on']])}
+        ${selectControl('feedbackSounds', 'setting.feedbackSounds', [
+          [true, 'feedbackSounds.on'], [false, 'feedbackSounds.off']
+        ])}
         ${selectControl('length', 'setting.length', [
           ['short', 'length.short'], ['medium', 'length.medium'], ['all', 'length.all']
         ])}
@@ -682,7 +699,7 @@ async function bootstrap() {
       const setting = control.dataset.setting;
       const value = setting === 'speed'
         ? Number(control.value)
-        : setting === 'timed'
+        : setting === 'timed' || setting === 'feedbackSounds'
           ? control.value === 'true'
           : control.value;
       updateSettings({ [setting]: value });
@@ -709,8 +726,12 @@ async function bootstrap() {
   function bindPromptEvents() {
     app.querySelector('[data-action="replay"]')?.addEventListener('click', () => void replayAudio());
     app.querySelector('[data-action="show-spanish"]')?.addEventListener('click', () => {
-      model = reduceScreen(model, { type: 'SHOW_SPANISH' });
+      const event = { type: 'SHOW_SPANISH' };
+      const before = model;
+      model = reduceScreen(model, event);
+      const cue = feedbackCueForTransition(before, model, event);
       render();
+      playFeedbackCue(cue);
     });
     app.querySelector('[data-action="surface-retry"]')?.addEventListener('click', () => {
       model = reduceScreen(model, { type: 'RETRY_SURFACE', startedAt: Date.now() });
@@ -727,6 +748,9 @@ async function bootstrap() {
     app.querySelectorAll('[data-control-event="select-gear"]').forEach(button => button.addEventListener('click', () => {
       dispatchSurfaceEvent({ type: 'select-gear', targetId: button.dataset.target, gear: button.dataset.gear });
     }));
+    app.querySelector('[data-control-event="submit-secure"]')?.addEventListener('click', () => {
+      dispatchSurfaceEvent({ type: 'submit-secure' });
+    });
     app.querySelectorAll('[data-control-event="set-wheel"]').forEach(control => control.addEventListener('input', () => {
       dispatchSurfaceEvent({ type: 'set-wheel', degrees: Number(control.value) });
     }));
@@ -783,6 +807,7 @@ async function bootstrap() {
 
   async function playCurrentCommand() {
     if (audioBusy || model.screen !== 'loading-audio') return;
+    feedbackPlayer.stop();
     audioBusy = true;
     const operation = ++audioOperation;
     const command = currentCommand();
@@ -817,6 +842,7 @@ async function bootstrap() {
   async function replayAudio() {
     if (audioBusy || model.screen !== 'prompt') return;
     stopTimer();
+    feedbackPlayer.stop();
     audioBusy = true;
     const operationId = ++audioOperation;
     model = reduceScreen(model, { type: 'REPLAY_STARTED', operationId });
@@ -842,8 +868,10 @@ async function bootstrap() {
     const before = model;
     model = reduceScreen(model, event);
     if (model === before) return;
+    const cue = feedbackCueForTransition(before, model, event);
     if (model.screen !== 'reveal') {
       render();
+      playFeedbackCue(cue);
       return;
     }
     stopTimer();
@@ -874,6 +902,15 @@ async function bootstrap() {
       saveState(window.localStorage, state);
     }
     render();
+    playFeedbackCue(cue);
+  }
+
+  function playFeedbackCue(cue) {
+    if (!cue) return;
+    void feedbackPlayer.play(cue, {
+      enabled: state.settings.feedbackSounds,
+      busy: audioBusy
+    });
   }
 
   function persistMissReason(reason) {
@@ -962,6 +999,7 @@ async function bootstrap() {
     if (!window.confirm(translate(locale(), 'data.resetConfirm'))) return;
     stopTimer();
     player.cancel('reset');
+    feedbackPlayer.stop();
     window.localStorage.removeItem(STORAGE_KEY);
     state = defaultState();
     state = { ...state, settings: { ...state.settings, mode: 'weakest-first' } };

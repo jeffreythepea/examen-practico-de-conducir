@@ -44,14 +44,16 @@ test('spatial generation is reproducible for one seed and varies across seeds', 
   );
 });
 
-test('spatial geometry varies subtly while junctions expose only left and right roads', () => {
+test('spatial geometry varies subtly while junctions expose left, straight, and right roads', () => {
   const junction = generateSpatialSurface(command('turn-left', 'junction-v2'), 42);
   assert.equal(junction.geometry.entry, 'bottom');
-  assert.deepEqual(junction.targets.map(target => target.resultId), ['turn-right', 'turn-left']);
-  assert.deepEqual(junction.geometry.angles.map(Math.round), [-8, -184]);
+  assert.equal(junction.geometry.sceneId, 'four-way-intersection-photo-v1');
+  assert.deepEqual(junction.targets.map(target => target.resultId), [
+    'turn-left', 'continue-forward', 'turn-right'
+  ]);
 
   const roundabout = generateSpatialSurface(command('roundabout-exit-4'), 42, { exitCount: 5 });
-  const bases = [-12, -55, -98, -141, -184];
+  const bases = [24, -22, -90, -154, -200];
   roundabout.geometry.angles.forEach((angle, index) => assert.ok(Math.abs(angle - bases[index]) <= 8));
   for (const target of [...junction.targets, ...roundabout.targets]) {
     assert.ok(target.width >= 11);
@@ -61,16 +63,87 @@ test('spatial geometry varies subtly while junctions expose only left and right 
   assertNonOverlappingTargets(roundabout.targets);
 });
 
+test('junction targets remain inside the three photographed road mouths', () => {
+  const bands = {
+    'turn-left': [12, 18, 39, 45],
+    'continue-forward': [47, 53, 12, 18],
+    'turn-right': [82, 88, 39, 45]
+  };
+  for (let seed = 1; seed <= 64; seed += 1) {
+    const model = generateSpatialSurface(command('turn-right', 'junction-v2'), seed);
+    for (const target of model.targets) {
+      const [minX, maxX, minY, maxY] = bands[target.resultId];
+      assert.ok(target.x >= minX && target.x <= maxX,
+        `${target.id} x=${target.x} must stay on its photographed road`);
+      assert.ok(target.y >= minY && target.y <= maxY,
+        `${target.id} y=${target.y} must stay on its photographed road`);
+    }
+    assertNonOverlappingTargets(model.targets);
+  }
+});
+
+test('four- and five-exit targets stay within their photographed road mouths', () => {
+  const bands = {
+    4: [
+      [85, 90, 34, 51],
+      [46, 62, 9, 14],
+      [9, 17, 31, 46],
+      [10, 20, 59, 74]
+    ],
+    5: [
+      [81, 90, 58, 73],
+      [82, 90, 29, 44],
+      [44, 56, 9, 13],
+      [10, 19, 28, 44],
+      [9, 17, 56, 73]
+    ]
+  };
+
+  for (const exitCount of [4, 5]) {
+    for (let seed = 1; seed <= 64; seed += 1) {
+      const model = generateSpatialSurface(command('roundabout-exit-1'), seed, { exitCount });
+      model.targets.forEach((target, index) => {
+        const [minX, maxX, minY, maxY] = bands[exitCount][index];
+        assert.ok(target.x >= minX && target.x <= maxX,
+          `${exitCount}-exit ${target.id} x=${target.x} must remain in its photographed mouth`);
+        assert.ok(target.y >= minY && target.y <= maxY,
+          `${exitCount}-exit ${target.id} y=${target.y} must remain in its photographed mouth`);
+      });
+    }
+  }
+});
+
 test('renderer draws unlabeled localized road targets and disables every target during replay', () => {
   const model = generateSpatialSurface(command('roundabout-exit-2'), 17, { exitCount: 4 });
   const markup = renderSpatialSurface(model, 'es', { disabled: true });
 
-  assert.match(markup, /^<div class="surface-stage roundabout" data-surface="roundabout-v2">/);
-  assert.match(markup, /<svg[^>]+aria-hidden="true"[^>]+focusable="false"/);
+  assert.equal(model.geometry.sceneId, 'roundabout-four-photo-v1');
+  assert.match(markup, /^<div class="surface-stage roundabout driving-photo-stage" data-surface="roundabout-v2">/);
+  assert.match(markup, /class="driving-scene-image"[^>]+data-scene="roundabout-four-photo-v1"/);
+  assert.match(markup, /src="\.\/assets\/driving\/roundabout-four-photo-v1\.png"/);
+  assert.match(markup, /<svg viewBox="0 0 100 100" preserveAspectRatio="none"[^>]+aria-hidden="true"[^>]+focusable="false"/);
   assert.equal((markup.match(/class="road-target"/g) ?? []).length, 4);
   assert.equal((markup.match(/ disabled/g) ?? []).length, 4);
   assert.equal((markup.match(/aria-label="Seleccione esta vía"/g) ?? []).length, 4);
   assert.doesNotMatch(markup, /surface-result-label|data-correct-route|aria-current/);
+});
+
+test('roundabout and junction photo plates replace their old synthetic roads', () => {
+  const five = generateSpatialSurface(command('roundabout-exit-5'), 42, { exitCount: 5 });
+  assert.equal(five.geometry.sceneId, 'roundabout-five-photo-v1');
+  const fiveMarkup = renderSpatialSurface(five, 'en');
+  assert.match(fiveMarkup, /data-scene="roundabout-five-photo-v1"/);
+  assert.match(fiveMarkup, /src="\.\/assets\/driving\/roundabout-five-photo-v1\.png"/);
+  assert.doesNotMatch(fiveMarkup, /class="roundabout-road"|class="roundabout-island"/);
+
+  const junction = generateSpatialSurface(command('turn-left', 'junction-v2'), 42);
+  assert.equal(junction.geometry.sceneId, 'four-way-intersection-photo-v1');
+  const junctionMarkup = renderSpatialSurface(junction, 'en');
+  assert.match(junctionMarkup, /class="surface-stage junction driving-photo-stage"/);
+  assert.match(junctionMarkup, /data-scene="four-way-intersection-photo-v1"/);
+  assert.match(junctionMarkup, /src="\.\/assets\/driving\/four-way-intersection-photo-v1\.png"/);
+  assert.equal((junctionMarkup.match(/class="road-target"/g) ?? []).length, 3);
+  assert.doesNotMatch(junctionMarkup, /class="spatial-road"|class="road-marking"/);
 });
 
 test('reveal marks the correct target, draws its route, and shows a localized result label', () => {

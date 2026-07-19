@@ -6,6 +6,12 @@
 - Replaced abstract vehicle schematics with seven photo-backed, icon-first precheck scenes whose targets are precisely anchored to recognizable caps, handles, gauges, switches, rings, and levers.
 - Used illustrative generic vehicle images, including a conventional under-bonnet battery baseline, while retaining stable diagram and hotspot IDs and requiring confirmation in the actual test car.
 - Replaced the provisional automatic interaction with a generic manual immobilization exercise grounded in RGC Article 92: engine stopped, hand parking brake applied, first gear uphill or reverse downhill.
+- Added a terminal incorrect reveal for a fully configured wrong immobilization gear, eliminating a state with no route to Continue, and replaced the ambiguous slope marker with a directional car.
+- Activated photo-backed overtaking, parking, voluntary-stopping, and four- or five-exit roundabout scenes while retaining auditable code-native targets, routes, and reveal marks.
+- Replaced the abstract T-junction with a photo-backed four-way intersection whose three choices test left, straight, and right, and gave parking a dedicated photo with one unambiguous gap between parked cars.
+- Added optional game-show feedback sounds and a distinct written-Spanish-hint cue, with feedback sounds independently configurable.
+- Made session length explicit and selectable as 5, 10, or 15 commands; fresh saves default to Mixed practice with 10 commands.
+- Realigned every photo-backed manoeuvre and roundabout target to visible asphalt, curb, driveway, crossing, restriction, or exit geometry, and removed redundant crosswalk/driveway drawings from photographic scenes.
 - Retained exactly three honest semantic exceptions: speed adaptation, involuntary stopping, and exam finish. Parking and voluntary-stopping scenarios remain provisional pending practical-lesson evidence.
 - Recorded landscape-iPad and same-Wi-Fi hardened `serve:lan` guidance, actual-test-vehicle uncertainty, and the browser-automation limitation for backup export/import smoke.
 - Kept road simulation, additional phrasing variation, and deeper phrasing/voice mastery reporting deferred for evidence from real practice sessions.
@@ -16,7 +22,7 @@
 - Added English and Spanish interface localization while keeping commands and generated audio in Spanish.
 - Added distinct unaided, text-assisted, and incorrect scoring with durable raw counts, mastery scheduling, response timing, and replay/hint dependence.
 - Added 180 integrity-checked ElevenLabs assets across two contrasting voices and three provider-native speeds, with a bilingual AI-generated-voice disclosure.
-- Preserved driving, precheck, and mixed content filters plus weak/due and free-practice ordering.
+- Preserved driving, precheck, and mixed content filters plus previously-missed and free-practice ordering.
 - Added miss-reason diagnostics, session summaries, local versioned storage, and atomic JSON backup/import.
 - Documented command-source and provisional Toyota Yaris Hybrid 2019 limitations.
 

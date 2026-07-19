@@ -94,19 +94,19 @@ export const PRECHECK_SCENES = deepFreeze({
     targets: {
       'temperature-gauge': {
         resultId: 'locate-engine-temperature', x: 25, y: 52.5, width: 12, height: 18,
-        kind: 'gauge-location', interaction: 'locate', iconKey: 'temperature',
+        kind: 'gauge-location', interaction: 'locate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.temperatureGauge', labelPlacement: { x: 25, y: 31, width: 34 },
         anchorDescription: 'Centred on the separate engine-coolant-temperature gauge face'
       },
       'fuel-gauge': {
         resultId: 'locate-fuel-level', x: 75.1, y: 52.7, width: 12, height: 18,
-        kind: 'gauge-location', interaction: 'locate', iconKey: 'fuel',
+        kind: 'gauge-location', interaction: 'locate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.fuelGauge', labelPlacement: { x: 75, y: 31, width: 28 },
         anchorDescription: 'Centred on the separate fuel gauge face and pump symbol'
       },
       speedometer: {
         resultId: 'locate-speedometer', x: 50, y: 48.8, width: 12, height: 18,
-        kind: 'gauge-location', interaction: 'locate', iconKey: 'speedometer',
+        kind: 'gauge-location', interaction: 'locate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.speedometer', labelPlacement: { x: 50, y: 26, width: 28 },
         anchorDescription: 'Centred on the large central speedometer face'
       }
@@ -151,21 +151,21 @@ export const PRECHECK_SCENES = deepFreeze({
     targets: {
       'front-demist': {
         resultId: 'front-demist', x: 43, y: 31, width: 11, height: 16,
-        kind: 'climate-button', interaction: 'operate', iconKey: 'front-demist',
+        kind: 'climate-button', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.frontDemist', labelPlacement: { x: 36, y: 15, width: 32 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the front-windscreen demist button'
       },
       'rear-demist': {
         resultId: 'rear-demist', x: 55.5, y: 31, width: 11, height: 16,
-        kind: 'climate-button', interaction: 'operate', iconKey: 'rear-demist',
+        kind: 'climate-button', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.rearDemist', labelPlacement: { x: 63, y: 15, width: 32 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the rear-window demist button'
       },
       fan: {
         resultId: 'operate-fan', x: 49.5, y: 53.5, width: 12, height: 18,
-        kind: 'climate-dial', interaction: 'operate', iconKey: 'fan',
+        kind: 'climate-dial', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.fan', labelPlacement: { x: 50, y: 72, width: 24 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the fan-speed rotary dial'
@@ -180,11 +180,11 @@ export const PRECHECK_SCENES = deepFreeze({
     reference: 'Generic manual hatchback lighting stalk — illustrative AI-generated photo',
     targets: {
       'high-beam': {
-        resultId: 'high-beams', x: 29.1, y: 51.5, width: 8, height: 15,
+        resultId: 'high-beams', x: 29.1, y: 46.5, width: 8, height: 15,
         kind: 'stalk-movement', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.highBeam', labelPlacement: { x: 17, y: 78, width: 28 },
         stateKind: 'power', initialState: false, desiredState: true,
-        anchorDescription: 'Offset just below the native high-beam symbol on the stalk movement ring'
+        anchorDescription: 'Centred on the native high-beam symbol on the stalk movement ring'
       },
       'front-fog': {
         resultId: 'front-fog-lights', x: 37.2, y: 42, width: 8, height: 15,
@@ -211,21 +211,21 @@ export const PRECHECK_SCENES = deepFreeze({
     targets: {
       'bonnet-release': {
         resultId: 'open-bonnet-check-levels', x: 46.8, y: 39.8, width: 8, height: 16,
-        kind: 'release-lever', interaction: 'operate', iconKey: 'bonnet',
-        labelKey: 'surface.yaris.bonnetRelease', labelPlacement: { x: 51, y: 55, width: 27 },
+        kind: 'release-lever', interaction: 'operate', iconKey: 'native-symbol',
+        labelKey: 'surface.yaris.bonnetRelease', labelPlacement: { x: 59, y: 55, width: 25 },
         stateKind: 'open', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the physical bonnet release lever with the open-bonnet pictogram'
       },
       'fuel-door-release': {
         resultId: 'open-fuel-door', x: 37.8, y: 39.8, width: 8, height: 16,
-        kind: 'release-lever', interaction: 'operate', iconKey: 'fuel',
-        labelKey: 'surface.yaris.fuelDoorRelease', labelPlacement: { x: 31, y: 55, width: 27 },
+        kind: 'release-lever', interaction: 'operate', iconKey: 'native-symbol',
+        labelKey: 'surface.yaris.fuelDoorRelease', labelPlacement: { x: 27, y: 55, width: 25 },
         stateKind: 'open', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the separate fuel-filler-door release lever'
       },
       'dashboard-brightness': {
         resultId: 'adjust-dashboard-brightness', x: 40.3, y: 18.1, width: 10, height: 15,
-        kind: 'dashboard-control', interaction: 'operate', iconKey: 'brightness',
+        kind: 'dashboard-control', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.dashboardBrightness', labelPlacement: { x: 40, y: 7, width: 31 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the dashboard illumination brightness wheel'
@@ -241,21 +241,21 @@ export const PRECHECK_SCENES = deepFreeze({
     targets: {
       'boot-release': {
         resultId: 'open-boot', x: 51.7, y: 48.2, width: 8, height: 16,
-        kind: 'release-switch', interaction: 'operate', iconKey: 'tailgate',
-        labelKey: 'surface.yaris.bootRelease', labelPlacement: { x: 59, y: 62, width: 25 },
+        kind: 'release-switch', interaction: 'operate', iconKey: 'native-symbol',
+        labelKey: 'surface.yaris.bootRelease', labelPlacement: { x: 62, y: 62, width: 23 },
         stateKind: 'open', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the physical exterior tailgate release handle'
       },
       'rear-camera': {
         resultId: 'locate-rear-camera', x: 42.1, y: 48.2, width: 8, height: 16,
-        kind: 'camera-location', interaction: 'operate', iconKey: 'camera',
-        labelKey: 'surface.yaris.rearCamera', labelPlacement: { x: 36, y: 62, width: 25 },
+        kind: 'camera-location', interaction: 'operate', iconKey: 'native-symbol',
+        labelKey: 'surface.yaris.rearCamera', labelPlacement: { x: 33, y: 62, width: 23 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the separate rear-view camera lens'
       },
       'rear-wiper': {
         resultId: 'operate-rear-wiper', x: 53.8, y: 19.2, width: 12, height: 17,
-        kind: 'wiper-location', interaction: 'operate', iconKey: 'wiper',
+        kind: 'wiper-location', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.rearWiper', labelPlacement: { x: 53, y: 7, width: 25 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the rear-window wiper base'

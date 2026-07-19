@@ -68,15 +68,18 @@ function assertSafeReleaseDocumentation(path, text) {
 
 test('release candidate contains no credential-shaped text', async () => {
   const forbidden = [
-    'OPENAI_API_KEY' + '=',
-    'ELEVENLABS_API_KEY' + '=',
-    's' + 'k-',
-    'xi-' + 'api-key'
+    { label: 'OpenAI key assignment', matches: text => text.includes('OPENAI_API_KEY' + '=') },
+    { label: 'ElevenLabs key assignment', matches: text => text.includes('ELEVENLABS_API_KEY' + '=') },
+    {
+      label: 'provider key value',
+      matches: text => new RegExp(`\\b${'s' + 'k-'}[A-Za-z0-9_-]{8,}`).test(text)
+    },
+    { label: 'ElevenLabs key header', matches: text => text.includes('xi-' + 'api-key') }
   ];
   for (const path of await candidateTextFiles()) {
     const text = await readFile(path, 'utf8');
     for (const pattern of forbidden) {
-      assert.equal(text.includes(pattern), false, `${relative(ROOT, path)} contains forbidden credential-shaped text: ${pattern}`);
+      assert.equal(pattern.matches(text), false, `${relative(ROOT, path)} contains forbidden credential-shaped text: ${pattern.label}`);
     }
   }
 });

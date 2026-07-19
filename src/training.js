@@ -1,5 +1,5 @@
 export const OUTCOME_WEIGHTS = Object.freeze({ unaided: 1, assisted: 0.5, incorrect: 0 });
-export const SESSION_LENGTHS = Object.freeze({ short: 5, medium: 10 });
+export const SESSION_LENGTHS = Object.freeze({ short: 5, medium: 10, all: 15 });
 export const UNAIDED_INTERVAL_DAYS = Object.freeze([1, 3, 7, 14, 30]);
 
 const DAY_MS = 86_400_000;
@@ -41,7 +41,7 @@ export function createSession(commands, {
   const ordered = mode === 'weakest-first'
     ? nextWeakestFirst(pool, attempts, now)
     : shuffle(pool, rng);
-  const targetLength = length === 'all' ? ordered.length : SESSION_LENGTHS[length];
+  const targetLength = SESSION_LENGTHS[length];
   return ordered.slice(0, targetLength);
 }
 

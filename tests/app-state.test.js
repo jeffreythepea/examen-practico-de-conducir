@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   captureFocusSnapshot,
+  feedbackCueForTransition,
   focusScreen,
   generateSurfaceWithRetries,
   localizedVehicleAnswer,
@@ -278,6 +279,7 @@ test('reducer-owned native events score authentic centered wheel and complete se
   assert.equal(parkingBrakeSet.screen, 'prompt');
   assert.deepEqual(parkingBrakeSet.surfaceResponse, {
     complete: false,
+    ready: false,
     selectedResult: null,
     selectedTargetId: 'parking-brake',
     engineStopped: false,
@@ -298,18 +300,59 @@ test('reducer-owned native events score authentic centered wheel and complete se
     },
     completedAt: 1_500
   });
-  assert.equal(secured.screen, 'reveal');
-  assert.equal(secured.correct, true);
-  assert.equal(secured.selectedResult, 'secure-vehicle');
-  assert.equal(secured.selectedTargetId, 'manual-gear');
-  assert.deepEqual(secured.surfaceResponse, {
+  assert.equal(secured.screen, 'prompt');
+  const submitted = reduceScreen(secured, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: { type: 'submit-secure' },
+    completedAt: 1_600
+  });
+  assert.equal(submitted.screen, 'reveal');
+  assert.equal(submitted.correct, true);
+  assert.equal(submitted.selectedResult, 'secure-vehicle');
+  assert.equal(submitted.selectedTargetId, 'manual-gear');
+  assert.deepEqual(submitted.surfaceResponse, {
     complete: true,
+    ready: true,
     selectedResult: 'secure-vehicle',
     selectedTargetId: 'manual-gear',
     engineStopped: true,
     parkingBrakeApplied: true,
     selectedGear: secure.activeSurfaceModel.meta.requiredGear
   });
+});
+
+test('a fully configured manual sequence with the wrong slope gear reveals an incorrect answer', () => {
+  let model = controlPrompt(secureCommand, 5);
+  model = reduceScreen(model, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: { type: 'activate', targetId: 'engine-stop' },
+    completedAt: 1_200
+  });
+  assert.equal(model.screen, 'prompt');
+  model = reduceScreen(model, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: { type: 'activate', targetId: 'parking-brake' },
+    completedAt: 1_300
+  });
+  const wrongGear = model.activeSurfaceModel.meta.requiredGear === 'first' ? 'reverse' : 'first';
+  model = reduceScreen(model, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: { type: 'select-gear', targetId: 'manual-gear', gear: wrongGear },
+    completedAt: 1_500
+  });
+  assert.equal(model.screen, 'prompt');
+  model = reduceScreen(model, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: { type: 'submit-secure' },
+    completedAt: 1_600
+  });
+
+  assert.equal(model.screen, 'reveal');
+  assert.equal(model.outcome, 'incorrect');
+  assert.equal(model.correct, false);
+  assert.equal(model.selectedTargetId, 'manual-gear');
+  assert.equal(model.surfaceResponse.incorrect, true);
+  assert.equal(model.surfaceResponse.selectedGear, wrongGear);
 });
 
 test('driving-only c-inmov prompt and reveal both expose the accessible generic-manual notice', () => {
@@ -334,6 +377,9 @@ test('driving-only c-inmov prompt and reveal both expose the accessible generic-
       targetId: 'manual-gear',
       gear: model.activeSurfaceModel.meta.requiredGear
     }
+  });
+  model = reduceScreen(model, {
+    type: 'SURFACE_EVENT', surfaceEvent: { type: 'submit-secure' }
   });
   assert.equal(model.textShown, false);
   assert.equal(model.outcome, 'unaided');
@@ -419,6 +465,7 @@ test('partial manual securing state survives timeout so reveal identifies the re
   assert.equal(model.screen, 'reveal');
   assert.deepEqual(model.surfaceResponse, {
     complete: true,
+    ready: false,
     selectedResult: null,
     selectedTargetId: null,
     engineStopped: false,
@@ -496,6 +543,90 @@ test('Spanish hint stays in the prompt and makes a later correct response assist
 
   model = reduceScreen(model, { type: 'SELECT_RESULT', selectedResult: 'turn-right', completedAt: 1_500 });
   assert.equal(model.outcome, 'assisted');
+});
+
+test('accepted answer transitions choose correct and incorrect feedback cues but timeouts stay silent', () => {
+  const unaidedBefore = promptModel();
+  const unaidedEvent = {
+    type: 'SELECT_RESULT', selectedResult: 'turn-right', completedAt: 1_500
+  };
+  const unaidedAfter = reduceScreen(unaidedBefore, unaidedEvent);
+  assert.equal(feedbackCueForTransition(unaidedBefore, unaidedAfter, unaidedEvent), 'correct');
+
+  const assistedBefore = reduceScreen(promptModel(), { type: 'SHOW_SPANISH' });
+  const assistedEvent = {
+    type: 'SELECT_RESULT', selectedResult: 'turn-right', completedAt: 1_500
+  };
+  const assistedAfter = reduceScreen(assistedBefore, assistedEvent);
+  assert.equal(feedbackCueForTransition(assistedBefore, assistedAfter, assistedEvent), 'correct');
+
+  const incorrectBefore = promptModel();
+  const incorrectEvent = {
+    type: 'SELECT_RESULT', selectedResult: 'turn-left', completedAt: 1_500
+  };
+  const incorrectAfter = reduceScreen(incorrectBefore, incorrectEvent);
+  assert.equal(feedbackCueForTransition(incorrectBefore, incorrectAfter, incorrectEvent), 'incorrect');
+
+  const timeoutBefore = promptModel();
+  const timeoutEvent = { type: 'TIMEOUT', completedAt: 9_000 };
+  const timeoutAfter = reduceScreen(timeoutBefore, timeoutEvent);
+  assert.equal(feedbackCueForTransition(timeoutBefore, timeoutAfter, timeoutEvent), null);
+});
+
+test('Spanish-hint feedback occurs only for the first accepted reveal of trial-local text', () => {
+  const before = promptModel();
+  const event = { type: 'SHOW_SPANISH' };
+  const after = reduceScreen(before, event);
+  assert.equal(feedbackCueForTransition(before, after, event), 'spanish-hint');
+
+  const repeatedAfter = reduceScreen(after, event);
+  assert.equal(feedbackCueForTransition(after, repeatedAfter, event), null);
+
+  const replayPending = reduceScreen(before, { type: 'REPLAY_STARTED', operationId: 7 });
+  const rejected = reduceScreen(replayPending, event);
+  assert.strictEqual(rejected, replayPending);
+  assert.equal(feedbackCueForTransition(replayPending, rejected, event), null);
+});
+
+test('non-feedback transitions never request a cue', () => {
+  const setup = setupModel();
+  const localeEvent = { type: 'SET_LOCALE', locale: 'es' };
+  const localized = reduceScreen(setup, localeEvent);
+  assert.equal(feedbackCueForTransition(setup, localized, localeEvent), null);
+
+  const reveal = reduceScreen(promptModel(), {
+    type: 'SELECT_RESULT', selectedResult: 'turn-right', completedAt: 1_500
+  });
+  const continueEvent = { type: 'CONTINUE' };
+  const continued = reduceScreen(reveal, continueEvent);
+  assert.equal(feedbackCueForTransition(reveal, continued, continueEvent), null);
+});
+
+test('available Spanish hint is trial-local and resets for the next command', () => {
+  let model = promptModel();
+  model = reduceScreen(model, { type: 'SHOW_SPANISH' });
+  assert.equal(model.textShown, true);
+
+  model = reduceScreen(model, {
+    type: 'SELECT_RESULT', selectedResult: 'turn-right', completedAt: 1_500
+  });
+  assert.equal(model.outcome, 'assisted');
+
+  model = reduceScreen(model, { type: 'CONTINUE' });
+  assert.equal(model.screen, 'loading-audio');
+  assert.equal(model.textShown, false);
+
+  const leftVariant = {
+    ...rightVariant,
+    id: 'left-roger',
+    commandId: 'c-izq',
+    phrasingId: 'c-izq-canonical'
+  };
+  model = reduceScreen(model, {
+    type: 'AUDIO_COMPLETED', variant: leftVariant, completedAt: 2_000, seed: 2
+  });
+  assert.equal(model.screen, 'prompt');
+  assert.equal(model.textShown, false);
 });
 
 test('replay locks the prompt, ignores stale completion, and counts one matching completion exactly once', () => {

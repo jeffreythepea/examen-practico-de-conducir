@@ -9,6 +9,7 @@ const requiredKeys = [
   'app.title','app.subtitle','app.skip','setting.language','phase.driving','phase.precheck','phase.mixed',
   'setting.speed','setting.hint','hint.available','hint.shown','hint.unavailable','setting.timing',
   'timing.off','timing.on','setting.length','length.short','length.medium','length.all',
+  'setting.feedbackSounds','feedbackSounds.on','feedbackSounds.off',
   'setting.phase','setting.mode','mode.weak','mode.free','action.start','action.replay','action.showSpanish','action.continue','action.retry','action.newSession',
   'screen.setup','screen.loading','screen.prompt','screen.results','prompt.listen','prompt.progress','prompt.timer',
   'reveal.spanish','reveal.meaning','reveal.expected','reveal.vehicle','result.unaided','result.assisted','result.incorrect',
@@ -23,6 +24,7 @@ const requiredKeys = [
   'surface.centerWheel','surface.wheelPosition','surface.wheelFinalPosition','surface.wheelCenteredReference',
   'surface.operateSecureControls','surface.engineStop','surface.handParkingBrake',
   'surface.manualFirst','surface.manualReverse','surface.slopeUphill','surface.slopeDownhill',
+  'surface.checkSecureAnswer',
   'surface.secureProvisionalTitle','surface.secureProvisionalPromptDisclosure',
   'surface.secureProvisionalRevealDisclosure',
   'surface.yaris.locateInstruction','surface.yaris.operateInstruction','surface.yaris.equipmentVariant',
@@ -64,6 +66,40 @@ test('translation validates locale, key, and interpolation variables', () => {
   assert.throws(() => translate('fr', 'phase.driving'), /Unsupported locale: fr/);
   assert.throws(() => translate('en', 'missing'), /Missing translation: en.missing/);
   assert.throws(() => translate('en', 'summary.count'), /Missing variable: count/);
+});
+
+test('written-Spanish policy labels state when text appears and how it scores', () => {
+  assert.equal(translate('en', 'hint.available'), 'Hidden until you tap Show Spanish');
+  assert.equal(translate('es', 'hint.available'), 'Oculto hasta pulsar Mostrar español');
+  assert.equal(translate('en', 'hint.shown'), 'Shown automatically (answers count as assisted)');
+  assert.equal(translate('es', 'hint.shown'), 'Visible automáticamente (las respuestas cuentan como asistidas)');
+  assert.equal(translate('en', 'hint.unavailable'), 'No Spanish text or Show Spanish button');
+  assert.equal(translate('es', 'hint.unavailable'), 'Sin texto en español ni botón Mostrar español');
+});
+
+test('practice-order labels use plain language', () => {
+  assert.equal(translate('en', 'mode.weak'), 'Previously missed questions');
+  assert.equal(translate('es', 'mode.weak'), 'Preguntas falladas anteriormente');
+});
+
+test('session lengths state exact command counts in both locales', () => {
+  assert.deepEqual(
+    ['short', 'medium', 'all'].map(length => translate('en', `length.${length}`)),
+    ['5 commands', '10 commands', '15 commands']
+  );
+  assert.deepEqual(
+    ['short', 'medium', 'all'].map(length => translate('es', `length.${length}`)),
+    ['5 preguntas', '10 preguntas', '15 preguntas']
+  );
+});
+
+test('feedback-sound setting is explicit and bilingual', () => {
+  assert.equal(translate('en', 'setting.feedbackSounds'), 'Feedback sounds');
+  assert.equal(translate('en', 'feedbackSounds.on'), 'On');
+  assert.equal(translate('en', 'feedbackSounds.off'), 'Off');
+  assert.equal(translate('es', 'setting.feedbackSounds'), 'Sonidos de respuesta');
+  assert.equal(translate('es', 'feedbackSounds.on'), 'Activados');
+  assert.equal(translate('es', 'feedbackSounds.off'), 'Desactivados');
 });
 
 test('backup confirmation and import failure copy are localized', () => {
@@ -108,6 +144,8 @@ test('wheel and generic manual securing controls are bilingual', () => {
   assert.equal(translate('en', 'surface.engineStop'), 'Stop engine');
   assert.equal(translate('es', 'surface.handParkingBrake'), 'Palanca manual del freno de estacionamiento');
   assert.equal(translate('en', 'surface.manualFirst'), 'First gear');
+  assert.equal(translate('en', 'surface.checkSecureAnswer'), 'Check answer');
+  assert.equal(translate('es', 'surface.checkSecureAnswer'), 'Comprobar respuesta');
   assert.equal(translate('es', 'surface.manualReverse'), 'Marcha atrás');
   assert.equal(translate('en', 'surface.secureProvisionalTitle'), 'Generic manual procedure');
   assert.match(translate('en', 'surface.secureProvisionalPromptDisclosure'), /generic manual-car practice.*actual test car/i);

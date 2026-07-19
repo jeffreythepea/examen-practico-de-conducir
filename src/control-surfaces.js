@@ -169,26 +169,38 @@ function reduceWheelResponse(model, event) {
 }
 
 function reduceSecureResponse(model, responseState, event) {
+  const state = validatedSecureState(responseState);
+  const ready = state.engineStopped && state.parkingBrakeApplied && state.selectedGear !== null;
+  if (event.type === 'submit-secure') {
+    if (!ready) return { complete: false, ready: false, selectedResult: null, selectedTargetId: null, ...state };
+    const correct = state.selectedGear === model.meta.requiredGear;
+    return {
+      complete: correct,
+      ...(!correct ? { incorrect: true } : {}),
+      ready: true,
+      selectedResult: correct ? model.expectedResult : null,
+      selectedTargetId: 'manual-gear',
+      ...state
+    };
+  }
   if (!MANUAL_SECURE_TARGETS.includes(event.targetId)) {
     throw new Error(`Unknown secure-vehicle target: ${event.targetId}`);
   }
-  const state = validatedSecureState(responseState);
   if (event.type === 'activate' && event.targetId === 'engine-stop') {
     state.engineStopped = !state.engineStopped;
   } else if (event.type === 'activate' && event.targetId === 'parking-brake') {
     state.parkingBrakeApplied = !state.parkingBrakeApplied;
   } else if (event.type === 'select-gear' && event.targetId === 'manual-gear') {
     if (!['first', 'reverse'].includes(event.gear)) throw new Error(`Unsupported manual gear: ${event.gear}`);
-    state.selectedGear = event.gear;
+    state.selectedGear = state.selectedGear === event.gear ? null : event.gear;
   } else {
     throw new Error(`Unsupported secure-vehicle event: ${event.type}`);
   }
-  const complete = state.engineStopped
-    && state.parkingBrakeApplied
-    && state.selectedGear === model.meta.requiredGear;
+  const selectionReady = state.engineStopped && state.parkingBrakeApplied && state.selectedGear !== null;
   return {
-    complete,
-    selectedResult: complete ? model.expectedResult : null,
+    complete: false,
+    ready: selectionReady,
+    selectedResult: null,
     selectedTargetId: event.targetId,
     ...state
   };
@@ -295,6 +307,10 @@ function renderSecureManual(model, responseState, locale, disabled) {
   const resultLabel = reveal
     ? `<p class="surface-result-label">${escapeHtml(translate(locale, 'surface.correctControl'))}</p>`
     : '';
+  const ready = state.engineStopped && state.parkingBrakeApplied && state.selectedGear !== null;
+  const submitButton = reveal
+    ? ''
+    : `<button class="secure-submit-button" type="button" data-control-event="submit-secure"${ready && !disabled ? '' : ' disabled'}>${escapeHtml(translate(locale, 'surface.checkSecureAnswer'))}</button>`;
   const disclosureKey = reveal
     ? 'surface.secureProvisionalRevealDisclosure'
     : 'surface.secureProvisionalPromptDisclosure';
@@ -307,8 +323,9 @@ function renderSecureManual(model, responseState, locale, disabled) {
   return `<div class="control-surface secure-yaris-control secure-manual-control" data-surface="secure-yaris-v1" data-family="secure-manual" data-slope="${model.meta.slope}" data-complete="${Boolean(responseState.complete)}">
     <p class="surface-instruction">${escapeHtml(translate(locale, 'surface.operateSecureControls'))}</p>
     ${disclosure}
-    <p class="manual-slope-context"><span class="slope-road" aria-hidden="true" data-slope="${model.meta.slope}"><span class="slope-car"></span></span>${escapeHtml(translate(locale, slopeKey))}</p>
+    <p class="manual-slope-context"><span class="slope-road" aria-hidden="true" data-slope="${model.meta.slope}"><svg class="slope-car" viewBox="0 0 64 32" focusable="false"><path class="slope-car-body" d="M4 23V18l7-2 7-8h23l10 8h7l2 7v3H4z"/><circle class="slope-car-wheel" cx="17" cy="25" r="5"/><circle class="slope-car-wheel" cx="48" cy="25" r="5"/><path class="slope-car-window" d="M22 11h16l7 6H17z"/><path class="slope-car-front" d="M56 17h4v6h-4z"/></svg></span>${escapeHtml(translate(locale, slopeKey))}</p>
     <div class="secure-control-grid">${engine}${parkingBrake}<div class="manual-gear-control"><span class="manual-gear-pattern" aria-hidden="true">1&nbsp;&nbsp;3&nbsp;&nbsp;5<br>│─┼─│<br>2&nbsp;&nbsp;4&nbsp;&nbsp;R</span><div class="manual-gear-options">${gearButtons}</div></div></div>
+    ${submitButton}
     ${resultLabel}
   </div>`;
 }

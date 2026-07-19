@@ -42,7 +42,7 @@ test('wheel centering completes only inside the centered tolerance', () => {
   assert.equal(reduceControlResponse(model, {}, { type: 'set-wheel', degrees: 5.1 }).complete, false);
 });
 
-test('manual immobilization accepts any control order and completes only at the legal final state', () => {
+test('manual immobilization stays reversible and evaluates only after explicit submission', () => {
   const model = generateControlSurface(command('secure-vehicle', 'secure-yaris-v1'), 5);
   let state = reduceControlResponse(model, {}, {
     type: 'select-gear', targetId: 'manual-gear', gear: model.meta.requiredGear
@@ -52,19 +52,59 @@ test('manual immobilization accepts any control order and completes only at the 
   assert.equal(state.complete, false);
   state = reduceControlResponse(model, state, { type: 'activate', targetId: 'parking-brake' });
   assert.deepEqual(state, {
-    complete: true,
-    selectedResult: 'secure-vehicle',
+    complete: false,
+    ready: true,
+    selectedResult: null,
     selectedTargetId: 'parking-brake',
     engineStopped: true,
     parkingBrakeApplied: true,
     selectedGear: model.meta.requiredGear
   });
+  state = reduceControlResponse(model, state, { type: 'submit-secure' });
+  assert.equal(state.complete, true);
+  assert.equal(state.selectedResult, 'secure-vehicle');
+  assert.equal(state.selectedTargetId, 'manual-gear');
 
   const wrongGear = reduceControlResponse(model, {}, {
     type: 'select-gear', targetId: 'manual-gear', gear: model.meta.requiredGear === 'first' ? 'reverse' : 'first'
   });
   assert.equal(wrongGear.complete, false);
   assert.equal(wrongGear.selectedResult, null);
+
+  let wrongSequence = reduceControlResponse(model, wrongGear, {
+    type: 'activate', targetId: 'engine-stop'
+  });
+  assert.equal(wrongSequence.incorrect, undefined, 'partial input remains unscored');
+  wrongSequence = reduceControlResponse(model, wrongSequence, {
+    type: 'activate', targetId: 'parking-brake'
+  });
+  assert.equal(wrongSequence.incorrect, undefined, 'a complete selection remains editable until submitted');
+  assert.equal(wrongSequence.ready, true);
+  wrongSequence = reduceControlResponse(model, wrongSequence, { type: 'submit-secure' });
+  assert.deepEqual(wrongSequence, {
+    complete: false,
+    incorrect: true,
+    ready: true,
+    selectedResult: null,
+    selectedTargetId: 'manual-gear',
+    engineStopped: true,
+    parkingBrakeApplied: true,
+    selectedGear: model.meta.requiredGear === 'first' ? 'reverse' : 'first'
+  });
+});
+
+test('every manual immobilization choice can be toggled off before submission', () => {
+  const model = generateControlSurface(command('secure-vehicle', 'secure-yaris-v1'), 5);
+  let state = reduceControlResponse(model, {}, { type: 'activate', targetId: 'engine-stop' });
+  state = reduceControlResponse(model, state, { type: 'activate', targetId: 'engine-stop' });
+  assert.equal(state.engineStopped, false);
+  state = reduceControlResponse(model, state, { type: 'activate', targetId: 'parking-brake' });
+  state = reduceControlResponse(model, state, { type: 'activate', targetId: 'parking-brake' });
+  assert.equal(state.parkingBrakeApplied, false);
+  state = reduceControlResponse(model, state, { type: 'select-gear', targetId: 'manual-gear', gear: 'first' });
+  state = reduceControlResponse(model, state, { type: 'select-gear', targetId: 'manual-gear', gear: 'first' });
+  assert.equal(state.selectedGear, null);
+  assert.equal(state.ready, false);
 });
 
 test('control generation is deterministic, immutable, serializable, and manual-grounded', () => {
@@ -183,7 +223,12 @@ test('manual renderer exposes the slope, engine, parking brake, and H-pattern ge
   assert.match(english, /data-target="parking-brake"[^>]+aria-pressed="false"/);
   assert.match(english, /data-control-event="select-gear"[^>]+data-gear="first"/);
   assert.match(english, /data-control-event="select-gear"[^>]+data-gear="reverse"/);
+  assert.match(english, /data-control-event="submit-secure"[^>]+disabled/);
   assert.match(english, /class="manual-gear-pattern"/);
+  assert.match(english, /class="slope-car"[^>]+viewBox="0 0 64 32"/);
+  assert.match(english, /class="slope-car-body"/);
+  assert.equal((english.match(/class="slope-car-wheel"/g) ?? []).length, 2);
+  assert.match(english, /class="slope-car-front"/);
   assert.match(english, />Stop engine</);
   assert.match(english, />Hand parking-brake lever</);
   assert.doesNotMatch(english, /selector-park|>P<|automatic-hybrid/i);
@@ -191,6 +236,19 @@ test('manual renderer exposes the slope, engine, parking brake, and H-pattern ge
   assert.match(spanish, />Detenga el motor</);
   assert.match(spanish, />Palanca manual del freno de estacionamiento</);
   assert.match(spanish, /Primera marcha|Marcha atrás/);
+});
+
+test('manual answer confirmation enables only after all three sections have a choice', () => {
+  const model = generateControlSurface(command('secure-vehicle', 'secure-yaris-v1'), 5);
+  let state = reduceControlResponse(model, {}, { type: 'activate', targetId: 'engine-stop' });
+  state = reduceControlResponse(model, state, { type: 'activate', targetId: 'parking-brake' });
+  state = reduceControlResponse(model, state, {
+    type: 'select-gear', targetId: 'manual-gear', gear: model.meta.requiredGear
+  });
+  const english = renderControlSurface(model, state, 'en', false);
+  const spanish = renderControlSurface(model, state, 'es', false);
+  assert.match(english, /data-control-event="submit-secure"(?![^>]+disabled)[^>]*>Check answer</);
+  assert.match(spanish, /data-control-event="submit-secure"(?![^>]+disabled)[^>]*>Comprobar respuesta</);
 });
 
 test('secure prompt identifies generic manual practice and reveal cites Article 92', async () => {

@@ -4,13 +4,13 @@ An iPad-first static web app for daily practice of Spanish practical-driving-exa
 
 ## Scope
 
-Stage 1 provides a standalone daily-practice baseline: driving, precheck, and mixed filters; three audio speeds; written-Spanish hint policies; optional timing; weak/due and free-practice ordering; unaided, text-assisted, and incorrect scoring; diagnostics; and local backup/restore.
+Stage 1 provides a standalone daily-practice baseline: driving, precheck, and mixed filters; three audio speeds; written-Spanish hint policies; optional timing; selectable 5-, 10-, and 15-command sessions; previously-missed and free-practice ordering; unaided, text-assisted, and incorrect scoring; diagnostics; and local backup/restore. Fresh saves start with Mixed practice and 10 commands; existing saves retain their chosen settings.
 
 The app has no runtime dependency on Piso Asturiano, no backend, no required build step, and no browser speech fallback. Stage 2 is implemented for release review with an action-matched response model; road simulation, additional command phrasings, deeper phrasing/voice mastery reporting, sequential exam simulation, and automatic difficulty progression remain deferred.
 
 ## Stage 2 action surfaces
 
-The landscape iPad baseline uses taps and direct controls that match the commanded action: junction turns and predominantly four-exit roundabouts use outgoing roads; U-turn, overtaking, parking, and voluntary stopping use spatial road choices; steering centres a wheel; securing the vehicle uses a generic manual-car procedure; and prechecks use photo-backed, icon-first prechecks. Mac pointer and keyboard equivalents remain supported.
+The landscape iPad baseline uses taps and direct controls that match the commanded action: photo-backed four-way junctions offer left, straight, and right roads; photo-backed four- or five-exit roundabouts use outgoing roads; and photo-backed U-turns, overtaking, parking, and voluntary stopping use spatial road choices. Parking has a dedicated parallel-parking gap between two parked cars, while voluntary stopping retains a clear roadside curb. Steering centres a wheel; securing the vehicle uses a generic manual-car procedure; and prechecks use photo-backed, icon-first prechecks. Mac pointer and keyboard equivalents remain supported.
 
 There are exactly three semantic exceptions: `c-adapte`, `c-detencion`, and `c-final` retain `option-grid-v1`. They are intentional, not fallbacks: adapting speed, involuntary stopping, and finishing the test lack enough road context for a defensible physical gesture. Parking and voluntary stopping scenarios are provisional training hypotheses; practical lessons may correct their geometry, distractors, or accepted targets without changing stable command, action, phrasing, or provenance IDs.
 

@@ -70,11 +70,11 @@ enough for a later Swift port and optional import.
 
 Session setup exposes manual controls:
 
-- Content: **Driving / Prechecks / Mixed**
+- Content: **Driving / Prechecks / Mixed**, with Mixed as the fresh-save default
 - Audio speed: initially **0.75x / 0.9x / 1x**
 - Written Spanish: **available as hint / shown initially / unavailable**
 - Timing: **off / on**
-- Session length: **short / medium / all due**
+- Session length: **5 / 10 / 15 commands**, with 10 as the fresh-save default
 - UI language: **English / Spanish**, defaulting to English
 
 The command content and audio always remain Spanish. Interface chrome,
@@ -106,9 +106,10 @@ reported separately. Raw counts for all three outcomes remain available; the
 weighted mastery score must never obscure them.
 
 Repeated unaided successes across sessions are required for command readiness.
-One correct response cannot establish mastery. The scheduler prioritizes weak
-and due actions, while free practice and manual difficulty selection remain
-available. The app does not automatically force a difficulty progression.
+One correct response cannot establish mastery. The adaptive scheduler
+prioritizes previously missed, unseen, and review-priority actions, while free
+practice and manual difficulty selection remain available. The app does not
+automatically force a difficulty progression.
 
 Sequential exam mode—realistic prechecks followed by driving—is deferred until
 practical lessons or an instructor establish credible counts and ordering.
@@ -159,15 +160,18 @@ possible.
 Stage 2 uses action-matched static responses at the landscape-iPad baseline:
 
 - **Junction and roundabout:** tap the intended outgoing road, with the vehicle
-  entering from the bottom; roundabout exits use four- and five-exit geometry.
+  entering from the bottom. Photo-backed four-way junctions expose left,
+  straight, and right choices; roundabouts use four- and five-exit geometry.
 - **U-turn and overtaking:** tap the completed direction or overtaking path.
 - **Steering:** centre a large on-screen wheel.
 - **Secure vehicle:** follow RGC Article 92 by completing a generic manual
   immobilization state in any control order: stop the engine, apply the hand
   parking brake, and select first gear uphill or reverse downhill. The stable
   external surface ID remains unchanged for progress compatibility.
-- **Stopping and parking:** tap a legal roadside or parking target. These
-  scenarios are provisional hypotheses to correct during practical lessons.
+- **Stopping and parking:** tap a legal roadside or parking target. Parking
+  uses a dedicated visible gap between two parked cars; voluntary stopping
+  uses a clear curb. These scenarios remain provisional hypotheses to correct
+  during practical lessons.
 
 Exactly three context-dependent commands remain honest semantic exceptions:
 adapt speed, involuntary stopping, and finish exam. They retain simplified

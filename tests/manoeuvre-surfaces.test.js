@@ -111,20 +111,113 @@ test('overtaking separates the learner, lead vehicle, safe-follow target, and op
     const follow = model.targets.find(target => target.resultId === 'follow-vehicle');
     const passing = model.targets.find(target => target.resultId === 'overtake');
 
-    assert.ok(learnerVehicle.y >= 82, 'learner vehicle must enter at the bottom');
-    assert.equal(learnerVehicle.x, 66);
-    assert.equal(leadVehicle.x, 66);
+    assert.ok(learnerVehicle.y >= 78, 'learner vehicle must enter at the bottom');
+    assert.ok(learnerVehicle.x >= 57 && learnerVehicle.x <= 61,
+      'learner geometry must match the blue car in the photo');
+    assert.ok(leadVehicle.x >= 51 && leadVehicle.x <= 55,
+      'lead geometry must match the silver car in the photo');
+    assert.ok(leadVehicle.y >= 23 && leadVehicle.y <= 29,
+      'lead geometry must match the silver car in the photo');
     assert.ok(leadVehicle.y < follow.y);
-    assert.ok(follow.y - follow.height / 2 > leadVehicle.y + leadVehicle.height / 2,
-      'safe-follow target must have a positive visible gap behind the lead car');
-    assert.ok(learnerVehicle.y > follow.y, 'learner car remains behind the safe-follow option');
-    assert.ok(passing.x < 50, 'passing target must be in the opposing lane');
+    assert.ok(follow.x >= 54 && follow.x <= 60 && follow.y >= 45 && follow.y <= 58,
+      'safe-follow target must sit on open asphalt between the photographed cars');
+    assert.ok(follow.y + follow.height / 2 < learnerVehicle.y - learnerVehicle.height / 2,
+      'safe-follow target must not overlap the learner car');
+    assert.ok(passing.x >= 40 && passing.x <= 46 && passing.y >= 29 && passing.y <= 43,
+      'passing target must sit on the visible opposing lane beside the lead car');
     assert.ok(model.geometry.correctRoute.some(point => point.x < 50), 'passing route must enter the opposing lane');
+    assert.ok(model.geometry.correctRoute[0].y <= learnerVehicle.y - learnerVehicle.height / 2,
+      'the reveal route must begin ahead of the learner car rather than crossing it');
+    assert.ok(model.geometry.correctRoute.some(point => point.x === passing.x && point.y === passing.y),
+      'the reveal route must pass through the selected passing space');
+    const routeEnd = model.geometry.correctRoute.at(-1);
+    assert.ok(routeEnd.x > 50 && routeEnd.y < leadVehicle.y - leadVehicle.height / 2,
+      'the reveal route must pass the lead car and return to the right lane');
 
     const markup = renderManoeuvreSurface(model, 'en');
-    assert.match(markup, /class="scenario-vehicle learner-vehicle"/);
-    assert.match(markup, /class="scenario-vehicle lead-vehicle"/);
+    assert.equal(model.geometry.sceneId, 'overtaking-photo-v1');
+    assert.match(markup, /class="driving-scene-image"[^>]+data-scene="overtaking-photo-v1"/);
+    assert.match(markup, /src="\.\/assets\/driving\/overtaking-photo-v1\.png"/);
+    assert.match(markup, /<svg viewBox="0 0 100 100" preserveAspectRatio="none"/);
+    assert.doesNotMatch(markup, /class="scenario-vehicle (?:learner|lead)-vehicle"/);
   }
+});
+
+test('parking, stopping, and U-turn use reviewed photo scenes', () => {
+  const parking = generateManoeuvreSurface(command('park', 'parking-v1'), 10);
+  assert.equal(parking.geometry.sceneId, 'parallel-parking-gap-photo-v1');
+  const parkingMarkup = renderManoeuvreSurface(parking, 'es');
+  assert.match(parkingMarkup, /class="surface-stage manoeuvre parking driving-photo-stage"/);
+  assert.match(parkingMarkup, /data-scene="parallel-parking-gap-photo-v1"/);
+  assert.match(parkingMarkup, /src="\.\/assets\/driving\/parallel-parking-gap-photo-v1\.png"/);
+  assert.match(parkingMarkup, /alt="[^"]{20,}"/);
+  assert.doesNotMatch(parkingMarkup, /class="manoeuvre-road-fill"/);
+
+  const stopping = generateManoeuvreSurface(command('voluntary-stop', 'stopping-v1'), 10);
+  assert.equal(stopping.geometry.sceneId, 'urban-roadside-photo-v1');
+  const stoppingMarkup = renderManoeuvreSurface(stopping, 'es');
+  assert.match(stoppingMarkup, /class="surface-stage manoeuvre stopping driving-photo-stage"/);
+  assert.match(stoppingMarkup, /data-scene="urban-roadside-photo-v1"/);
+  assert.match(stoppingMarkup, /src="\.\/assets\/driving\/urban-roadside-photo-v1\.png"/);
+  assert.match(stoppingMarkup, /alt="[^"]{20,}"/);
+  assert.doesNotMatch(stoppingMarkup, /class="manoeuvre-road-fill"/);
+
+  const uTurn = generateManoeuvreSurface(command('change-direction', 'u-turn-v1'), 10);
+  assert.equal(uTurn.geometry.sceneId, 'u-turn-photo-v1');
+  const uTurnMarkup = renderManoeuvreSurface(uTurn, 'en');
+  assert.match(uTurnMarkup, /class="surface-stage manoeuvre u-turn driving-photo-stage"/);
+  assert.match(uTurnMarkup, /data-scene="u-turn-photo-v1"/);
+  assert.match(uTurnMarkup, /src="\.\/assets\/driving\/u-turn-photo-v1\.png"/);
+  assert.match(uTurnMarkup, /<svg viewBox="0 0 100 100" preserveAspectRatio="none"/);
+  assert.doesNotMatch(uTurnMarkup, /class="manoeuvre-road"|class="manoeuvre-side-road"|class="road-marking"/);
+});
+
+test('every urban-photo choice is anchored to its visible curb, driveway, crossing, or synthetic restriction', () => {
+  const expectedBands = {
+    'open-bay': [72, 76, 35, 39],
+    'driveway-bay': [84, 88, 13, 17],
+    'hatched-bay': [38, 42, 48, 52],
+    'clear-curb-bay': [72, 76, 35, 39],
+    'crosswalk-bay': [41, 45, 13, 17],
+    'no-parking-bay': [83, 87, 84, 88],
+    'clear-curb': [68.5, 72.5, 58, 62],
+    driveway: [82, 86, 35, 39],
+    crosswalk: [38, 42, 13, 17],
+    'clear-left-curb': [68.5, 72.5, 58, 62],
+    'no-stopping-curb': [70, 74, 35, 39],
+    'upper-crosswalk': [38, 42, 13, 17]
+  };
+
+  for (const [action, surfaceId] of [['park', 'parking-v1'], ['voluntary-stop', 'stopping-v1']]) {
+    for (let seed = 1; seed <= 64; seed += 1) {
+      const model = generateManoeuvreSurface(command(action, surfaceId), seed);
+      for (const target of model.targets) {
+        const [minX, maxX, minY, maxY] = expectedBands[target.id];
+        assert.ok(target.x >= minX && target.x <= maxX,
+          `${target.id} x=${target.x} must align with the photographed feature`);
+        assert.ok(target.y >= minY && target.y <= maxY,
+          `${target.id} y=${target.y} must align with the photographed feature`);
+      }
+    }
+  }
+});
+
+test('photo-backed physical features do not receive redundant crosswalk or driveway drawings', () => {
+  for (const [action, surfaceId, templateId] of [
+    ['park', 'parking-v1', 'marked-bays-clear-entry'],
+    ['park', 'parking-v1', 'curb-bays-clear-space'],
+    ['voluntary-stop', 'stopping-v1', 'urban-curb-clear'],
+    ['voluntary-stop', 'stopping-v1', 'no-stopping-curb-clear']
+  ]) {
+    const model = modelForTemplate(action, surfaceId, templateId);
+    const markup = renderManoeuvreSurface(model, 'en');
+    assert.doesNotMatch(markup, /class="scenario-crosswalk"|class="scenario-driveway"/);
+  }
+
+  const marked = modelForTemplate('park', 'parking-v1', 'marked-bays-clear-entry');
+  assert.match(renderManoeuvreSurface(marked, 'en'), /class="scenario-restriction"/);
+  const signed = modelForTemplate('park', 'parking-v1', 'curb-bays-clear-space');
+  assert.match(renderManoeuvreSurface(signed, 'en'), /data-road-sign="no-parking"/);
 });
 
 test('every accepted U-turn route geometrically finishes travelling down the original road', () => {
@@ -254,6 +347,7 @@ test('parking and stopping templates render distinct audited prohibition signs',
     selectedTargetId: parkingTarget.id
   });
   assert.match(parkingMarkup, /data-road-sign="no-parking"/);
+  assert.match(parkingMarkup, /data-road-sign="no-parking"[^>]+scale\(0\.666667 1\)/);
   assert.equal((parkingMarkup.match(/class="road-sign-prohibition"/g) ?? []).length, 1);
   assert.match(parkingMarkup, /No-parking sign/);
   assert.doesNotMatch(parkingMarkup, /data-road-sign="no-stopping"/);
@@ -280,6 +374,18 @@ test('manoeuvre target styles preserve the target model dimensions and reveal st
   assert.doesNotMatch(styles, /\.manoeuvre-target\[data-selected="true"\]\s*\{[^}]*border-style:\s*dashed/s);
   assert.match(styles, /\.target-status-marker\s*\{/);
   assert.match(styles, /\.surface-restriction-label\s*\{/);
+});
+
+test('stopping choices use car-sized vertical outlines inside their full touch targets', async () => {
+  const model = modelForTemplate('voluntary-stop', 'stopping-v1', 'no-stopping-curb-clear');
+  const markup = renderManoeuvreSurface(model, 'en');
+  for (const target of model.targets) {
+    assert.match(targetButtonMarkup(markup, target.id), new RegExp(`data-feature="${target.feature}"`));
+  }
+  const styles = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  assert.match(styles, /\.surface-stage\.stopping \.manoeuvre-target::before\s*\{[^}]*width:\s*min\(44px, 64%\)[^}]*height:\s*calc\(100% - 4px\)/s);
+  assert.match(styles, /\.surface-stage\.stopping \.manoeuvre-target\[data-selection-state="wrong"\]::before/);
+  assert.match(styles, /\.surface-stage\.stopping \.manoeuvre-target\[aria-current="true"\]::before/);
 });
 
 test('production activation includes every eligible manoeuvre and only three semantic exceptions', async () => {

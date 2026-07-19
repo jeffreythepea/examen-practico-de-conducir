@@ -328,6 +328,28 @@ hr {
   background: #d9e4dc;
 }
 
+.surface-stage.driving-photo-stage {
+  aspect-ratio: 3 / 2;
+}
+
+.driving-scene-image {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 1.25rem;
+  object-fit: cover;
+}
+
+.surface-stage.driving-photo-stage > svg {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: transparent;
+}
+
 .spatial-road,
 .roundabout-road {
   fill: none;
@@ -387,6 +409,14 @@ hr {
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 3;
+}
+
+.driving-photo-stage [data-correct-route],
+.driving-photo-stage .scenario-restriction,
+.driving-photo-stage .scenario-sign-post,
+.driving-photo-stage .road-sign-face,
+.driving-photo-stage .road-sign-prohibition {
+  vector-effect: non-scaling-stroke;
 }
 
 .surface-stage:has(.surface-result-label) {
@@ -518,6 +548,38 @@ hr {
 .manoeuvre-target[data-selection-state="wrong"] {
   border-style: dashed;
   border-color: var(--red);
+}
+
+.surface-stage.stopping .manoeuvre-target {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.surface-stage.stopping .manoeuvre-target::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(44px, 64%);
+  height: calc(100% - 4px);
+  transform: translate(-50%, -50%);
+  border: 2px solid rgb(255 255 255 / 72%);
+  border-radius: 0.65rem;
+  background: rgb(255 255 255 / 16%);
+  box-shadow: 0 2px 10px rgb(20 40 30 / 20%);
+  content: "";
+  pointer-events: none;
+}
+
+.surface-stage.stopping .manoeuvre-target:hover:not(:disabled)::before,
+.surface-stage.stopping .manoeuvre-target[aria-current="true"]::before {
+  border-color: var(--gold);
+  background: rgb(255 242 201 / 40%);
+}
+
+.surface-stage.stopping .manoeuvre-target[data-selection-state="wrong"]::before {
+  border-color: var(--red);
+  border-style: dashed;
 }
 
 .target-status-marker {
@@ -1010,6 +1072,25 @@ hr {
   background: #dcecdf;
 }
 
+.secure-submit-button {
+  display: block;
+  min-height: 48px;
+  margin: 1rem auto 0;
+  padding: 0.65rem 1.25rem;
+  border: 1px solid var(--green);
+  border-radius: 0.75rem;
+  background: var(--green);
+  color: white;
+  font: inherit;
+  font-weight: 800;
+}
+
+.secure-submit-button:disabled {
+  border-color: var(--line);
+  background: #eef2ed;
+  color: var(--muted);
+}
+
 .secure-sequence-disclosure {
   display: grid;
   width: min(100%, 680px);
@@ -1097,13 +1178,37 @@ hr {
 
 .slope-car {
   position: absolute;
-  right: 18px;
-  bottom: 4px;
-  width: 36px;
-  height: 16px;
-  border: 3px solid #263b31;
-  border-radius: 8px 8px 3px 3px;
-  background: #b9d6df;
+  right: 9px;
+  bottom: -1px;
+  width: 50px;
+  height: 28px;
+  overflow: visible;
+}
+
+.slope-car-body {
+  fill: #b9d6df;
+  stroke: #263b31;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.slope-car-wheel {
+  fill: #263b31;
+  stroke: #fffef9;
+  stroke-width: 1.5;
+}
+
+.slope-car-window {
+  fill: #e7f1f3;
+  stroke: #263b31;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+}
+
+.slope-car-front {
+  fill: var(--gold);
+  stroke: #263b31;
+  stroke-width: 1;
 }
 
 .manual-gear-control {
