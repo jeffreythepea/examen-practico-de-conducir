@@ -357,8 +357,9 @@
     ],
     "vehicle": {
       "page": 493,
-      "answer": "La batería de 12 V está debajo del asiento trasero derecho, bajo una tapa.",
-      "answerEn": "The 12 V battery is beneath the right rear seat, under a cover."
+      "reference": "generic-conventional",
+      "answer": "En este vehículo convencional ilustrativo, la batería de 12 V está bajo el capó.",
+      "answerEn": "In this illustrative conventional vehicle, the 12 V battery is under the bonnet."
     }
   },
   {

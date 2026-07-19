@@ -39,9 +39,10 @@ test('prechecks retain vehicle evidence and uncertainty status', () => {
     assert.ok(['manual-baseline', 'trim-dependent'].includes(command.phrasings[0].validation));
   }
   const battery = commandById(commands, 'c-pre-bateria');
-  assert.equal(battery.vehicle.page, 493);
-  assert.match(battery.vehicle.answer, /asiento trasero derecho/);
-  assert.match(battery.vehicle.answerEn, /right rear seat/);
+  assert.equal(battery.vehicle.reference, 'generic-conventional');
+  assert.match(battery.vehicle.answer, /bajo el capó/i);
+  assert.match(battery.vehicle.answerEn, /under the bonnet/i);
+  assert.doesNotMatch(battery.vehicle.answerEn, /rear seat/i);
 });
 
 test('phase and lookup APIs reject invalid input', () => {

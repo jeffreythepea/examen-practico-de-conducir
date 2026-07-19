@@ -127,7 +127,7 @@ test('surface generation failure and retry copy are bilingual', () => {
 });
 
 test('Yaris schematic targets, control states, and equipment ambiguity are bilingual', () => {
-  assert.equal(translate('en', 'surface.yaris.battery'), '12 V battery beneath the rear-right seat');
+  assert.equal(translate('en', 'surface.yaris.battery'), 'Conventional 12 V battery under the bonnet');
   assert.equal(translate('es', 'surface.yaris.windowLock'), 'Bloqueo de las ventanillas de pasajeros');
   assert.equal(translate('en', 'surface.yaris.frontDemist'), 'Windscreen demister');
   assert.equal(translate('es', 'surface.yaris.rearFog'), 'Mando de la luz antiniebla trasera');
@@ -135,4 +135,7 @@ test('Yaris schematic targets, control states, and equipment ambiguity are bilin
   assert.equal(translate('es', 'surface.yaris.state.unlocked'), 'desbloqueado');
   assert.match(translate('en', 'surface.yaris.equipmentVariant'), /controls or displays may differ or be absent/i);
   assert.match(translate('es', 'surface.yaris.equipmentVariant'), /los mandos o las pantallas pueden ser diferentes o no estar instalados/i);
+  assert.equal(translate('en', 'surface.precheck.illustrative'), 'Illustrative vehicle image; the exact layout may differ.');
+  assert.equal(translate('es', 'surface.precheck.illustrative'), 'Imagen ilustrativa del vehículo; la disposición exacta puede variar.');
+  assert.equal(translate('en', 'surface.precheck.scene.engineBay'), 'Generic engine compartment');
 });

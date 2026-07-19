@@ -166,15 +166,32 @@ test('locate and operate commands have explicit response modes and verified equi
   assert.deepEqual(frontFog.meta.manualPages, [270, 276, 277]);
 });
 
-test('the 12-volt battery is only beneath the rear-right seat and never in the engine bay', () => {
-  assert.ok(Object.hasOwn(YARIS_DIAGRAMS['yaris-body-v2'].hotspots, 'battery-under-rear-right-seat'));
-  assert.equal(Object.hasOwn(YARIS_DIAGRAMS['yaris-engine-bay-v2'].hotspots, 'battery-under-rear-right-seat'), false);
-  assert.doesNotMatch(YARIS_DIAGRAMS['yaris-engine-bay-v2'].art, /battery/i);
-
+test('the stable battery response now resolves to a generic under-bonnet photo target', () => {
   const battery = generateYarisSurface(byId('c-pre-bateria'), 493);
   assert.equal(battery.meta.diagramId, 'yaris-body-v2');
   assert.equal(battery.meta.hotspotId, 'battery-under-rear-right-seat');
-  assert.deepEqual(battery.meta.manualPages, [493]);
+  assert.equal(battery.geometry.sceneId, 'generic-engine-bay');
+  assert.equal(battery.geometry.photoAsset, 'assets/precheck/generic-engine-bay.png');
+  assert.equal(battery.targets.find(target => target.id === 'battery-under-rear-right-seat').kind, 'under-bonnet-battery');
+  assert.equal(battery.meta.provenance, 'generic-illustrative-photo');
+});
+
+test('engine prechecks render a packaged photo with clear icons placed on the audited components', () => {
+  const model = generateYarisSurface(byId('c-pre-aceite'), 8);
+  const hidden = renderYarisSurface(model, {}, 'en', false);
+  const revealed = renderYarisSurface(model, { reveal: true, selectedTargetId: 'coolant' }, 'es', true);
+
+  assert.equal(model.geometry.diagramId, 'yaris-engine-bay-v2');
+  assert.equal(model.geometry.sceneId, 'generic-engine-bay');
+  assert.equal(model.geometry.photoAsset, 'assets/precheck/generic-engine-bay.png');
+  assert.equal(model.targets.length, 4);
+  assert.match(hidden, /Illustrative vehicle image; the exact layout may differ\./);
+  assert.match(hidden, /<img class="precheck-photo"[^>]+src="assets\/precheck\/generic-engine-bay\.png"[^>]+alt="Generic engine compartment"/);
+  assert.equal((hidden.match(/class="precheck-icon/g) ?? []).length, 4);
+  assert.match(hidden, /data-target="engine-oil"[\s\S]*class="precheck-icon precheck-icon-oil"/);
+  assert.doesNotMatch(hidden, /class="yaris-hotspot-label"/);
+  assert.match(revealed, /Varilla del aceite del motor/);
+  assert.match(revealed, /data-target="coolant"[^>]+data-selection-state="wrong"/);
 });
 
 test('locate mode completes on one valid hotspot tap and preserves the selected result', () => {
@@ -230,7 +247,7 @@ test('generator and reducer reject unknown or contract-incompatible input', () =
     /Unsupported Yaris surface/
   );
   assert.throws(
-    () => reduceYarisResponse(generateYarisSurface(byId('c-pre-bateria'), 1), {}, { type: 'activate', targetId: 'engine-oil' }),
+    () => reduceYarisResponse(generateYarisSurface(byId('c-pre-bateria'), 1), {}, { type: 'activate', targetId: 'missing-component' }),
     /Unknown Yaris target/
   );
 });

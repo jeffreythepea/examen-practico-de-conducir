@@ -1,4 +1,5 @@
 import { translate } from './i18n.js';
+import { PRECHECK_COMMAND_SCENES, precheckSceneForCommand, renderPrecheckIcon } from './precheck-scenes.js';
 import { assertNonOverlappingTargets } from './surface-geometry.js';
 import { createSurfaceModel } from './surface-model.js';
 
@@ -168,7 +169,9 @@ export function generateYarisSurface(command, seed) {
   }
 
   const diagram = YARIS_DIAGRAMS[commandContract.diagramId];
-  const targets = Object.entries(diagram.hotspots).map(([id, hotspot]) => ({
+  const scene = PRECHECK_COMMAND_SCENES[command.id] ? precheckSceneForCommand(command.id) : null;
+  const sourceTargets = scene?.targets ?? diagram.hotspots;
+  const targets = Object.entries(sourceTargets).map(([id, hotspot]) => ({
     id,
     resultId: id === commandContract.hotspotId ? command.acceptedResult : hotspot.resultId,
     x: hotspot.x,
@@ -179,6 +182,8 @@ export function generateYarisSurface(command, seed) {
     interaction: hotspot.interaction,
     labelKey: hotspot.labelKey,
     labelPlacement: hotspot.labelPlacement,
+    ...(hotspot.iconKey ? { iconKey: hotspot.iconKey } : {}),
+    ...(hotspot.anchorDescription ? { anchorDescription: hotspot.anchorDescription } : {}),
     ...(hotspot.controlGroup ? { controlGroup: hotspot.controlGroup } : {}),
     ...(hotspot.stateKind ? {
       stateKind: id === commandContract.hotspotId ? commandContract.stateKind : hotspot.stateKind,
@@ -198,7 +203,8 @@ export function generateYarisSurface(command, seed) {
     geometry: {
       diagramId: commandContract.diagramId,
       viewBox: diagram.viewBox,
-      schematicVersion: 2
+      schematicVersion: 2,
+      ...(scene ? { sceneId: scene.id, photoAsset: scene.asset } : {})
     },
     meta: {
       commandId: command.id,
@@ -207,8 +213,8 @@ export function generateYarisSurface(command, seed) {
       responseMode: commandContract.responseMode,
       manualPublication: diagram.manualPublication,
       manualPages: commandContract.manualPages,
-      reference: diagram.reference,
-      provenance: diagram.provenance,
+      reference: scene?.reference ?? diagram.reference,
+      provenance: scene?.provenance ?? diagram.provenance,
       equipmentAmbiguity: Boolean(commandContract.equipmentAmbiguity),
       ...(commandContract.stateKind ? {
         stateKind: commandContract.stateKind,
@@ -287,12 +293,20 @@ export function renderYarisSurface(model, responseState = {}, locale, disabled =
   const ambiguity = model.meta.equipmentAmbiguity
     ? `<p class="yaris-equipment-note" data-equipment-ambiguity="true">${escapeHtml(translate(locale, 'surface.yaris.equipmentVariant'))}</p>`
     : '';
+  const scene = model.geometry.sceneId ? precheckSceneForCommand(model.meta.commandId) : null;
+  const illustrationNote = scene
+    ? `<p class="precheck-illustration-note">${escapeHtml(translate(locale, 'surface.precheck.illustrative'))}</p>`
+    : '';
+  const visual = scene
+    ? `<img class="precheck-photo" src="${escapeAttribute(scene.asset)}" alt="${escapeAttribute(translate(locale, scene.altKey))}">`
+    : `<svg viewBox="${escapeAttribute(diagram.viewBox)}" aria-hidden="true" focusable="false">${diagram.art}</svg>`;
 
   return `<div class="yaris-surface" data-response-mode="${escapeAttribute(model.meta.responseMode)}">
     <p class="surface-instruction">${escapeHtml(translate(locale, instructionKey))}</p>
     ${ambiguity}
-    <div class="surface-stage yaris-schematic" data-surface="${escapeAttribute(model.geometry.diagramId)}" data-manual-publication="${escapeAttribute(model.meta.manualPublication)}" data-manual-pages="${escapeAttribute(model.meta.manualPages.join(','))}">
-      <svg viewBox="${escapeAttribute(diagram.viewBox)}" aria-hidden="true" focusable="false">${diagram.art}</svg>
+    ${illustrationNote}
+    <div class="surface-stage yaris-schematic${scene ? ' precheck-photo-stage' : ''}" data-surface="${escapeAttribute(model.geometry.diagramId)}"${scene ? ` data-scene="${escapeAttribute(scene.id)}"` : ''} data-manual-publication="${escapeAttribute(model.meta.manualPublication)}" data-manual-pages="${escapeAttribute(model.meta.manualPages.join(','))}">
+      ${visual}
       ${controls}
     </div>
   </div>`;
@@ -326,7 +340,8 @@ function renderHotspot(target, model, responseState, locale, reveal, disabledAtt
     ? `<span class="yaris-hotspot-label" aria-hidden="true" style="--label-x:${target.labelPlacement.x}%;--label-y:${target.labelPlacement.y}%;--label-width:${target.labelPlacement.width}%">${escapeHtml(baseLabel)}</span>`
     : '';
 
-  return `<button class="yaris-hotspot" type="button" data-control-event="activate" data-target="${escapeAttribute(target.id)}"${selectedAttributes} aria-label="${escapeAttribute(accessibleLabel)}"${pressed}${current}${disabledAttribute} style="--hotspot-x:${target.x}%;--hotspot-y:${target.y}%;--hotspot-width:${target.width}%;--hotspot-height:${target.height}%">${marker}</button>${visibleLabel}`;
+  const icon = target.iconKey ? renderPrecheckIcon(target.iconKey) : '';
+  return `<button class="yaris-hotspot${target.iconKey ? ' precheck-photo-hotspot' : ''}" type="button" data-control-event="activate" data-target="${escapeAttribute(target.id)}"${selectedAttributes} aria-label="${escapeAttribute(accessibleLabel)}"${pressed}${current}${disabledAttribute} style="--hotspot-x:${target.x}%;--hotspot-y:${target.y}%;--hotspot-width:${target.width}%;--hotspot-height:${target.height}%">${icon}${marker}</button>${visibleLabel}`;
 }
 
 function stateLabelKey(stateKind, state) {
