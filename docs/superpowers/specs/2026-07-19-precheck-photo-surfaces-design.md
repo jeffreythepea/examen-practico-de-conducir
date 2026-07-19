@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-19
 
-**Status:** Approved visual direction; written specification awaiting final review
+**Status:** Approved
 
 ## Goal
 
@@ -127,6 +127,33 @@ reported overtaking defect. The overtaking scene receives:
 - a safe-following distractor positioned behind the lead vehicle with visible
   separation, never overlapping it.
 
+## Manual-Vehicle Immobilization Correction
+
+The current `c-inmov` automatic-hybrid parking-brake then selector-`P`
+interaction is removed in this build. Its stable command, action, accepted
+result, and surface IDs remain unchanged for progress compatibility, but the
+surface family, targets, visible controls, and provenance become generic manual
+vehicle behavior.
+
+The surface depicts an explicit uphill or downhill parking situation and three
+recognizable controls: ignition/engine stop, hand parking brake, and a manual
+H-pattern selector. Completion requires:
+
+1. engine stopped;
+2. parking brake applied; and
+3. first gear selected uphill or reverse selected downhill.
+
+The learner may complete the three safety states in any order; the game tests
+the finished immobilized state rather than inventing an unsupported examination
+sequence. The reveal explains the slope-dependent gear choice in both locales.
+
+This generic procedure is grounded in Spain's General Traffic Regulations,
+Article 92: when leaving the driving position, stop the engine, apply the
+parking brake, and leave a manual vehicle in first gear uphill or reverse gear
+downhill. The old Yaris automatic-manual citations and selector-`P` copy are
+removed from the active interaction. The driving school must still confirm the
+exact practical-test procedure used in its vehicle.
+
 ## Accessibility and Localization
 
 - Every new visible string exists in English and Spanish.
@@ -166,6 +193,10 @@ Implementation follows test-first increments:
    physical feature.
 6. Focused overtaking regression followed by the complete `npm test` suite and
    `git diff --check`.
+7. Manual immobilization coverage proves that selector `P` and
+   automatic-hybrid provenance are absent, both slope variants require the
+   correct manual gear, all three safety states are required, and the order of
+   those state changes does not affect a correct completed result.
 
 ## Checkpoints
 
