@@ -457,6 +457,15 @@ hr {
   stroke-width: 1;
 }
 
+.scenario-vehicle.lead-vehicle {
+  fill: #aeb5b1;
+}
+
+.scenario-vehicle.learner-vehicle {
+  fill: #86c6dc;
+  stroke-width: 1.6;
+}
+
 .vehicle-direction {
   fill: none;
   stroke: var(--gold);
@@ -954,7 +963,7 @@ hr {
 
 .secure-control-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
 }
 
@@ -1051,16 +1060,99 @@ hr {
   background: #d9ded8;
 }
 
-.selector-park {
+.engine-stop-icon {
   display: grid;
   width: 48px;
   height: 48px;
   place-items: center;
   border: 3px solid #263b31;
-  border-radius: 0.75rem;
+  border-radius: 50%;
   background: #d9ded8;
   font-size: 1.5rem;
   font-weight: 900;
+}
+
+.manual-slope-context {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  margin: 1rem auto;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.slope-road {
+  position: relative;
+  display: block;
+  width: 82px;
+  height: 34px;
+  transform: rotate(-9deg);
+  border-bottom: 5px solid #526159;
+}
+
+.slope-road[data-slope="downhill"] {
+  transform: rotate(9deg);
+}
+
+.slope-car {
+  position: absolute;
+  right: 18px;
+  bottom: 4px;
+  width: 36px;
+  height: 16px;
+  border: 3px solid #263b31;
+  border-radius: 8px 8px 3px 3px;
+  background: #b9d6df;
+}
+
+.manual-gear-control {
+  display: grid;
+  min-height: 88px;
+  align-content: center;
+  gap: 0.6rem;
+  border: 2px solid var(--line);
+  border-radius: 1rem;
+  padding: 0.75rem;
+  background: #fffef9;
+}
+
+.manual-gear-pattern {
+  color: #263b31;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.manual-gear-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.manual-gear-button {
+  position: relative;
+  display: grid;
+  min-height: 58px;
+  place-items: center;
+  gap: 0.2rem;
+  border: 2px solid var(--line);
+  border-radius: 0.7rem;
+  padding: 0.4rem;
+  background: #fff;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.manual-gear-button strong {
+  font-size: 1.2rem;
+}
+
+.manual-gear-button[aria-pressed="true"] {
+  border-color: var(--green);
+  background: #dcecdf;
 }
 
 .control-sequence-error {

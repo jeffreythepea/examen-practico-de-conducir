@@ -248,7 +248,7 @@ test('forged terminal wheel and secure responses leave the identical prompt stat
     response: {
       complete: true,
       selectedResult: 'secure-vehicle',
-      selectedTargetId: 'selector-park'
+      selectedTargetId: 'manual-gear'
     },
     completedAt: 1_500
   }), secure);
@@ -278,36 +278,62 @@ test('reducer-owned native events score authentic centered wheel and complete se
   assert.equal(parkingBrakeSet.screen, 'prompt');
   assert.deepEqual(parkingBrakeSet.surfaceResponse, {
     complete: false,
-    completedSteps: ['parking-brake'],
-    nextStepIndex: 1
+    selectedResult: null,
+    selectedTargetId: 'parking-brake',
+    engineStopped: false,
+    parkingBrakeApplied: true,
+    selectedGear: null
   });
-  const secured = reduceScreen(parkingBrakeSet, {
+  const engineStopped = reduceScreen(parkingBrakeSet, {
     type: 'SURFACE_EVENT',
-    surfaceEvent: { type: 'activate', targetId: 'selector-park' },
+    surfaceEvent: { type: 'activate', targetId: 'engine-stop' },
+    completedAt: 1_375
+  });
+  const secured = reduceScreen(engineStopped, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: {
+      type: 'select-gear',
+      targetId: 'manual-gear',
+      gear: secure.activeSurfaceModel.meta.requiredGear
+    },
     completedAt: 1_500
   });
   assert.equal(secured.screen, 'reveal');
   assert.equal(secured.correct, true);
   assert.equal(secured.selectedResult, 'secure-vehicle');
-  assert.equal(secured.selectedTargetId, 'selector-park');
-  assert.deepEqual(secured.surfaceResponse.completedSteps, ['parking-brake', 'selector-park']);
+  assert.equal(secured.selectedTargetId, 'manual-gear');
+  assert.deepEqual(secured.surfaceResponse, {
+    complete: true,
+    selectedResult: 'secure-vehicle',
+    selectedTargetId: 'manual-gear',
+    engineStopped: true,
+    parkingBrakeApplied: true,
+    selectedGear: secure.activeSurfaceModel.meta.requiredGear
+  });
 });
 
-test('driving-only c-inmov prompt and reveal both expose the accessible provisional notice', () => {
+test('driving-only c-inmov prompt and reveal both expose the accessible generic-manual notice', () => {
   let model = controlPrompt(secureCommand, 5);
   assert.equal(model.settings.phase, 'driving');
   const promptMarkup = renderSurfaceModel(model.activeSurfaceModel, model.surfaceResponse, 'en', {
     disabled: false
   });
   assert.match(promptMarkup, /role="note"[^>]+data-command="c-inmov"/);
-  assert.match(promptMarkup, /provisional automatic-hybrid reference/i);
-  assert.doesNotMatch(promptMarkup.match(/<aside[\s\S]*?<\/aside>/)[0], /parking|brake|selector|→/i);
+  assert.match(promptMarkup, /generic manual-car practice/i);
+  assert.doesNotMatch(promptMarkup.match(/<aside[\s\S]*?<\/aside>/)[0], /selector P|automatic/i);
 
   model = reduceScreen(model, {
     type: 'SURFACE_EVENT', surfaceEvent: { type: 'activate', targetId: 'parking-brake' }
   });
   model = reduceScreen(model, {
-    type: 'SURFACE_EVENT', surfaceEvent: { type: 'activate', targetId: 'selector-park' }
+    type: 'SURFACE_EVENT', surfaceEvent: { type: 'activate', targetId: 'engine-stop' }
+  });
+  model = reduceScreen(model, {
+    type: 'SURFACE_EVENT', surfaceEvent: {
+      type: 'select-gear',
+      targetId: 'manual-gear',
+      gear: model.activeSurfaceModel.meta.requiredGear
+    }
   });
   assert.equal(model.textShown, false);
   assert.equal(model.outcome, 'unaided');
@@ -317,8 +343,8 @@ test('driving-only c-inmov prompt and reveal both expose the accessible provisio
     selectedTargetId: model.selectedTargetId
   });
   assert.match(revealMarkup, /role="note"[^>]+data-command="c-inmov"/);
-  assert.match(revealMarkup, /referencia provisional del híbrido automático/i);
-  assert.match(revealMarkup.match(/<aside[\s\S]*?<\/aside>/)[0], /freno de estacionamiento.*selector P/i);
+  assert.match(revealMarkup, /procedimiento genérico para (?:un )?coche manual/i);
+  assert.match(revealMarkup.match(/<aside[\s\S]*?<\/aside>/)[0], /artículo 92.*freno de estacionamiento/i);
 });
 
 test('bounded surface generation uses exactly three deterministic seeds and exposes unscored exhaustion', () => {
@@ -382,7 +408,7 @@ test('surface seeds come from one cryptographic uint32 and advancing clears tria
   assert.equal(abandoned.correct, false);
 });
 
-test('secure first step survives timeout so reveal identifies selector P as the remaining control', () => {
+test('partial manual securing state survives timeout so reveal identifies the remaining controls', () => {
   let model = controlPrompt(secureCommand, 5);
   model = reduceScreen(model, {
     type: 'SURFACE_EVENT',
@@ -393,10 +419,11 @@ test('secure first step survives timeout so reveal identifies selector P as the 
   assert.equal(model.screen, 'reveal');
   assert.deepEqual(model.surfaceResponse, {
     complete: true,
-    completedSteps: ['parking-brake'],
-    nextStepIndex: 1,
     selectedResult: null,
-    selectedTargetId: null
+    selectedTargetId: null,
+    engineStopped: false,
+    parkingBrakeApplied: true,
+    selectedGear: null
   });
   const markup = renderSurfaceModel(model.activeSurfaceModel, model.surfaceResponse, 'en', {
     disabled: true,
@@ -405,7 +432,8 @@ test('secure first step survives timeout so reveal identifies selector P as the 
   });
   assert.match(markup, /data-target="parking-brake"[^>]+aria-pressed="true"/);
   assert.doesNotMatch(markup, /data-target="parking-brake"[^>]+aria-current="true"/);
-  assert.match(markup, /data-target="selector-park"[^>]+aria-current="true"/);
+  assert.match(markup, /data-target="engine-stop"[^>]+aria-current="true"/);
+  assert.match(markup, new RegExp(`data-target="manual-gear" data-gear="${model.activeSurfaceModel.meta.requiredGear}"[^>]+aria-current="true"`));
 });
 
 test('partial wheel position survives timeout and reveal keeps it distinct from the centered reference', () => {

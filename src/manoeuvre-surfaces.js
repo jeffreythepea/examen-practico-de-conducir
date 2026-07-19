@@ -49,7 +49,7 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       correctRoute: [{ x: 66, y: 94 }, { x: 66, y: 72 }, { x: 34, y: 55 }, { x: 34, y: 28 }],
       targets: [
         { id: 'passing-lane', resultId: 'overtake', kind: 'overtaking-route', feature: 'passing-lane', x: 34, y: 28 },
-        { id: 'following-position', resultId: 'follow-vehicle', kind: 'lane-choice', feature: 'follow-lane', x: 66, y: 46 }
+        { id: 'following-position', resultId: 'follow-vehicle', kind: 'lane-choice', feature: 'follow-lane', x: 66, y: 70 }
       ]
     },
     {
@@ -59,7 +59,7 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       correctRoute: [{ x: 66, y: 94 }, { x: 66, y: 70 }, { x: 34, y: 52 }, { x: 34, y: 24 }],
       targets: [
         { id: 'passing-path', resultId: 'overtake', kind: 'overtaking-route', feature: 'passing-lane', x: 34, y: 24 },
-        { id: 'wait-behind', resultId: 'follow-vehicle', kind: 'lane-choice', feature: 'follow-lane', x: 66, y: 52 }
+        { id: 'wait-behind', resultId: 'follow-vehicle', kind: 'lane-choice', feature: 'follow-lane', x: 66, y: 70 }
       ]
     }
   ],
@@ -157,6 +157,15 @@ export function generateManoeuvreSurface(command, seed) {
       entry: 'bottom',
       templateId: template.id,
       features: template.features,
+      ...(contract.family === 'overtake' ? {
+        learnerVehicle: { x: 66, y: 92, width: 12, height: 18 },
+        leadVehicle: {
+          x: 66,
+          y: template.features.includes('vehicle-ahead-high') ? 35 : 42,
+          width: 12,
+          height: 18
+        }
+      } : {}),
       ...(template.correctRoute ? { correctRoute: routeToTarget(template.correctRoute, correctTarget) } : {})
     },
     meta: {
@@ -273,11 +282,13 @@ function manoeuvreDrawing(model) {
   }
 
   if (model.family === 'overtake') {
-    const vehicleY = model.geometry.features.includes('vehicle-ahead-high') ? 35 : 42;
+    const learner = model.geometry.learnerVehicle;
+    const lead = model.geometry.leadVehicle;
     return `<rect x="18" y="0" width="64" height="100" class="manoeuvre-road-fill"/>
       <path d="M 50 0 L 50 100" class="road-marking"/>
-      <rect x="59" y="${vehicleY}" width="14" height="22" rx="4" class="scenario-vehicle"/>
-      <path d="M 66 96 L 66 76" class="vehicle-direction"/>`;
+      <rect x="${lead.x - lead.width / 2}" y="${lead.y - lead.height / 2}" width="${lead.width}" height="${lead.height}" rx="3" class="scenario-vehicle lead-vehicle"/>
+      <rect x="${learner.x - learner.width / 2}" y="${learner.y - learner.height / 2}" width="${learner.width}" height="${learner.height}" rx="3" class="scenario-vehicle learner-vehicle"/>
+      <path d="M ${learner.x} ${learner.y - 4} L ${learner.x} ${learner.y - 17}" class="vehicle-direction"/>`;
   }
 
   const features = model.targets.map(target => featureDrawing(target)).join('');

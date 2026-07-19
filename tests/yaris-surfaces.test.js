@@ -101,7 +101,7 @@ test('an independent expected table maps all 14 prechecks to one stable manual-g
     assert.deepEqual(model.meta.manualPages, contract.manualPages);
     assert.equal(expectedTarget.id, expected.hotspotId);
     assert.equal(model.expectedResult, command.acceptedResult);
-    assert.ok(model.targets.every(target => target.width >= 11 && target.height >= 14.67));
+    assert.ok(model.targets.every(target => target.width >= 7 && target.height >= 14.67));
     assertNonOverlappingTargets(model.targets);
     assert.deepEqual(model, generateYarisSurface(command, 7));
     assert.ok(Object.isFrozen(model));

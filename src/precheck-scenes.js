@@ -11,7 +11,16 @@ const ICONS = Object.freeze({
   window: '<span class="precheck-icon precheck-icon-window" aria-hidden="true">🪟</span>',
   'front-demist': '<span class="precheck-icon precheck-icon-front-demist" aria-hidden="true"><span>◡</span><span>♨</span></span>',
   'rear-demist': '<span class="precheck-icon precheck-icon-rear-demist" aria-hidden="true"><span>▭</span><span>♨</span></span>',
-  fan: '<span class="precheck-icon precheck-icon-fan" aria-hidden="true">🌀</span>'
+  fan: '<span class="precheck-icon precheck-icon-fan" aria-hidden="true">🌀</span>',
+  'high-beam': '<span class="precheck-icon precheck-icon-high-beam" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M11 7Q5 7 5 12t6 5zM13 8h7M13 12h7M13 16h7"/></svg></span>',
+  'front-fog': '<span class="precheck-icon precheck-icon-front-fog" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M11 7Q5 7 5 12t6 5zM13 8l6 2M13 12h6M13 16l6-2M20 7q-3 2 0 4t0 4"/></svg></span>',
+  'rear-fog': '<span class="precheck-icon precheck-icon-rear-fog" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13 7q6 0 6 5t-6 5zM11 8l-6 2M11 12H5M11 16l-6-2M4 7q3 2 0 4t0 4"/></svg></span>',
+  bonnet: '<span class="precheck-icon precheck-icon-bonnet" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 16h18M5 16l2-5h8l4 5M15 11l5-5M16 6h4v4"/></svg></span>',
+  brightness: '<span class="precheck-icon precheck-icon-brightness" aria-hidden="true">☀️</span>',
+  tailgate: '<span class="precheck-icon precheck-icon-tailgate" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 17h16M6 17V9h9l3 8M15 9l4-5M16 4h4v4"/></svg></span>',
+  camera: '<span class="precheck-icon precheck-icon-camera" aria-hidden="true">📷</span>',
+  wiper: '<span class="precheck-icon precheck-icon-wiper" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 15Q12 5 20 15M8 14l9-5M17 9l2 2"/></svg></span>',
+  'native-symbol': ''
 });
 
 export const PRECHECK_SCENES = deepFreeze({
@@ -111,22 +120,22 @@ export const PRECHECK_SCENES = deepFreeze({
     reference: 'Generic manual hatchback driver-door controls — illustrative AI-generated photo',
     targets: {
       'window-lock': {
-        resultId: 'lock-rear-windows', x: 25.6, y: 58.3, width: 12, height: 18,
-        kind: 'window-lock-button', interaction: 'operate', iconKey: 'window-lock',
+        resultId: 'lock-rear-windows', x: 25.6, y: 58.3, width: 9, height: 15,
+        kind: 'window-lock-button', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.windowLock', labelPlacement: { x: 23, y: 78, width: 34 },
         stateKind: 'locked', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the separate crossed-window passenger-window lock switch'
       },
       'door-lock': {
-        resultId: 'lock-doors', x: 60.5, y: 44.5, width: 12, height: 18,
-        kind: 'door-lock-button', interaction: 'operate', iconKey: 'door-lock',
+        resultId: 'lock-doors', x: 60.5, y: 44.5, width: 9, height: 15,
+        kind: 'door-lock-button', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.doorLock', labelPlacement: { x: 61, y: 25, width: 26 },
         stateKind: 'locked', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the separate door lock and unlock button pair'
       },
       'window-switch': {
-        resultId: 'operate-window', x: 47.5, y: 57.2, width: 12, height: 18,
-        kind: 'window-switch', interaction: 'operate', iconKey: 'window',
+        resultId: 'operate-window', x: 47.5, y: 57.2, width: 9, height: 15,
+        kind: 'window-switch', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.windowSwitch', labelPlacement: { x: 46, y: 78, width: 28 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the rear-right power-window rocker switch'
@@ -162,6 +171,96 @@ export const PRECHECK_SCENES = deepFreeze({
         anchorDescription: 'Centred on the fan-speed rotary dial'
       }
     }
+  },
+  'generic-lighting-stalk': {
+    id: 'generic-lighting-stalk',
+    asset: 'assets/precheck/generic-lighting-stalk.png',
+    altKey: 'surface.precheck.scene.lightingStalk',
+    provenance: 'generic-illustrative-photo',
+    reference: 'Generic manual hatchback lighting stalk — illustrative AI-generated photo',
+    targets: {
+      'high-beam': {
+        resultId: 'high-beams', x: 29.1, y: 51.5, width: 8, height: 15,
+        kind: 'stalk-movement', interaction: 'operate', iconKey: 'native-symbol',
+        labelKey: 'surface.yaris.highBeam', labelPlacement: { x: 22, y: 65, width: 28 },
+        stateKind: 'power', initialState: false, desiredState: true,
+        anchorDescription: 'Offset just below the native high-beam symbol on the stalk movement ring'
+      },
+      'front-fog': {
+        resultId: 'front-fog-lights', x: 37.2, y: 42, width: 8, height: 15,
+        kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
+        labelKey: 'surface.yaris.frontFog', labelPlacement: { x: 35, y: 67, width: 29 },
+        stateKind: 'power', initialState: false, desiredState: true,
+        anchorDescription: 'Offset just above the native front fog-light symbol on its rotating ring'
+      },
+      'rear-fog': {
+        resultId: 'rear-fog-light', x: 51.2, y: 44, width: 8, height: 15,
+        kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
+        labelKey: 'surface.yaris.rearFog', labelPlacement: { x: 52, y: 69, width: 29 },
+        stateKind: 'power', initialState: false, desiredState: true,
+        anchorDescription: 'Offset just above the native rear fog-light symbol on its rotating ring'
+      }
+    }
+  },
+  'generic-bonnet-release': {
+    id: 'generic-bonnet-release',
+    asset: 'assets/precheck/generic-bonnet-release.png',
+    altKey: 'surface.precheck.scene.bonnetRelease',
+    provenance: 'generic-illustrative-photo',
+    reference: 'Generic manual hatchback driver footwell — illustrative AI-generated photo',
+    targets: {
+      'bonnet-release': {
+        resultId: 'open-bonnet-check-levels', x: 46.8, y: 39.8, width: 8, height: 16,
+        kind: 'release-lever', interaction: 'operate', iconKey: 'bonnet',
+        labelKey: 'surface.yaris.bonnetRelease', labelPlacement: { x: 51, y: 55, width: 27 },
+        stateKind: 'open', initialState: false, desiredState: true,
+        anchorDescription: 'Centred on the physical bonnet release lever with the open-bonnet pictogram'
+      },
+      'fuel-door-release': {
+        resultId: 'open-fuel-door', x: 37.8, y: 39.8, width: 8, height: 16,
+        kind: 'release-lever', interaction: 'operate', iconKey: 'fuel',
+        labelKey: 'surface.yaris.fuelDoorRelease', labelPlacement: { x: 31, y: 55, width: 27 },
+        stateKind: 'open', initialState: false, desiredState: true,
+        anchorDescription: 'Centred on the separate fuel-filler-door release lever'
+      },
+      'dashboard-brightness': {
+        resultId: 'adjust-dashboard-brightness', x: 40.3, y: 18.1, width: 10, height: 15,
+        kind: 'dashboard-control', interaction: 'operate', iconKey: 'brightness',
+        labelKey: 'surface.yaris.dashboardBrightness', labelPlacement: { x: 40, y: 7, width: 31 },
+        stateKind: 'power', initialState: false, desiredState: true,
+        anchorDescription: 'Centred on the dashboard illumination brightness wheel'
+      }
+    }
+  },
+  'generic-tailgate-release': {
+    id: 'generic-tailgate-release',
+    asset: 'assets/precheck/generic-tailgate-release.png',
+    altKey: 'surface.precheck.scene.tailgateRelease',
+    provenance: 'generic-illustrative-photo',
+    reference: 'Generic manual hatchback tailgate — illustrative AI-generated photo',
+    targets: {
+      'boot-release': {
+        resultId: 'open-boot', x: 51.7, y: 48.2, width: 8, height: 16,
+        kind: 'release-switch', interaction: 'operate', iconKey: 'tailgate',
+        labelKey: 'surface.yaris.bootRelease', labelPlacement: { x: 59, y: 62, width: 25 },
+        stateKind: 'open', initialState: false, desiredState: true,
+        anchorDescription: 'Centred on the physical exterior tailgate release handle'
+      },
+      'rear-camera': {
+        resultId: 'locate-rear-camera', x: 42.1, y: 48.2, width: 8, height: 16,
+        kind: 'camera-location', interaction: 'operate', iconKey: 'camera',
+        labelKey: 'surface.yaris.rearCamera', labelPlacement: { x: 36, y: 62, width: 25 },
+        stateKind: 'power', initialState: false, desiredState: true,
+        anchorDescription: 'Centred on the separate rear-view camera lens'
+      },
+      'rear-wiper': {
+        resultId: 'operate-rear-wiper', x: 53.8, y: 19.2, width: 12, height: 17,
+        kind: 'wiper-location', interaction: 'operate', iconKey: 'wiper',
+        labelKey: 'surface.yaris.rearWiper', labelPlacement: { x: 53, y: 7, width: 25 },
+        stateKind: 'power', initialState: false, desiredState: true,
+        anchorDescription: 'Centred on the rear-window wiper base'
+      }
+    }
   }
 });
 
@@ -174,7 +273,12 @@ export const PRECHECK_COMMAND_SCENES = Object.freeze({
   'c-pre-bloquear-elevalunas': 'generic-driver-door',
   'c-pre-desbloquear-elevalunas': 'generic-driver-door',
   'c-pre-desempanar-delantera': 'generic-climate-panel',
-  'c-pre-desempanar-trasera': 'generic-climate-panel'
+  'c-pre-desempanar-trasera': 'generic-climate-panel',
+  'c-pre-largo-alcance': 'generic-lighting-stalk',
+  'c-pre-niebla-delantera': 'generic-lighting-stalk',
+  'c-pre-niebla-trasera': 'generic-lighting-stalk',
+  'c-pre-capo': 'generic-bonnet-release',
+  'c-pre-maletero': 'generic-tailgate-release'
 });
 
 export function precheckSceneForCommand(commandId) {
@@ -184,8 +288,8 @@ export function precheckSceneForCommand(commandId) {
 }
 
 export function renderPrecheckIcon(iconKey) {
+  if (!Object.hasOwn(ICONS, iconKey)) throw new Error(`Unsupported precheck icon: ${iconKey}`);
   const icon = ICONS[iconKey];
-  if (!icon) throw new Error(`Unsupported precheck icon: ${iconKey}`);
   return icon;
 }
 

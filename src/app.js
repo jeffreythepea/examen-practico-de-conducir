@@ -724,6 +724,9 @@ async function bootstrap() {
     app.querySelectorAll('[data-control-event="activate"]').forEach(button => button.addEventListener('click', () => {
       dispatchSurfaceEvent({ type: 'activate', targetId: button.dataset.target });
     }));
+    app.querySelectorAll('[data-control-event="select-gear"]').forEach(button => button.addEventListener('click', () => {
+      dispatchSurfaceEvent({ type: 'select-gear', targetId: button.dataset.target, gear: button.dataset.gear });
+    }));
     app.querySelectorAll('[data-control-event="set-wheel"]').forEach(control => control.addEventListener('input', () => {
       dispatchSurfaceEvent({ type: 'set-wheel', degrees: Number(control.value) });
     }));

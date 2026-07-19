@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
   CONTROL_SURFACE_IDS,
+  MANUAL_SECURE_TARGETS,
   WHEEL_CENTER_TOLERANCE_DEGREES,
-  YARIS_SECURE_SEQUENCE,
   generateControlSurface,
   reduceControlResponse,
   renderControlSurface
@@ -20,12 +20,12 @@ function command(action, surfaceId) {
   };
 }
 
-test('control surfaces export only the declared stable IDs and verified Yaris sequence', () => {
+test('control surfaces preserve stable IDs while declaring generic manual controls', () => {
   assert.deepEqual(CONTROL_SURFACE_IDS, ['wheel-center-v1', 'secure-yaris-v1']);
   assert.equal(WHEEL_CENTER_TOLERANCE_DEGREES, 5);
-  assert.deepEqual(YARIS_SECURE_SEQUENCE, ['parking-brake', 'selector-park']);
+  assert.deepEqual(MANUAL_SECURE_TARGETS, ['engine-stop', 'parking-brake', 'manual-gear']);
   assert.ok(Object.isFrozen(CONTROL_SURFACE_IDS));
-  assert.ok(Object.isFrozen(YARIS_SECURE_SEQUENCE));
+  assert.ok(Object.isFrozen(MANUAL_SECURE_TARGETS));
 });
 
 test('wheel centering completes only inside the centered tolerance', () => {
@@ -42,33 +42,29 @@ test('wheel centering completes only inside the centered tolerance', () => {
   assert.equal(reduceControlResponse(model, {}, { type: 'set-wheel', degrees: 5.1 }).complete, false);
 });
 
-test('secure vehicle requires the declared Yaris sequence and rejects reversed steps', () => {
+test('manual immobilization accepts any control order and completes only at the legal final state', () => {
   const model = generateControlSurface(command('secure-vehicle', 'secure-yaris-v1'), 5);
-  const first = reduceControlResponse(model, {}, { type: 'activate', targetId: model.meta.sequence[0] });
-  assert.deepEqual(first, {
-    complete: false,
-    completedSteps: ['parking-brake'],
-    nextStepIndex: 1
+  let state = reduceControlResponse(model, {}, {
+    type: 'select-gear', targetId: 'manual-gear', gear: model.meta.requiredGear
   });
-  const complete = reduceControlResponse(model, first, { type: 'activate', targetId: model.meta.sequence[1] });
-  assert.deepEqual(complete, {
+  assert.equal(state.complete, false);
+  state = reduceControlResponse(model, state, { type: 'activate', targetId: 'engine-stop' });
+  assert.equal(state.complete, false);
+  state = reduceControlResponse(model, state, { type: 'activate', targetId: 'parking-brake' });
+  assert.deepEqual(state, {
     complete: true,
     selectedResult: 'secure-vehicle',
-    selectedTargetId: 'selector-park',
-    completedSteps: ['parking-brake', 'selector-park'],
-    nextStepIndex: 2
+    selectedTargetId: 'parking-brake',
+    engineStopped: true,
+    parkingBrakeApplied: true,
+    selectedGear: model.meta.requiredGear
   });
-  assert.deepEqual(
-    reduceControlResponse(model, {}, { type: 'activate', targetId: model.meta.sequence[1] }),
-    {
-      complete: false,
-      incorrect: true,
-      selectedResult: null,
-      selectedTargetId: 'selector-park',
-      completedSteps: [],
-      nextStepIndex: 0
-    }
-  );
+
+  const wrongGear = reduceControlResponse(model, {}, {
+    type: 'select-gear', targetId: 'manual-gear', gear: model.meta.requiredGear === 'first' ? 'reverse' : 'first'
+  });
+  assert.equal(wrongGear.complete, false);
+  assert.equal(wrongGear.selectedResult, null);
 });
 
 test('control generation is deterministic, immutable, serializable, and manual-grounded', () => {
@@ -82,11 +78,16 @@ test('control generation is deterministic, immutable, serializable, and manual-g
   assert.doesNotThrow(() => JSON.stringify(wheel));
 
   const secure = generateControlSurface(command('secure-vehicle', 'secure-yaris-v1'), 45);
-  assert.equal(secure.meta.brakePedalHeld, true);
-  assert.deepEqual(secure.meta.sequence, YARIS_SECURE_SEQUENCE);
-  assert.deepEqual(secure.meta.manualPages, [236, 264, 269]);
-  assert.deepEqual(secure.targets.map(target => target.id), YARIS_SECURE_SEQUENCE);
+  assert.equal(secure.family, 'secure-manual');
+  assert.ok(['uphill', 'downhill'].includes(secure.meta.slope));
+  assert.equal(secure.meta.requiredGear, secure.meta.slope === 'uphill' ? 'first' : 'reverse');
+  assert.equal(secure.meta.legalReference, 'RGC Article 92');
+  assert.deepEqual(secure.targets.map(target => target.id), MANUAL_SECURE_TARGETS);
   assert.equal(secure.targets.find(target => target.id === 'parking-brake').kind, 'hand-parking-brake-lever');
+
+  const variants = new Set(Array.from({ length: 32 }, (_, seed) =>
+    generateControlSurface(command('secure-vehicle', 'secure-yaris-v1'), seed).meta.slope));
+  assert.deepEqual([...variants].sort(), ['downhill', 'uphill']);
 });
 
 test('generator and reducer reject incompatible input rather than inventing behavior', () => {
@@ -108,6 +109,10 @@ test('generator and reducer reject incompatible input rather than inventing beha
   assert.throws(
     () => reduceControlResponse(secure, {}, { type: 'activate', targetId: 'power-switch' }),
     /Unknown secure-vehicle target: power-switch/
+  );
+  assert.throws(
+    () => reduceControlResponse(secure, {}, { type: 'select-gear', targetId: 'manual-gear', gear: 'park' }),
+    /Unsupported manual gear: park/
   );
 });
 
@@ -165,29 +170,30 @@ test('centered wheel reveal marks the learner position correct without a second 
   assert.match(markup, /<input[^>]+aria-current="true"/);
 });
 
-test('secure renderer exposes held-brake context and two native pressed-state buttons', () => {
+test('manual renderer exposes the slope, engine, parking brake, and H-pattern gear controls', () => {
   const model = generateControlSurface(command('secure-vehicle', 'secure-yaris-v1'), 5);
-  const first = reduceControlResponse(model, {}, { type: 'activate', targetId: 'parking-brake' });
+  const first = reduceControlResponse(model, {}, { type: 'activate', targetId: 'engine-stop' });
   const english = renderControlSurface(model, first, 'en', false);
-  const spanish = renderControlSurface(model, { ...first, incorrect: true }, 'es', true);
+  const spanish = renderControlSurface(model, first, 'es', true);
 
   assert.match(english, /data-surface="secure-yaris-v1"/);
-  assert.match(english, /data-context="brake-pedal-held"/);
-  assert.match(english, />Brake pedal held</);
-  assert.match(english, /data-target="parking-brake"[^>]+aria-pressed="true"/);
-  assert.match(english, /data-target="selector-park"[^>]+aria-pressed="false"/);
+  assert.match(english, /data-family="secure-manual"/);
+  assert.match(english, new RegExp(`data-slope="${model.meta.slope}"`));
+  assert.match(english, /data-target="engine-stop"[^>]+aria-pressed="true"/);
+  assert.match(english, /data-target="parking-brake"[^>]+aria-pressed="false"/);
+  assert.match(english, /data-control-event="select-gear"[^>]+data-gear="first"/);
+  assert.match(english, /data-control-event="select-gear"[^>]+data-gear="reverse"/);
+  assert.match(english, /class="manual-gear-pattern"/);
+  assert.match(english, />Stop engine</);
   assert.match(english, />Hand parking-brake lever</);
-  assert.match(english, />Selector in P</);
-  assert.equal((english.match(/data-control-event="activate"/g) ?? []).length, 2);
+  assert.doesNotMatch(english, /selector-park|>P<|automatic-hybrid/i);
 
-  assert.match(spanish, />Pedal de freno pisado</);
+  assert.match(spanish, />Detenga el motor</);
   assert.match(spanish, />Palanca manual del freno de estacionamiento</);
-  assert.match(spanish, />Selector en P</);
-  assert.match(spanish, /role="alert">Orden incorrecto</);
-  assert.equal((spanish.match(/ disabled/g) ?? []).length, 2);
+  assert.match(spanish, /Primera marcha|Marcha atrás/);
 });
 
-test('secure prompt hides the ordered answer while reveal discloses the full provisional sequence in both locales', async () => {
+test('secure prompt identifies generic manual practice and reveal cites Article 92', async () => {
   const model = generateControlSurface({
     id: 'c-inmov',
     actionId: 'secure-vehicle',
@@ -197,8 +203,10 @@ test('secure prompt hides the ordered answer while reveal discloses the full pro
   const response = {
     complete: true,
     selectedResult: 'secure-vehicle',
-    selectedTargetId: 'selector-park',
-    completedSteps: ['parking-brake', 'selector-park'],
+    selectedTargetId: 'manual-gear',
+    engineStopped: true,
+    parkingBrakeApplied: true,
+    selectedGear: model.meta.requiredGear,
     reveal: true
   };
   const englishPrompt = renderControlSurface(model, {}, 'en', false);
@@ -211,13 +219,13 @@ test('secure prompt hides the ordered answer while reveal discloses the full pro
   assert.match(englishPrompt, /aria-describedby="secure-sequence-disclosure-detail"/);
   const englishPromptNotice = disclosureText(englishPrompt);
   const spanishPromptNotice = disclosureText(spanishPrompt);
-  assert.match(englishPromptNotice, /provisional automatic-hybrid reference.*confirmation or replacement.*manual test car/i);
-  assert.doesNotMatch(englishPromptNotice, /parking|brake|selector|→/i);
-  assert.match(spanishPromptNotice, /referencia provisional del híbrido automático.*confirmación o sustitución.*coche manual del examen/i);
-  assert.doesNotMatch(spanishPromptNotice, /freno|estacionamiento|selector|→/i);
+  assert.match(englishPromptNotice, /generic manual-car practice.*confirm.*actual test car/i);
+  assert.doesNotMatch(englishPromptNotice, /automatic|selector P/i);
+  assert.match(spanishPromptNotice, /práctica genérica.*coche manual.*confirme.*vehículo real/i);
+  assert.doesNotMatch(spanishPromptNotice, /automático|selector P/i);
 
-  assert.match(disclosureText(englishReveal), /parking-brake.*selector-P/i);
-  assert.match(disclosureText(spanishReveal), /freno de estacionamiento.*selector P/i);
+  assert.match(disclosureText(englishReveal), /Article 92.*stop the engine.*parking brake/i);
+  assert.match(disclosureText(spanishReveal), /artículo 92.*detener el motor.*freno de estacionamiento/i);
 
   const styles = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(styles, /\.secure-sequence-disclosure\s*\{[^}]*border:[^}]*background:[^}]*box-shadow:/s);
@@ -231,12 +239,11 @@ function disclosureText(markup) {
 
 test('control reveal identifies the correct control and selected wrong control without color alone', () => {
   const model = generateControlSurface(command('secure-vehicle', 'secure-yaris-v1'), 5);
-  const response = reduceControlResponse(model, {}, { type: 'activate', targetId: 'selector-park' });
+  const response = reduceControlResponse(model, {}, { type: 'activate', targetId: 'parking-brake' });
   const markup = renderControlSurface(model, { ...response, reveal: true }, 'en', true);
-  assert.match(markup, /data-target="parking-brake"[^>]+aria-current="true"/);
-  assert.match(markup, /data-target="selector-park"[^>]+data-selection-state="wrong"/);
+  assert.match(markup, /data-target="engine-stop"[^>]+aria-current="true"/);
+  assert.match(markup, /data-target="parking-brake"[^>]+data-selection-state="correct"/);
   assert.match(markup, /class="target-status-marker correct"[^>]*>✓</);
-  assert.match(markup, /class="target-status-marker wrong"[^>]*>×</);
   assert.match(markup, /class="surface-result-label">Correct control</);
 });
 

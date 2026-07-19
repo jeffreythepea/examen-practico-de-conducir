@@ -104,6 +104,29 @@ test('the same seed reproduces the complete manoeuvre model and seeds vary only 
   assert.ok(positions.size > 16);
 });
 
+test('overtaking separates the learner, lead vehicle, safe-follow target, and opposing-lane pass', () => {
+  for (let seed = 1; seed <= 32; seed += 1) {
+    const model = generateManoeuvreSurface(command('overtake', 'overtake-v1'), seed);
+    const { learnerVehicle, leadVehicle } = model.geometry;
+    const follow = model.targets.find(target => target.resultId === 'follow-vehicle');
+    const passing = model.targets.find(target => target.resultId === 'overtake');
+
+    assert.ok(learnerVehicle.y >= 82, 'learner vehicle must enter at the bottom');
+    assert.equal(learnerVehicle.x, 66);
+    assert.equal(leadVehicle.x, 66);
+    assert.ok(leadVehicle.y < follow.y);
+    assert.ok(follow.y - follow.height / 2 > leadVehicle.y + leadVehicle.height / 2,
+      'safe-follow target must have a positive visible gap behind the lead car');
+    assert.ok(learnerVehicle.y > follow.y, 'learner car remains behind the safe-follow option');
+    assert.ok(passing.x < 50, 'passing target must be in the opposing lane');
+    assert.ok(model.geometry.correctRoute.some(point => point.x < 50), 'passing route must enter the opposing lane');
+
+    const markup = renderManoeuvreSurface(model, 'en');
+    assert.match(markup, /class="scenario-vehicle learner-vehicle"/);
+    assert.match(markup, /class="scenario-vehicle lead-vehicle"/);
+  }
+});
+
 test('every accepted U-turn route geometrically finishes travelling down the original road', () => {
   const templateIds = new Set();
   for (let seed = 1; seed <= 32; seed += 1) {

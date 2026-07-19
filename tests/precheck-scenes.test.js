@@ -67,8 +67,41 @@ test('cabin prechecks map to three packaged scenes with distinct, described icon
 
   assert.notEqual(PRECHECK_SCENES['generic-instrument-cluster'].targets['fuel-gauge'].iconKey,
     PRECHECK_SCENES['generic-instrument-cluster'].targets['temperature-gauge'].iconKey);
-  assert.notEqual(PRECHECK_SCENES['generic-driver-door'].targets['window-lock'].iconKey,
-    PRECHECK_SCENES['generic-driver-door'].targets['door-lock'].iconKey);
+  assert.equal(PRECHECK_SCENES['generic-driver-door'].targets['window-lock'].iconKey, 'native-symbol');
+  assert.equal(PRECHECK_SCENES['generic-driver-door'].targets['door-lock'].iconKey, 'native-symbol');
   assert.notEqual(PRECHECK_SCENES['generic-climate-panel'].targets['front-demist'].iconKey,
     PRECHECK_SCENES['generic-climate-panel'].targets['rear-demist'].iconKey);
+});
+
+test('lighting and exterior-release prechecks map to precise photo targets with clear distractors', async () => {
+  const expectedMappings = {
+    'c-pre-largo-alcance': 'generic-lighting-stalk',
+    'c-pre-niebla-delantera': 'generic-lighting-stalk',
+    'c-pre-niebla-trasera': 'generic-lighting-stalk',
+    'c-pre-capo': 'generic-bonnet-release',
+    'c-pre-maletero': 'generic-tailgate-release'
+  };
+  for (const [commandId, sceneId] of Object.entries(expectedMappings)) {
+    assert.equal(precheckSceneForCommand(commandId).id, sceneId);
+  }
+
+  const lighting = PRECHECK_SCENES['generic-lighting-stalk'];
+  assert.deepEqual(Object.keys(lighting.targets).sort(), ['front-fog', 'high-beam', 'rear-fog']);
+  assert.ok(Object.values(lighting.targets).every(target => target.iconKey === 'native-symbol'));
+  assert.match(lighting.targets['high-beam'].anchorDescription, /stalk.*movement/i);
+  assert.match(lighting.targets['front-fog'].anchorDescription, /front.*fog.*ring/i);
+  assert.match(lighting.targets['rear-fog'].anchorDescription, /rear.*fog.*ring/i);
+
+  const bonnet = PRECHECK_SCENES['generic-bonnet-release'];
+  assert.ok(Object.keys(bonnet.targets).length >= 3);
+  assert.match(bonnet.targets['bonnet-release'].anchorDescription, /bonnet.*release lever/i);
+  const tailgate = PRECHECK_SCENES['generic-tailgate-release'];
+  assert.ok(Object.keys(tailgate.targets).length >= 3);
+  assert.match(tailgate.targets['boot-release'].anchorDescription, /tailgate.*release/i);
+
+  for (const scene of [lighting, bonnet, tailgate]) {
+    assert.ok(Object.values(scene.targets).every(target => target.iconKey && target.anchorDescription));
+    const asset = await stat(new URL(`../${scene.asset}`, import.meta.url));
+    assert.ok(asset.size > 0);
+  }
 });

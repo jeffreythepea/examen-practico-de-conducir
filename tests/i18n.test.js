@@ -21,8 +21,8 @@ const requiredKeys = [
   'surface.selectionCorrect','surface.selectionWrong',
   'surface.error','surface.retry',
   'surface.centerWheel','surface.wheelPosition','surface.wheelFinalPosition','surface.wheelCenteredReference',
-  'surface.operateSecureControls','surface.brakePedalHeld',
-  'surface.handParkingBrake','surface.selectorPark','surface.sequenceIncorrect',
+  'surface.operateSecureControls','surface.engineStop','surface.handParkingBrake',
+  'surface.manualFirst','surface.manualReverse','surface.slopeUphill','surface.slopeDownhill',
   'surface.secureProvisionalTitle','surface.secureProvisionalPromptDisclosure',
   'surface.secureProvisionalRevealDisclosure',
   'surface.yaris.locateInstruction','surface.yaris.operateInstruction','surface.yaris.equipmentVariant',
@@ -98,25 +98,24 @@ test('manoeuvre instructions and restricted-location explanations are bilingual'
   assert.equal(translate('es', 'surface.restricted.noStoppingSign'), 'Señal de prohibido parar');
 });
 
-test('wheel and Yaris securing controls are bilingual', () => {
+test('wheel and generic manual securing controls are bilingual', () => {
   assert.equal(translate('en', 'surface.centerWheel'), 'Centre the steering wheel');
   assert.equal(translate('es', 'surface.wheelPosition'), 'Posición del volante');
   assert.equal(translate('en', 'surface.wheelFinalPosition'), 'Your final wheel position');
   assert.equal(translate('es', 'surface.wheelFinalPosition'), 'Posición final del volante');
   assert.equal(translate('en', 'surface.wheelCenteredReference'), 'Centered correct reference');
   assert.equal(translate('es', 'surface.wheelCenteredReference'), 'Referencia correcta centrada');
-  assert.equal(translate('en', 'surface.brakePedalHeld'), 'Brake pedal held');
+  assert.equal(translate('en', 'surface.engineStop'), 'Stop engine');
   assert.equal(translate('es', 'surface.handParkingBrake'), 'Palanca manual del freno de estacionamiento');
-  assert.equal(translate('en', 'surface.selectorPark'), 'Selector in P');
-  assert.equal(translate('es', 'surface.sequenceIncorrect'), 'Orden incorrecto');
-  assert.equal(translate('en', 'surface.secureProvisionalTitle'), 'Provisional sequence');
-  assert.match(translate('en', 'surface.secureProvisionalPromptDisclosure'), /provisional automatic-hybrid reference.*confirmation or replacement.*manual test car/i);
-  assert.doesNotMatch(translate('en', 'surface.secureProvisionalPromptDisclosure'), /parking|brake|selector|→/i);
-  assert.match(translate('en', 'surface.secureProvisionalRevealDisclosure'), /provisional automatic-hybrid reference.*parking-brake.*selector-P.*confirmation or replacement.*manual test car/i);
-  assert.equal(translate('es', 'surface.secureProvisionalTitle'), 'Secuencia provisional');
-  assert.match(translate('es', 'surface.secureProvisionalPromptDisclosure'), /referencia provisional del híbrido automático.*confirmación o sustitución.*coche manual del examen/i);
-  assert.doesNotMatch(translate('es', 'surface.secureProvisionalPromptDisclosure'), /freno|estacionamiento|selector|→/i);
-  assert.match(translate('es', 'surface.secureProvisionalRevealDisclosure'), /referencia provisional del híbrido automático.*freno de estacionamiento.*selector P.*confirmación o sustitución.*coche manual del examen/i);
+  assert.equal(translate('en', 'surface.manualFirst'), 'First gear');
+  assert.equal(translate('es', 'surface.manualReverse'), 'Marcha atrás');
+  assert.equal(translate('en', 'surface.secureProvisionalTitle'), 'Generic manual procedure');
+  assert.match(translate('en', 'surface.secureProvisionalPromptDisclosure'), /generic manual-car practice.*actual test car/i);
+  assert.doesNotMatch(translate('en', 'surface.secureProvisionalPromptDisclosure'), /automatic|selector P/i);
+  assert.match(translate('en', 'surface.secureProvisionalRevealDisclosure'), /Article 92.*stop the engine.*parking brake.*first gear uphill.*reverse downhill/i);
+  assert.equal(translate('es', 'surface.secureProvisionalTitle'), 'Procedimiento genérico para coche manual');
+  assert.match(translate('es', 'surface.secureProvisionalPromptDisclosure'), /práctica genérica.*coche manual.*vehículo real/i);
+  assert.match(translate('es', 'surface.secureProvisionalRevealDisclosure'), /Artículo 92.*detener el motor.*freno de estacionamiento.*primera cuesta arriba.*marcha atrás cuesta abajo/i);
 });
 
 test('surface generation failure and retry copy are bilingual', () => {

@@ -159,8 +159,12 @@ test('every active catalog surface generates, reduces, and renders in both local
 
 function completionEvents(model, correctTarget) {
   if (model.family === 'wheel') return [{ type: 'set-wheel', degrees: 0 }];
-  if (model.family === 'secure-yaris') {
-    return model.meta.sequence.map(targetId => ({ type: 'activate', targetId }));
+  if (model.family === 'secure-manual') {
+    return [
+      { type: 'activate', targetId: 'engine-stop' },
+      { type: 'activate', targetId: 'parking-brake' },
+      { type: 'select-gear', targetId: 'manual-gear', gear: model.meta.requiredGear }
+    ];
   }
   if (model.family === 'yaris') return [{ type: 'activate', targetId: correctTarget.id }];
   return [{ type: 'select-target', targetId: correctTarget.id }];

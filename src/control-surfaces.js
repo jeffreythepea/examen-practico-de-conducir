@@ -2,18 +2,16 @@ import { translate } from './i18n.js';
 import { createSurfaceModel, seededRandom } from './surface-model.js';
 
 export const CONTROL_SURFACE_IDS = Object.freeze(['wheel-center-v1', 'secure-yaris-v1']);
-export const YARIS_SECURE_SEQUENCE = Object.freeze(['parking-brake', 'selector-park']);
+export const MANUAL_SECURE_TARGETS = Object.freeze(['engine-stop', 'parking-brake', 'manual-gear']);
 export const WHEEL_CENTER_TOLERANCE_DEGREES = 5;
 
 const WHEEL_MIN_DEGREES = -90;
 const WHEEL_MAX_DEGREES = 90;
 
 /**
- * Builds a deterministic steering or Yaris securing-control model.
- *
- * The secure-vehicle model intentionally treats the depressed brake pedal as
- * context. Its only learner-operated steps are the hand parking-brake lever,
- * then selector P, matching Yaris manual pages 236, 264, and 269.
+ * Builds a deterministic steering or generic manual securing-control model.
+ * The secure-vehicle model follows RGC Article 92 while retaining its legacy
+ * external surface ID so existing progress and response provenance remain valid.
  *
  * @param {{ id: string, actionId: string, acceptedResult: string, surfaceId: string }} command
  * @param {number} seed
@@ -21,7 +19,7 @@ const WHEEL_MAX_DEGREES = 90;
  */
 export function generateControlSurface(command, seed) {
   if (command?.surfaceId === 'wheel-center-v1') return generateWheelModel(command, seed);
-  if (command?.surfaceId === 'secure-yaris-v1') return generateSecureYarisModel(command, seed);
+  if (command?.surfaceId === 'secure-yaris-v1') return generateSecureManualModel(command, seed);
   throw new Error(`Unsupported control surface: ${command?.surfaceId}`);
 }
 
@@ -36,7 +34,7 @@ export function generateControlSurface(command, seed) {
  */
 export function reduceControlResponse(model, responseState = {}, event = {}) {
   if (model?.family === 'wheel') return reduceWheelResponse(model, event);
-  if (model?.family === 'secure-yaris') return reduceSecureResponse(model, responseState, event);
+  if (model?.family === 'secure-manual') return reduceSecureResponse(model, responseState, event);
   throw new Error(`Unsupported control model: ${model?.family}`);
 }
 
@@ -52,7 +50,7 @@ export function reduceControlResponse(model, responseState = {}, event = {}) {
  */
 export function renderControlSurface(model, responseState = {}, locale, disabled = false) {
   if (model?.family === 'wheel') return renderWheel(model, responseState, locale, disabled);
-  if (model?.family === 'secure-yaris') return renderSecureYaris(model, responseState, locale, disabled);
+  if (model?.family === 'secure-manual') return renderSecureManual(model, responseState, locale, disabled);
   throw new Error(`Unsupported control model: ${model?.family}`);
 }
 
@@ -91,45 +89,57 @@ function generateWheelModel(command, seed) {
   });
 }
 
-function generateSecureYarisModel(command, seed) {
-  assertCommandContract(command, 'secure-vehicle', 'secure-yaris');
+function generateSecureManualModel(command, seed) {
+  assertCommandContract(command, 'secure-vehicle', 'secure-manual');
+  const rng = seededRandom(seed);
+  rng();
+  const slope = rng() < 0.5 ? 'uphill' : 'downhill';
+  const requiredGear = slope === 'uphill' ? 'first' : 'reverse';
   return createSurfaceModel({
     id: `secure-yaris-v1:${seed}`,
-    family: 'secure-yaris',
+    family: 'secure-manual',
     version: 1,
     seed,
     expectedResult: 'secure-vehicle',
     targets: [
       {
-        id: 'parking-brake',
-        resultId: 'parking-brake-set',
-        kind: 'hand-parking-brake-lever',
-        x: 30,
+        id: 'engine-stop',
+        resultId: 'engine-stopped',
+        kind: 'ignition-control',
+        x: 17,
         y: 50,
-        width: 34,
+        width: 26,
         height: 44
       },
       {
-        id: 'selector-park',
-        resultId: 'secure-vehicle',
-        kind: 'selector-position',
-        x: 70,
+        id: 'parking-brake',
+        resultId: 'parking-brake-set',
+        kind: 'hand-parking-brake-lever',
+        x: 50,
         y: 50,
-        width: 34,
+        width: 26,
+        height: 44
+      },
+      {
+        id: 'manual-gear',
+        resultId: 'secure-vehicle',
+        kind: 'manual-gear-selector',
+        x: 83,
+        y: 50,
+        width: 26,
         height: 44
       }
     ],
     geometry: {
-      controlLayout: 'yaris-centre-console',
+      controlLayout: 'generic-manual-controls',
       parkingBrakeControl: 'hand-lever',
-      brakePedal: 'held'
+      gearPattern: 'h-pattern'
     },
     meta: {
       commandId: command.id,
-      sequence: YARIS_SECURE_SEQUENCE,
-      brakePedalHeld: true,
-      manualPublication: 'PZ49X-52A96-EN',
-      manualPages: [236, 264, 269]
+      slope,
+      requiredGear,
+      legalReference: 'RGC Article 92'
     }
   });
 }
@@ -159,39 +169,42 @@ function reduceWheelResponse(model, event) {
 }
 
 function reduceSecureResponse(model, responseState, event) {
-  if (event.type !== 'activate') throw new Error(`Unsupported secure-vehicle event: ${event.type}`);
-  const sequence = model.meta.sequence;
-  if (!sequence.includes(event.targetId)) {
+  if (!MANUAL_SECURE_TARGETS.includes(event.targetId)) {
     throw new Error(`Unknown secure-vehicle target: ${event.targetId}`);
   }
-  const completedSteps = Array.isArray(responseState.completedSteps)
-    ? [...responseState.completedSteps]
-    : [];
-  if (!completedSteps.every((targetId, index) => targetId === sequence[index])) {
+  const state = validatedSecureState(responseState);
+  if (event.type === 'activate' && event.targetId === 'engine-stop') {
+    state.engineStopped = !state.engineStopped;
+  } else if (event.type === 'activate' && event.targetId === 'parking-brake') {
+    state.parkingBrakeApplied = !state.parkingBrakeApplied;
+  } else if (event.type === 'select-gear' && event.targetId === 'manual-gear') {
+    if (!['first', 'reverse'].includes(event.gear)) throw new Error(`Unsupported manual gear: ${event.gear}`);
+    state.selectedGear = event.gear;
+  } else {
+    throw new Error(`Unsupported secure-vehicle event: ${event.type}`);
+  }
+  const complete = state.engineStopped
+    && state.parkingBrakeApplied
+    && state.selectedGear === model.meta.requiredGear;
+  return {
+    complete,
+    selectedResult: complete ? model.expectedResult : null,
+    selectedTargetId: event.targetId,
+    ...state
+  };
+}
+
+function validatedSecureState(responseState) {
+  const engineStopped = responseState.engineStopped ?? false;
+  const parkingBrakeApplied = responseState.parkingBrakeApplied ?? false;
+  const selectedGear = responseState.selectedGear ?? null;
+  if (typeof engineStopped !== 'boolean' || typeof parkingBrakeApplied !== 'boolean') {
     throw new Error('Invalid secure-vehicle response state');
   }
-  const nextStepIndex = completedSteps.length;
-  if (event.targetId !== sequence[nextStepIndex]) {
-    return {
-      complete: false,
-      incorrect: true,
-      selectedResult: null,
-      selectedTargetId: event.targetId,
-      completedSteps,
-      nextStepIndex
-    };
+  if (selectedGear !== null && !['first', 'reverse'].includes(selectedGear)) {
+    throw new Error('Invalid secure-vehicle response state');
   }
-
-  completedSteps.push(event.targetId);
-  const complete = completedSteps.length === sequence.length;
-  if (!complete) return { complete: false, completedSteps, nextStepIndex: completedSteps.length };
-  return {
-    complete: true,
-    selectedResult: model.expectedResult,
-    selectedTargetId: event.targetId,
-    completedSteps,
-    nextStepIndex: completedSteps.length
-  };
+  return { engineStopped, parkingBrakeApplied, selectedGear };
 }
 
 function renderWheel(model, responseState, locale, disabled) {
@@ -251,41 +264,34 @@ function renderWheelGraphic(degrees) {
   </svg>`;
 }
 
-function renderSecureYaris(model, responseState, locale, disabled) {
-  const completedSteps = Array.isArray(responseState.completedSteps) ? responseState.completedSteps : [];
+function renderSecureManual(model, responseState, locale, disabled) {
+  const state = validatedSecureState(responseState);
   const reveal = Boolean(responseState.reveal);
-  const correctTargetId = model.meta.sequence[Math.min(completedSteps.length, model.meta.sequence.length - 1)];
   const disabledAttribute = disabled ? ' disabled' : '';
-  const controls = model.targets.map(target => {
-    const pressed = completedSteps.includes(target.id);
-    const labelKey = target.id === 'parking-brake' ? 'surface.handParkingBrake' : 'surface.selectorPark';
-    const correct = target.id === correctTargetId;
-    const selected = reveal && target.id === responseState.selectedTargetId;
-    const selectionState = selected ? (correct ? 'correct' : 'wrong') : null;
-    const selectionLabel = selectionState
-      ? ` — ${translate(locale, selectionState === 'correct' ? 'surface.selectionCorrect' : 'surface.selectionWrong')}`
-      : '';
+  const engine = renderManualToggle({
+    id: 'engine-stop', pressed: state.engineStopped, labelKey: 'surface.engineStop',
+    visual: '<span class="engine-stop-icon" aria-hidden="true">⏻</span>', model, responseState, locale, reveal, disabledAttribute
+  });
+  const parkingBrake = renderManualToggle({
+    id: 'parking-brake', pressed: state.parkingBrakeApplied, labelKey: 'surface.handParkingBrake',
+    visual: '<span class="parking-brake-lever" aria-hidden="true"><span></span></span>', model, responseState, locale, reveal, disabledAttribute
+  });
+  const gearButtons = ['first', 'reverse'].map(gear => {
+    const selected = state.selectedGear === gear;
+    const correct = gear === model.meta.requiredGear;
+    const selectedState = reveal && selected ? (correct ? 'correct' : 'wrong') : null;
     const current = reveal && correct ? ' aria-current="true"' : '';
-    const selectedAttributes = selected
-      ? ` data-selected="true" data-selection-state="${selectionState}"`
+    const selectedAttributes = selectedState
+      ? ` data-selected="true" data-selection-state="${selectedState}"`
       : '';
     const marker = reveal && correct
       ? '<span class="target-status-marker correct" aria-hidden="true">✓</span>'
-      : selectionState === 'wrong'
+      : selectedState === 'wrong'
         ? '<span class="target-status-marker wrong" aria-hidden="true">×</span>'
         : '';
-    const visual = target.id === 'parking-brake'
-      ? '<span class="parking-brake-lever" aria-hidden="true"><span></span></span>'
-      : '<span class="selector-park" aria-hidden="true">P</span>';
-    return `<button class="secure-control-button" type="button" data-control-event="activate" data-target="${escapeAttribute(target.id)}"${selectedAttributes}${current} aria-pressed="${pressed}" aria-label="${escapeAttribute(translate(locale, labelKey) + selectionLabel)}"${disabledAttribute}>
-      ${marker}
-      ${visual}
-      <span>${escapeHtml(translate(locale, labelKey))}</span>
-    </button>`;
+    const labelKey = gear === 'first' ? 'surface.manualFirst' : 'surface.manualReverse';
+    return `<button class="manual-gear-button" type="button" data-control-event="select-gear" data-target="manual-gear" data-gear="${gear}"${selectedAttributes}${current} aria-pressed="${selected}" aria-label="${escapeAttribute(translate(locale, labelKey))}"${disabledAttribute}>${marker}<strong>${gear === 'first' ? '1' : 'R'}</strong><span>${escapeHtml(translate(locale, labelKey))}</span></button>`;
   }).join('');
-  const sequenceError = responseState.incorrect
-    ? `<p class="control-sequence-error" role="alert">${escapeHtml(translate(locale, 'surface.sequenceIncorrect'))}</p>`
-    : '';
   const resultLabel = reveal
     ? `<p class="surface-result-label">${escapeHtml(translate(locale, 'surface.correctControl'))}</p>`
     : '';
@@ -297,14 +303,29 @@ function renderSecureYaris(model, responseState, locale, disabled) {
       <span id="secure-sequence-disclosure-detail">${escapeHtml(translate(locale, disclosureKey))}</span>
     </aside>`;
 
-  return `<div class="control-surface secure-yaris-control" data-surface="secure-yaris-v1" data-complete="${Boolean(responseState.complete)}">
+  const slopeKey = model.meta.slope === 'uphill' ? 'surface.slopeUphill' : 'surface.slopeDownhill';
+  return `<div class="control-surface secure-yaris-control secure-manual-control" data-surface="secure-yaris-v1" data-family="secure-manual" data-slope="${model.meta.slope}" data-complete="${Boolean(responseState.complete)}">
     <p class="surface-instruction">${escapeHtml(translate(locale, 'surface.operateSecureControls'))}</p>
     ${disclosure}
-    <p class="control-context" data-context="brake-pedal-held"><span class="brake-pedal" aria-hidden="true"></span>${escapeHtml(translate(locale, 'surface.brakePedalHeld'))}</p>
-    <div class="secure-control-grid">${controls}</div>
-    ${sequenceError}
+    <p class="manual-slope-context"><span class="slope-road" aria-hidden="true" data-slope="${model.meta.slope}"><span class="slope-car"></span></span>${escapeHtml(translate(locale, slopeKey))}</p>
+    <div class="secure-control-grid">${engine}${parkingBrake}<div class="manual-gear-control"><span class="manual-gear-pattern" aria-hidden="true">1&nbsp;&nbsp;3&nbsp;&nbsp;5<br>│─┼─│<br>2&nbsp;&nbsp;4&nbsp;&nbsp;R</span><div class="manual-gear-options">${gearButtons}</div></div></div>
     ${resultLabel}
   </div>`;
+}
+
+function renderManualToggle({ id, pressed, labelKey, visual, model, responseState, locale, reveal, disabledAttribute }) {
+  const selected = reveal && id === responseState.selectedTargetId;
+  const selectedState = selected ? (pressed ? 'correct' : 'wrong') : null;
+  const current = reveal && !pressed ? ' aria-current="true"' : '';
+  const selectedAttributes = selectedState
+    ? ` data-selected="true" data-selection-state="${selectedState}"`
+    : '';
+  const marker = reveal && !pressed
+    ? '<span class="target-status-marker correct" aria-hidden="true">✓</span>'
+    : selectedState === 'wrong'
+      ? '<span class="target-status-marker wrong" aria-hidden="true">×</span>'
+      : '';
+  return `<button class="secure-control-button" type="button" data-control-event="activate" data-target="${id}"${selectedAttributes}${current} aria-pressed="${pressed}" aria-label="${escapeAttribute(translate(locale, labelKey))}"${disabledAttribute}>${marker}${visual}<span>${escapeHtml(translate(locale, labelKey))}</span></button>`;
 }
 
 function formatDegrees(degrees) {

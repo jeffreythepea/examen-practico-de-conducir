@@ -58,7 +58,7 @@ export function generateSurface(command, seed) {
  * unknown events remain trial-local and cannot score.
  */
 export function reduceSurfaceResponse(model, responseState = {}, event = {}) {
-  if (model?.family === 'wheel' || model?.family === 'secure-yaris') {
+  if (model?.family === 'wheel' || model?.family === 'secure-manual') {
     return reduceControlResponse(model, responseState, event);
   }
   if (model?.family === 'yaris') return reduceYarisResponse(model, responseState, event);
@@ -88,7 +88,7 @@ export function renderSurfaceModel(model, responseState = {}, locale, options = 
   if (['u-turn', 'overtake', 'parking', 'stopping'].includes(model.family)) {
     return renderManoeuvreSurface(model, locale, state);
   }
-  if (model.family === 'wheel' || model.family === 'secure-yaris') {
+  if (model.family === 'wheel' || model.family === 'secure-manual') {
     return renderControlSurface(model, state, locale, Boolean(options.disabled));
   }
   if (model.family === 'yaris') {
