@@ -32,6 +32,8 @@ const requiredKeys = [
   'surface.yaris.frontDemist','surface.yaris.rearDemist','surface.yaris.highBeam',
   'surface.yaris.frontFog','surface.yaris.rearFog','surface.yaris.battery',
   'surface.yaris.bonnetRelease','surface.yaris.bootRelease','surface.yaris.engineOil','surface.yaris.coolant',
+  'surface.yaris.brakeFluid','surface.yaris.washerFluid','surface.yaris.positionLights',
+  'surface.yaris.dippedHeadlights','surface.yaris.indicator',
   'surface.yaris.state.on','surface.yaris.state.off','surface.yaris.state.open',
   'surface.yaris.state.closed','surface.yaris.state.locked','surface.yaris.state.unlocked',
   'surface.restricted.blockedAccess','surface.restricted.crosswalk','surface.restricted.markedRestriction',

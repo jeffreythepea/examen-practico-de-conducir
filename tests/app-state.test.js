@@ -9,6 +9,7 @@ import {
   nextSurfaceSeed,
   promptControlsDisabled,
   reduceScreen,
+  resolvePhrasing,
   restoreFocusSnapshot,
   restoreOrDeferFocus,
   selectAudioVariant
@@ -717,6 +718,37 @@ test('audio selection randomly chooses between available voices and returns one 
   assert.equal(sarah.voiceId, 'sarah');
   assert.ok(Object.isFrozen(roger));
   assert.throws(() => selectAudioVariant(manifest, { ...selection, speed: 0.75 }, () => 0), /Audio unavailable/);
+});
+
+test('audio selection samples all playable phrasings at the requested speed', () => {
+  const manifest = [
+    rightVariant,
+    { ...rightVariant, id: 'right-alt-roger', phrasingId: 'c-der-alt-1', path: 'audio/right-alt.mp3' },
+    { ...rightVariant, id: 'right-alt-fast', phrasingId: 'c-der-alt-1', speed: 1 }
+  ];
+  const selection = { commandId: 'c-der', speed: 0.9 };
+
+  assert.equal(selectAudioVariant(manifest, selection, () => 0).phrasingId, 'c-der-canonical');
+  assert.equal(selectAudioVariant(manifest, selection, () => 0.999).phrasingId, 'c-der-alt-1');
+  assert.throws(() => selectAudioVariant(manifest, { ...selection, speed: 0.75 }, () => 0), /Audio unavailable/);
+});
+
+test('prompt and reveal phrasing resolves from the retained audio variant', () => {
+  const command = {
+    id: 'c-der',
+    phrasings: [
+      { id: 'c-der-canonical', es: 'Gire a la derecha', en: 'turn right' },
+      { id: 'c-der-alt-1', es: 'Tome la primera a la derecha', en: 'take the first right' }
+    ]
+  };
+  const variant = { ...rightVariant, phrasingId: 'c-der-alt-1' };
+
+  assert.deepEqual(resolvePhrasing(command, variant), command.phrasings[1]);
+  assert.deepEqual(resolvePhrasing(command, null), command.phrasings[0]);
+  assert.throws(
+    () => resolvePhrasing(command, { ...variant, phrasingId: 'missing' }),
+    /Phrasing unavailable/
+  );
 });
 
 test('vehicle procedures select an explicit locale field without mixing languages', () => {

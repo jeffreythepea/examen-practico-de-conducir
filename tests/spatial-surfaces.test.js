@@ -82,6 +82,15 @@ test('junction targets remain inside the three photographed road mouths', () => 
   }
 });
 
+test('straight-ahead junction commands use the photographed center road across seed variation', () => {
+  for (let seed = 0; seed < 64; seed += 1) {
+    const model = generateSpatialSurface(command('continue-forward', 'junction-v2'), seed);
+    assert.equal(model.expectedResult, 'continue-forward');
+    assert.equal(model.targets.find(target => target.id === 'straight').resultId, 'continue-forward');
+    assert.doesNotThrow(() => renderSpatialSurface(model, 'en', { reveal: true }));
+  }
+});
+
 test('four- and five-exit targets stay within their photographed road mouths', () => {
   const bands = {
     4: [

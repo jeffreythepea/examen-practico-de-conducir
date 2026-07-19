@@ -10,7 +10,7 @@ import {
 
 const FOUR_EXIT_ANGLES = Object.freeze([-12, -83, -163, -206]);
 const FIVE_EXIT_ANGLES = Object.freeze([24, -22, -90, -154, -200]);
-const JUNCTION_ACTION_RESULTS = Object.freeze(['turn-right', 'turn-left']);
+const JUNCTION_ACTION_RESULTS = Object.freeze(['turn-right', 'turn-left', 'continue-forward']);
 const JUNCTION_TARGETS = Object.freeze([
   Object.freeze({ id: 'left', resultId: 'turn-left', x: 15, y: 42 }),
   Object.freeze({ id: 'straight', resultId: 'continue-forward', x: 50, y: 15 }),

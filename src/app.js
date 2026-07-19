@@ -365,12 +365,19 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
 export function selectAudioVariant(manifest, selection, rng = Math.random) {
   const candidates = manifest.filter(variant =>
     variant.commandId === selection.commandId
-    && variant.phrasingId === selection.phrasingId
+    && (!selection.phrasingId || variant.phrasingId === selection.phrasingId)
     && variant.speed === selection.speed
   );
   if (candidates.length === 0) throw new Error(`Audio unavailable for ${selection.commandId}`);
   const index = Math.min(candidates.length - 1, Math.floor(rng() * candidates.length));
   return Object.freeze({ ...candidates[index] });
+}
+
+export function resolvePhrasing(command, variant) {
+  if (!variant) return command.phrasings[0];
+  const phrasing = command.phrasings.find(candidate => candidate.id === variant.phrasingId);
+  if (!phrasing) throw new Error(`Phrasing unavailable for ${command.id}: ${variant.phrasingId}`);
+  return phrasing;
 }
 
 function resetTrial(model, index) {
@@ -588,7 +595,7 @@ async function bootstrap() {
 
   function renderPrompt() {
     const command = currentCommand();
-    const phrasing = command.phrasings[0];
+    const phrasing = resolvePhrasing(command, model.variant);
     const controlsDisabled = promptControlsDisabled(model);
     return `<section class="panel prompt" aria-labelledby="prompt-title">
       <div class="prompt-meta">
@@ -618,7 +625,7 @@ async function bootstrap() {
 
   function renderReveal() {
     const command = currentCommand();
-    const phrasing = command.phrasings[0];
+    const phrasing = resolvePhrasing(command, model.variant);
     return `<section class="panel reveal" aria-labelledby="outcome-title">
       <p class="progress">${progressText()}</p>
       <h2 id="outcome-title" role="status" aria-live="polite" class="outcome ${model.outcome}" data-screen-focus tabindex="-1">${translate(locale(), `result.${model.outcome}`)}</h2>
@@ -816,7 +823,6 @@ async function bootstrap() {
       if (!variant) {
         variant = selectAudioVariant(manifest, {
           commandId: command.id,
-          phrasingId: command.phrasings[0].id,
           speed: state.settings.speed
         });
       }
@@ -962,7 +968,6 @@ async function bootstrap() {
   function hasAudio(command, speed) {
     return manifest.some(variant =>
       variant.commandId === command.id
-      && variant.phrasingId === command.phrasings[0].id
       && variant.speed === speed
     );
   }

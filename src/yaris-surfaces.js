@@ -135,6 +135,8 @@ export const YARIS_DIAGRAMS = deepFreeze({
 export const YARIS_COMMAND_CONTRACT = deepFreeze({
   'c-pre-aceite': contract('yaris-engine-bay-v2', 'yaris-manual-v1-eng', 'engine-oil', 'locate', 'locate-oil-check', [485, 486]),
   'c-pre-refrigerante': contract('yaris-engine-bay-v2', 'yaris-manual-v1-eng', 'coolant', 'locate', 'locate-coolant-check', [485, 489]),
+  'c-pre-frenos': contract('yaris-engine-bay-v2', 'yaris-manual-v1-eng', 'brake-fluid', 'locate', 'locate-brake-fluid', [485]),
+  'c-pre-lavaparabrisas': contract('yaris-engine-bay-v2', 'yaris-manual-v1-eng', 'washer-fluid', 'locate', 'locate-washer-fluid', [485, 491]),
   'c-pre-bateria': contract('yaris-body-v2', 'yaris-manual-v1-eng', 'battery-under-rear-right-seat', 'locate', 'locate-battery', [493]),
   'c-pre-capo': contract('yaris-body-v2', 'yaris-manual-v1-eng', 'bonnet-release', 'operate', 'open-bonnet-check-levels', [481, 485], { stateKind: 'open', initialState: false, desiredState: true }),
   'c-pre-combustible': contract('yaris-dashboard-v2', 'yaris-manual-v1-dash', 'fuel-gauge', 'locate', 'locate-fuel-level', [130, 133], { equipmentAmbiguity: true }),
@@ -146,6 +148,9 @@ export const YARIS_COMMAND_CONTRACT = deepFreeze({
   'c-pre-largo-alcance': contract('yaris-dashboard-v2', 'yaris-manual-v1-light', 'high-beam', 'operate', 'high-beams', [270, 271], { stateKind: 'power', initialState: false, desiredState: true }),
   'c-pre-niebla-delantera': contract('yaris-dashboard-v2', 'yaris-manual-v1-light', 'front-fog', 'operate', 'front-fog-lights', [270, 276, 277], { stateKind: 'power', initialState: false, desiredState: true, equipmentAmbiguity: true }),
   'c-pre-niebla-trasera': contract('yaris-dashboard-v2', 'yaris-manual-v1-light', 'rear-fog', 'operate', 'rear-fog-light', [270, 276, 277], { stateKind: 'power', initialState: false, desiredState: true, equipmentAmbiguity: true }),
+  'c-pre-posicion': contract('yaris-dashboard-v2', 'yaris-manual-v1-light', 'position-lights', 'operate', 'position-lights', [270], { stateKind: 'power', initialState: false, desiredState: true }),
+  'c-pre-cruce': contract('yaris-dashboard-v2', 'yaris-manual-v1-light', 'dipped-headlights', 'operate', 'dipped-headlights', [270], { stateKind: 'power', initialState: false, desiredState: true }),
+  'c-intermitente': contract('yaris-dashboard-v2', 'yaris-manual-v1-light', 'indicator', 'operate', 'operate-indicator', [268], { stateKind: 'power', initialState: false, desiredState: true }),
   'c-pre-maletero': contract('yaris-body-v2', 'yaris-manual-v1-body', 'boot-release', 'operate', 'open-boot', [178], { stateKind: 'open', initialState: false, desiredState: true })
 });
 

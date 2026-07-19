@@ -21,6 +21,8 @@ const precheckCommands = commands.filter(command => command.phase === 'precheck'
 const EXPECTED_YARIS_COMMANDS = Object.freeze({
   'c-pre-aceite': Object.freeze({ diagramId: 'yaris-engine-bay-v2', hotspotId: 'engine-oil', responseMode: 'locate' }),
   'c-pre-refrigerante': Object.freeze({ diagramId: 'yaris-engine-bay-v2', hotspotId: 'coolant', responseMode: 'locate' }),
+  'c-pre-frenos': Object.freeze({ diagramId: 'yaris-engine-bay-v2', hotspotId: 'brake-fluid', responseMode: 'locate' }),
+  'c-pre-lavaparabrisas': Object.freeze({ diagramId: 'yaris-engine-bay-v2', hotspotId: 'washer-fluid', responseMode: 'locate' }),
   'c-pre-bateria': Object.freeze({ diagramId: 'yaris-body-v2', hotspotId: 'battery-under-rear-right-seat', responseMode: 'locate' }),
   'c-pre-capo': Object.freeze({ diagramId: 'yaris-body-v2', hotspotId: 'bonnet-release', responseMode: 'operate' }),
   'c-pre-combustible': Object.freeze({ diagramId: 'yaris-dashboard-v2', hotspotId: 'fuel-gauge', responseMode: 'locate' }),
@@ -32,7 +34,13 @@ const EXPECTED_YARIS_COMMANDS = Object.freeze({
   'c-pre-largo-alcance': Object.freeze({ diagramId: 'yaris-dashboard-v2', hotspotId: 'high-beam', responseMode: 'operate' }),
   'c-pre-niebla-delantera': Object.freeze({ diagramId: 'yaris-dashboard-v2', hotspotId: 'front-fog', responseMode: 'operate' }),
   'c-pre-niebla-trasera': Object.freeze({ diagramId: 'yaris-dashboard-v2', hotspotId: 'rear-fog', responseMode: 'operate' }),
+  'c-pre-posicion': Object.freeze({ diagramId: 'yaris-dashboard-v2', hotspotId: 'position-lights', responseMode: 'operate' }),
+  'c-pre-cruce': Object.freeze({ diagramId: 'yaris-dashboard-v2', hotspotId: 'dipped-headlights', responseMode: 'operate' }),
   'c-pre-maletero': Object.freeze({ diagramId: 'yaris-body-v2', hotspotId: 'boot-release', responseMode: 'operate' })
+});
+
+const EXPECTED_DRIVING_YARIS_COMMANDS = Object.freeze({
+  'c-intermitente': Object.freeze({ diagramId: 'yaris-dashboard-v2', hotspotId: 'indicator', responseMode: 'operate' })
 });
 
 function byId(id) {
@@ -80,10 +88,13 @@ test('five original schematic definitions expose stable cited hotspot topology',
   }
 });
 
-test('an independent expected table maps all 14 prechecks to one stable manual-grounded hotspot and mode', () => {
-  assert.equal(precheckCommands.length, 14);
+test('an independent expected table maps all 18 prechecks to one stable source-grounded hotspot and mode', () => {
+  assert.equal(precheckCommands.length, 18);
   assert.deepEqual(Object.keys(EXPECTED_YARIS_COMMANDS).sort(), precheckCommands.map(command => command.id).sort());
-  assert.deepEqual(Object.keys(YARIS_COMMAND_CONTRACT).sort(), Object.keys(EXPECTED_YARIS_COMMANDS).sort());
+  assert.deepEqual(
+    Object.keys(YARIS_COMMAND_CONTRACT).sort(),
+    [...Object.keys(EXPECTED_YARIS_COMMANDS), ...Object.keys(EXPECTED_DRIVING_YARIS_COMMANDS)].sort()
+  );
 
   for (const command of precheckCommands) {
     const expected = EXPECTED_YARIS_COMMANDS[command.id];
@@ -107,6 +118,18 @@ test('an independent expected table maps all 14 prechecks to one stable manual-g
     assert.ok(Object.isFrozen(model));
     assert.doesNotThrow(() => JSON.stringify(model));
   }
+});
+
+test('the driving indicator correction uses the photographed stalk arrows', () => {
+  const command = byId('c-intermitente');
+  const expected = EXPECTED_DRIVING_YARIS_COMMANDS[command.id];
+  const model = generateYarisSurface(command, 11);
+  assert.equal(model.meta.diagramId, expected.diagramId);
+  assert.equal(model.meta.hotspotId, expected.hotspotId);
+  assert.equal(model.meta.responseMode, expected.responseMode);
+  assert.equal(model.geometry.sceneId, 'generic-indicator-stalk');
+  assert.equal(model.targets.find(target => target.id === 'indicator').resultId, 'operate-indicator');
+  assertNonOverlappingTargets(model.targets);
 });
 
 test('manual-cited demister and lighting controls share their real control groups', () => {
@@ -184,10 +207,10 @@ test('engine prechecks render a packaged photo with clear icons placed on the au
   assert.equal(model.geometry.diagramId, 'yaris-engine-bay-v2');
   assert.equal(model.geometry.sceneId, 'generic-engine-bay');
   assert.equal(model.geometry.photoAsset, 'assets/precheck/generic-engine-bay.png');
-  assert.equal(model.targets.length, 4);
+  assert.equal(model.targets.length, 5);
   assert.match(hidden, /Illustrative vehicle image; the exact layout may differ\./);
   assert.match(hidden, /<img class="precheck-photo"[^>]+src="assets\/precheck\/generic-engine-bay\.png"[^>]+alt="Generic engine compartment"/);
-  assert.equal((hidden.match(/class="precheck-icon/g) ?? []).length, 4);
+  assert.equal((hidden.match(/class="precheck-icon/g) ?? []).length, 5);
   assert.match(hidden, /data-target="engine-oil"[\s\S]*class="precheck-icon precheck-icon-oil"/);
   assert.doesNotMatch(hidden, /class="yaris-hotspot-label"/);
   assert.match(revealed, /Varilla del aceite del motor/);

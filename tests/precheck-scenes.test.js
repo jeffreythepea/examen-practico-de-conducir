@@ -7,6 +7,7 @@ import {
   precheckSceneForCommand,
   renderPrecheckIcon
 } from '../src/precheck-scenes.js';
+import { assertNonOverlappingTargets } from '../src/surface-geometry.js';
 
 test('engine prechecks share one immutable photo scene with precisely audited anchors', async () => {
   const scene = precheckSceneForCommand('c-pre-aceite');
@@ -14,6 +15,8 @@ test('engine prechecks share one immutable photo scene with precisely audited an
   assert.equal(scene.asset, 'assets/precheck/generic-engine-bay.png');
   assert.equal(PRECHECK_COMMAND_SCENES['c-pre-refrigerante'], scene.id);
   assert.equal(PRECHECK_COMMAND_SCENES['c-pre-bateria'], scene.id);
+  assert.equal(PRECHECK_COMMAND_SCENES['c-pre-frenos'], scene.id);
+  assert.equal(PRECHECK_COMMAND_SCENES['c-pre-lavaparabrisas'], scene.id);
   assert.ok(Object.isFrozen(PRECHECK_SCENES));
   assert.ok(Object.isFrozen(scene.targets));
 
@@ -22,12 +25,14 @@ test('engine prechecks share one immutable photo scene with precisely audited an
     {
       'engine-oil': [73.2, 73, 'oil'],
       coolant: [13.5, 37.5, 'coolant'],
+      'brake-fluid': [63, 29, 'brake-fluid'],
       'battery-under-rear-right-seat': [74, 44.5, 'battery'],
       'washer-fluid': [14.7, 61.5, 'washer']
     }
   );
   assert.match(scene.targets['engine-oil'].anchorDescription, /dipstick handle/i);
   assert.match(scene.targets.coolant.anchorDescription, /reservoir cap/i);
+  assert.match(scene.targets['brake-fluid'].anchorDescription, /firewall.*reservoir cap/i);
   assert.match(scene.targets['battery-under-rear-right-seat'].anchorDescription, /centre.*battery/i);
   assert.match(scene.targets['washer-fluid'].anchorDescription, /washer.*cap/i);
 
@@ -36,6 +41,7 @@ test('engine prechecks share one immutable photo scene with precisely audited an
     assert.ok(target.anchorDescription);
     assert.match(renderPrecheckIcon(target.iconKey), /class="precheck-icon(?:\s|\")/);
   }
+  assertNonOverlappingTargets(Object.entries(scene.targets).map(([id, target]) => ({ id, ...target })));
   const asset = await stat(new URL(`../${scene.asset}`, import.meta.url));
   assert.ok(asset.size > 0);
 });
@@ -83,6 +89,9 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
     'c-pre-largo-alcance': 'generic-lighting-stalk',
     'c-pre-niebla-delantera': 'generic-lighting-stalk',
     'c-pre-niebla-trasera': 'generic-lighting-stalk',
+    'c-pre-posicion': 'generic-headlight-ring',
+    'c-pre-cruce': 'generic-headlight-ring',
+    'c-intermitente': 'generic-indicator-stalk',
     'c-pre-capo': 'generic-bonnet-release',
     'c-pre-maletero': 'generic-tailgate-release'
   };
@@ -97,6 +106,20 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
     [lighting.targets['high-beam'].x, lighting.targets['high-beam'].y],
     [29.1, 46.5]
   );
+
+  const headlightRing = PRECHECK_SCENES['generic-headlight-ring'];
+  assert.equal(headlightRing.asset, lighting.asset);
+  assert.deepEqual(Object.keys(headlightRing.targets).sort(), ['dipped-headlights', 'position-lights']);
+  assert.ok(Object.values(headlightRing.targets).every(target => target.iconKey === 'native-symbol'));
+  assertNonOverlappingTargets(Object.entries(headlightRing.targets).map(([id, target]) => ({ id, ...target })));
+  assert.match(headlightRing.targets['position-lights'].anchorDescription, /position-light symbol/i);
+  assert.match(headlightRing.targets['dipped-headlights'].anchorDescription, /dipped-headlight symbol/i);
+
+  const indicator = PRECHECK_SCENES['generic-indicator-stalk'];
+  assert.equal(indicator.asset, lighting.asset);
+  assert.ok(Object.values(indicator.targets).every(target => target.iconKey === 'native-symbol'));
+  assertNonOverlappingTargets(Object.entries(indicator.targets).map(([id, target]) => ({ id, ...target })));
+  assert.match(indicator.targets.indicator.anchorDescription, /indicator arrows/i);
   assert.match(lighting.targets['high-beam'].anchorDescription, /centred.*native high-beam symbol/i);
   assert.match(lighting.targets['front-fog'].anchorDescription, /front.*fog.*ring/i);
   assert.match(lighting.targets['rear-fog'].anchorDescription, /rear.*fog.*ring/i);

@@ -3,6 +3,7 @@ const ICONS = Object.freeze({
   coolant: '<span class="precheck-icon precheck-icon-coolant" aria-hidden="true"><span>🌡️</span><span>💧</span></span>',
   battery: '<span class="precheck-icon precheck-icon-battery" aria-hidden="true">🔋</span>',
   washer: '<span class="precheck-icon precheck-icon-washer" aria-hidden="true"><span>🪟</span><span>💦</span></span>',
+  'brake-fluid': '<span class="precheck-icon precheck-icon-brake-fluid" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M3 7q-3 5 0 10M21 7q3 5 0 10M12 7v6M12 16v1"/></svg><span>💧</span></span>',
   fuel: '<span class="precheck-icon precheck-icon-fuel" aria-hidden="true">⛽</span>',
   temperature: '<span class="precheck-icon precheck-icon-temperature" aria-hidden="true">🌡️</span>',
   speedometer: '<span class="precheck-icon precheck-icon-speedometer" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 17a8 8 0 1 1 16 0M12 14l4-5M7 17h10"/></svg></span>',
@@ -56,6 +57,19 @@ export const PRECHECK_SCENES = deepFreeze({
         labelKey: 'surface.yaris.coolant',
         labelPlacement: { x: 23, y: 23, width: 32 },
         anchorDescription: 'Centred on the coolant reservoir cap'
+      },
+      'brake-fluid': {
+        resultId: 'locate-brake-fluid',
+        x: 63,
+        y: 29,
+        width: 9,
+        height: 15,
+        kind: 'fluid-location',
+        interaction: 'locate',
+        iconKey: 'brake-fluid',
+        labelKey: 'surface.yaris.brakeFluid',
+        labelPlacement: { x: 57, y: 14, width: 30 },
+        anchorDescription: 'Centred on the firewall-side small brake-fluid reservoir cap'
       },
       'battery-under-rear-right-seat': {
         resultId: 'locate-battery',
@@ -202,6 +216,59 @@ export const PRECHECK_SCENES = deepFreeze({
       }
     }
   },
+  'generic-headlight-ring': {
+    id: 'generic-headlight-ring',
+    asset: 'assets/precheck/generic-lighting-stalk.png',
+    altKey: 'surface.precheck.scene.headlightRing',
+    provenance: 'generic-illustrative-photo',
+    reference: 'Generic manual hatchback headlight control ring — illustrative AI-generated photo',
+    targets: {
+      'position-lights': {
+        resultId: 'position-lights', x: 22.5, y: 41, width: 8, height: 15,
+        kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
+        labelKey: 'surface.yaris.positionLights', labelPlacement: { x: 22, y: 70, width: 30 },
+        stateKind: 'power', initialState: false, desiredState: true,
+        anchorDescription: 'Centred on the native position-light symbol on the headlight ring'
+      },
+      'dipped-headlights': {
+        resultId: 'dipped-headlights', x: 30.5, y: 53, width: 8, height: 15,
+        kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
+        labelKey: 'surface.yaris.dippedHeadlights', labelPlacement: { x: 45, y: 70, width: 32 },
+        stateKind: 'power', initialState: false, desiredState: true,
+        anchorDescription: 'Centred on the native dipped-headlight symbol on the headlight ring'
+      }
+    }
+  },
+  'generic-indicator-stalk': {
+    id: 'generic-indicator-stalk',
+    asset: 'assets/precheck/generic-lighting-stalk.png',
+    altKey: 'surface.precheck.scene.indicatorStalk',
+    provenance: 'generic-illustrative-photo',
+    reference: 'Generic manual hatchback indicator stalk — illustrative AI-generated photo',
+    targets: {
+      indicator: {
+        resultId: 'operate-indicator', x: 61.5, y: 51, width: 9, height: 15,
+        kind: 'stalk-movement', interaction: 'operate', iconKey: 'native-symbol',
+        labelKey: 'surface.yaris.indicator', labelPlacement: { x: 68, y: 70, width: 28 },
+        stateKind: 'power', initialState: false, desiredState: true,
+        anchorDescription: 'Centred on the native left and right indicator arrows on the stalk'
+      },
+      'front-fog': {
+        resultId: 'front-fog-lights', x: 37.2, y: 42, width: 8, height: 15,
+        kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
+        labelKey: 'surface.yaris.frontFog', labelPlacement: { x: 40, y: 70, width: 28 },
+        stateKind: 'power', initialState: false, desiredState: true,
+        anchorDescription: 'Centred on the front fog-light control ring'
+      },
+      'rear-fog': {
+        resultId: 'rear-fog-light', x: 51.2, y: 44, width: 8, height: 15,
+        kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
+        labelKey: 'surface.yaris.rearFog', labelPlacement: { x: 55, y: 78, width: 28 },
+        stateKind: 'power', initialState: false, desiredState: true,
+        anchorDescription: 'Centred on the rear fog-light control ring'
+      }
+    }
+  },
   'generic-bonnet-release': {
     id: 'generic-bonnet-release',
     asset: 'assets/precheck/generic-bonnet-release.png',
@@ -268,6 +335,8 @@ export const PRECHECK_COMMAND_SCENES = Object.freeze({
   'c-pre-aceite': 'generic-engine-bay',
   'c-pre-refrigerante': 'generic-engine-bay',
   'c-pre-bateria': 'generic-engine-bay',
+  'c-pre-frenos': 'generic-engine-bay',
+  'c-pre-lavaparabrisas': 'generic-engine-bay',
   'c-pre-combustible': 'generic-instrument-cluster',
   'c-pre-temperatura': 'generic-instrument-cluster',
   'c-pre-bloquear-elevalunas': 'generic-driver-door',
@@ -277,6 +346,9 @@ export const PRECHECK_COMMAND_SCENES = Object.freeze({
   'c-pre-largo-alcance': 'generic-lighting-stalk',
   'c-pre-niebla-delantera': 'generic-lighting-stalk',
   'c-pre-niebla-trasera': 'generic-lighting-stalk',
+  'c-pre-posicion': 'generic-headlight-ring',
+  'c-pre-cruce': 'generic-headlight-ring',
+  'c-intermitente': 'generic-indicator-stalk',
   'c-pre-capo': 'generic-bonnet-release',
   'c-pre-maletero': 'generic-tailgate-release'
 });
