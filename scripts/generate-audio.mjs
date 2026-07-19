@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, sep } from 'node:path';
 
@@ -33,6 +33,7 @@ export async function main(argv = process.argv.slice(2), environment = process.e
     fetchImpl: dependencies.fetchImpl ?? globalThis.fetch,
     mkdirImpl: dependencies.mkdirImpl ?? mkdir,
     writeFileImpl: dependencies.writeFileImpl ?? writeFile,
+    copyFileImpl: dependencies.copyFileImpl ?? copyFile,
     renameImpl: dependencies.renameImpl ?? rename,
     unlinkImpl: dependencies.unlinkImpl ?? unlink,
     rmImpl: dependencies.rmImpl ?? rm,
@@ -73,9 +74,9 @@ export function parseArguments(argv) {
 export function buildGenerationPlan({ catalog, provider, voices }) {
   if (provider !== PROVIDER.name) throw new Error('provider must be elevenlabs');
   validateVoiceIds(voices);
-  const canonicalCommands = canonicalCommandsFrom(catalog);
+  const commandPhrasings = commandPhrasingsFrom(catalog);
   const textsByVariantId = {};
-  const variants = canonicalCommands.flatMap(command => voices.flatMap(voiceId => AUDIO_SPEEDS.map(speed => {
+  const variants = commandPhrasings.flatMap(command => voices.flatMap(voiceId => AUDIO_SPEEDS.map(speed => {
     const path = `audio/${command.commandId}/${command.phrasingId}/${voiceId}/${speed}.mp3`;
     const variant = Object.freeze({
       id: `${command.commandId}--${command.phrasingId}--${voiceId}--${speed}`,
@@ -108,6 +109,7 @@ export async function generateCorpus(plan, dependencies) {
     fetchImpl,
     mkdirImpl,
     writeFileImpl,
+    copyFileImpl = copyFile,
     renameImpl,
     unlinkImpl = unlink,
     rmImpl = rm,
@@ -119,30 +121,70 @@ export async function generateCorpus(plan, dependencies) {
   if (!apiKey?.trim()) throw new Error(`${PROVIDER.apiKeyEnvironment} must be set in the environment`);
   if (typeof fetchImpl !== 'function') throw new Error('fetch is required for provider generation');
 
-  const staging = stagingPaths(runId);
+  const staging = stagingPaths(plan, runId);
+  const recovery = recoveryPaths(runId);
+  const existingManifest = dependencies.existingManifest
+    ?? await readJsonArray(plan.manifestPath, readFileImpl);
+  const recoveryManifest = dependencies.recoveryManifest
+    ?? await readJsonArray(recovery.manifestPath, readFileImpl);
+  const existingById = new Map(existingManifest.map(record => [record.id, record]));
+  const recoveryById = new Map(recoveryManifest.map(record => [record.id, record]));
+  let reusedProduction = 0;
+  let reusedRecovery = 0;
+  let generated = 0;
+  let completed = false;
   try {
     const manifest = [];
     for (let index = 0; index < plan.variants.length; index += 1) {
       const variant = plan.variants[index];
-      const response = await requestElevenLabsAudio(variant, plan.textsByVariantId?.[variant.id], apiKey, fetchImpl);
-      if (!response.ok) throw new Error(`ElevenLabs generation failed for ${variant.id} with HTTP ${response.status}`);
-      const audio = new Uint8Array(await response.arrayBuffer());
-      if (audio.byteLength === 0) throw new Error(`ElevenLabs returned an empty audio asset for ${variant.id}`);
-
-      await writeAtomically(stagedAudioPath(variant.path, staging.audioDirectory), audio, index, {
-        mkdirImpl,
-        writeFileImpl,
-        renameImpl,
-        unlinkImpl
-      });
-      manifest.push(Object.freeze({
-        ...manifestRecord(variant),
-        integrity: Object.freeze({
-          bytes: audio.byteLength,
-          sha256: sha256(audio)
-        })
-      }));
-      log(`Generated ${index + 1}/${plan.variants.length}: ${variant.id}`);
+      let record = existingById.get(variant.id);
+      if (await isReusableRecord(record, variant, plan.audioDirectory, { statImpl, readFileImpl })) {
+        await copyAtomically(
+          assetPathInDirectory(record.path, plan.audioDirectory),
+          stagedAudioPath(variant.path, staging.audioDirectory),
+          index,
+          { mkdirImpl, copyFileImpl, renameImpl, unlinkImpl }
+        );
+        reusedProduction += 1;
+        log(`Reused production ${index + 1}/${plan.variants.length}: ${variant.id}`);
+      } else {
+        record = recoveryById.get(variant.id);
+        if (await isReusableRecord(record, variant, recovery.audioDirectory, { statImpl, readFileImpl })) {
+          reusedRecovery += 1;
+          log(`Reused recovery ${index + 1}/${plan.variants.length}: ${variant.id}`);
+        } else {
+          const response = await requestElevenLabsAudio(variant, plan.textsByVariantId?.[variant.id], apiKey, fetchImpl);
+          if (!response.ok) throw new Error(`ElevenLabs generation failed for ${variant.id} with HTTP ${response.status}`);
+          const audio = new Uint8Array(await response.arrayBuffer());
+          if (audio.byteLength === 0) throw new Error(`ElevenLabs returned an empty audio asset for ${variant.id}`);
+          record = Object.freeze({
+            ...manifestRecord(variant),
+            integrity: Object.freeze({ bytes: audio.byteLength, sha256: sha256(audio) })
+          });
+          await writeAtomically(assetPathInDirectory(variant.path, recovery.audioDirectory), audio, index, {
+            mkdirImpl,
+            writeFileImpl,
+            renameImpl,
+            unlinkImpl
+          });
+          recoveryById.set(variant.id, record);
+          await writeRecoveryManifest(recovery, [...recoveryById.values()], index, {
+            mkdirImpl,
+            writeFileImpl,
+            renameImpl,
+            unlinkImpl
+          });
+          generated += 1;
+          log(`Generated ${index + 1}/${plan.variants.length}: ${variant.id}`);
+        }
+        await copyAtomically(
+          assetPathInDirectory(record.path, recovery.audioDirectory),
+          stagedAudioPath(variant.path, staging.audioDirectory),
+          index,
+          { mkdirImpl, copyFileImpl, renameImpl, unlinkImpl }
+        );
+      }
+      manifest.push(Object.freeze({ ...record, integrity: Object.freeze({ ...record.integrity }) }));
     }
 
     const frozenManifest = Object.freeze(manifest);
@@ -163,10 +205,12 @@ export async function generateCorpus(plan, dependencies) {
       renameImpl,
       unlinkImpl
     });
-    await publishStagedCorpus(staging, { renameImpl, rmImpl });
-    return Object.freeze({ manifest: frozenManifest });
+    await publishStagedCorpus(plan, staging, { renameImpl, rmImpl });
+    completed = true;
+    return Object.freeze({ manifest: frozenManifest, reusedProduction, reusedRecovery, generated });
   } finally {
     await removeStaging(staging, { rmImpl, unlinkImpl });
+    if (completed) await rmImpl(recovery.directory, { recursive: true, force: true }).catch(() => {});
   }
 }
 
@@ -190,22 +234,26 @@ export async function validateGeneratedAssetFiles(manifest, {
   }
 }
 
-function canonicalCommandsFrom(catalog) {
-  if (!Array.isArray(catalog) || catalog.length !== 30) {
-    throw new Error('Catalog must contain exactly 30 canonical commands');
-  }
+function commandPhrasingsFrom(catalog) {
+  if (!Array.isArray(catalog) || catalog.length === 0) throw new Error('Catalog must contain commands');
   const commandIds = new Set();
-  return catalog.map(command => {
+  const phrasingIds = new Set();
+  return catalog.flatMap(command => {
     const commandId = command?.id;
-    const phrasing = command?.phrasings?.[0];
     if (!SAFE_PATH_COMPONENT.test(commandId ?? '')) throw new Error(`invalid command ID: ${commandId ?? '<unknown>'}`);
     if (commandIds.has(commandId)) throw new Error(`duplicate command ID: ${commandId}`);
     commandIds.add(commandId);
-    if (phrasing?.id !== `${commandId}-canonical` || !phrasing.es?.trim()) {
+    if (!Array.isArray(command.phrasings) || command.phrasings.length === 0
+        || command.phrasings[0]?.id !== `${commandId}-canonical`) {
       throw new Error(`Missing canonical Spanish phrasing for ${commandId}`);
     }
-    if (!SAFE_PATH_COMPONENT.test(phrasing.id)) throw new Error(`invalid phrasing ID: ${phrasing.id}`);
-    return Object.freeze({ commandId, phrasingId: phrasing.id, text: phrasing.es });
+    return command.phrasings.map(phrasing => {
+      if (!SAFE_PATH_COMPONENT.test(phrasing?.id ?? '')) throw new Error(`invalid phrasing ID: ${phrasing?.id ?? '<unknown>'}`);
+      if (phrasingIds.has(phrasing.id)) throw new Error(`duplicate phrasing ID: ${phrasing.id}`);
+      phrasingIds.add(phrasing.id);
+      if (!phrasing.es?.trim()) throw new Error(`Missing Spanish text for ${phrasing.id}`);
+      return Object.freeze({ commandId, phrasingId: phrasing.id, text: phrasing.es });
+    });
   });
 }
 
@@ -251,6 +299,58 @@ async function writeAtomically(path, content, sequence, { mkdirImpl, writeFileIm
   }
 }
 
+async function copyAtomically(source, destination, sequence, { mkdirImpl, copyFileImpl, renameImpl, unlinkImpl }) {
+  const resolvedDestination = resolve(destination);
+  const temporary = `${resolvedDestination}.tmp-${process.pid}-${sequence}`;
+  await mkdirImpl(dirname(resolvedDestination), { recursive: true });
+  try {
+    await copyFileImpl(source, temporary);
+    await renameImpl(temporary, resolvedDestination);
+  } catch (error) {
+    await unlinkImpl?.(temporary).catch(() => {});
+    throw error;
+  }
+}
+
+async function writeRecoveryManifest(recovery, manifest, sequence, dependencies) {
+  const ordered = manifest.toSorted((left, right) => left.id.localeCompare(right.id));
+  await writeAtomically(recovery.manifestPath, `${JSON.stringify(ordered, null, 2)}\n`, sequence, dependencies);
+}
+
+async function isReusableRecord(record, variant, audioDirectory, { statImpl, readFileImpl }) {
+  if (!record || !sameVariant(record, variant) || !validIntegrity(record.integrity)) return false;
+  try {
+    const path = assetPathInDirectory(record.path, audioDirectory);
+    const details = await statImpl(path);
+    if (details.size !== record.integrity.bytes || details.size <= 0) return false;
+    return sha256(await readFileImpl(path)) === record.integrity.sha256;
+  } catch {
+    return false;
+  }
+}
+
+function sameVariant(record, variant) {
+  return ['id', 'commandId', 'phrasingId', 'voiceId', 'speed', 'provider', 'model', 'path']
+    .every(field => record[field] === variant[field]);
+}
+
+function validIntegrity(integrity) {
+  return Number.isInteger(integrity?.bytes)
+    && integrity.bytes > 0
+    && /^[a-f\d]{64}$/.test(integrity.sha256 ?? '');
+}
+
+async function readJsonArray(path, readFileImpl) {
+  try {
+    const parsed = JSON.parse(await readFileImpl(path, 'utf8'));
+    if (!Array.isArray(parsed)) throw new Error(`Expected JSON array in ${path}`);
+    return parsed;
+  } catch (error) {
+    if (error?.code === 'ENOENT') return [];
+    throw error;
+  }
+}
+
 function manifestRecord(variant) {
   return variant;
 }
@@ -275,31 +375,41 @@ function stagedAudioPath(path, stagingAudioDirectory) {
   return assetPathInDirectory(path, stagingAudioDirectory);
 }
 
-function stagingPaths(runId = `${process.pid}-${Date.now()}`) {
+function stagingPaths(plan, runId = 'audio-expansion') {
   if (!SAFE_PATH_COMPONENT.test(runId)) throw new Error('invalid generation run ID');
   return Object.freeze({
-    audioDirectory: resolve(PROJECT_ROOT, `audio.staging-${runId}`),
-    backupAudioDirectory: resolve(PROJECT_ROOT, `audio.backup-${runId}`),
-    manifestPath: resolve(PROJECT_ROOT, `data/audio-manifest.json.staging-${runId}`)
+    audioDirectory: resolve(dirname(plan.audioDirectory), `audio.staging-${runId}`),
+    backupAudioDirectory: resolve(dirname(plan.audioDirectory), `audio.backup-${runId}`),
+    manifestPath: resolve(dirname(plan.manifestPath), `audio-manifest.json.staging-${runId}`)
   });
 }
 
-async function publishStagedCorpus(staging, { renameImpl, rmImpl }) {
+function recoveryPaths(runId = 'audio-expansion') {
+  if (!SAFE_PATH_COMPONENT.test(runId)) throw new Error('invalid generation run ID');
+  const directory = resolve(PROJECT_ROOT, '.superpowers/sdd/audio-expansion-recovery', runId);
+  return Object.freeze({
+    directory,
+    audioDirectory: resolve(directory, 'audio'),
+    manifestPath: resolve(directory, 'manifest.json')
+  });
+}
+
+async function publishStagedCorpus(plan, staging, { renameImpl, rmImpl }) {
   let audioBackedUp = false;
   let stagedAudioPublished = false;
   try {
-    await renameImpl(AUDIO_DIRECTORY, staging.backupAudioDirectory);
+    await renameImpl(plan.audioDirectory, staging.backupAudioDirectory);
     audioBackedUp = true;
-    await renameImpl(staging.audioDirectory, AUDIO_DIRECTORY);
+    await renameImpl(staging.audioDirectory, plan.audioDirectory);
     stagedAudioPublished = true;
-    await renameImpl(staging.manifestPath, MANIFEST_PATH);
+    await renameImpl(staging.manifestPath, plan.manifestPath);
   } catch (error) {
     const rollbackErrors = [];
     // Audio and manifest live in separate directories, so no single filesystem rename can publish both atomically.
     // On a normal publish failure, restore the prior audio tree before surfacing the error.
     if (stagedAudioPublished) {
       try {
-        await renameImpl(AUDIO_DIRECTORY, staging.audioDirectory);
+        await renameImpl(plan.audioDirectory, staging.audioDirectory);
         stagedAudioPublished = false;
       } catch (rollbackError) {
         rollbackErrors.push(rollbackError);
@@ -307,7 +417,7 @@ async function publishStagedCorpus(staging, { renameImpl, rmImpl }) {
     }
     if (audioBackedUp) {
       try {
-        await renameImpl(staging.backupAudioDirectory, AUDIO_DIRECTORY);
+        await renameImpl(staging.backupAudioDirectory, plan.audioDirectory);
         audioBackedUp = false;
       } catch (rollbackError) {
         rollbackErrors.push(rollbackError);
