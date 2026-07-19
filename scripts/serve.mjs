@@ -2,9 +2,10 @@ import { createServer } from 'node:http';
 import { readFile, realpath } from 'node:fs/promises';
 import { extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isForbiddenPathname, parseServerOptions } from './serve-options.mjs';
 
 const root = await realpath(fileURLToPath(new URL('..', import.meta.url)));
-const port = Number(process.env.PORT || 4173);
+const { host, port } = parseServerOptions(process.argv.slice(2), process.env);
 const mimeTypes = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
@@ -18,7 +19,7 @@ const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url, 'http://127.0.0.1');
     const pathname = decodeURIComponent(url.pathname);
-    if (pathname.includes('..') || pathname.split('/').some(part => part.startsWith('.'))) {
+    if (isForbiddenPathname(pathname)) {
       response.writeHead(403);
       response.end('Forbidden');
       return;
@@ -47,6 +48,6 @@ const server = createServer(async (request, response) => {
   }
 });
 
-server.listen(port, '127.0.0.1', () => {
-  console.log(`Static app server: http://127.0.0.1:${port}`);
+server.listen(port, host, () => {
+  console.log(`Static app server: http://${host}:${port}`);
 });

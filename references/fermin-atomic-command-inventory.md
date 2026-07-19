@@ -34,6 +34,40 @@ that source-derived wording is an exact DGT examiner quotation.
    English translation uses `and`. They remain separate atomic prompts because
    either display may be requested independently.
 
+## Yaris schematic provenance
+
+The provisional Stage 2 precheck diagrams are manual-derived original schematics,
+not copies of Toyota artwork or page layouts. They use the confirmed vehicle
+baseline, Toyota Yaris Hybrid 2019, and official owner-manual publication
+`PZ49X-52A96-EN` (`PZ49X-52A96-EN.pdf`, SHA-256
+`6627e19c6dc8efee4aa1e24d8dad08594fa3a63eb62e7e437fc0d7778105b287`). The
+copyrighted manual remains local and is not committed.
+
+| Stable diagram | Manual evidence inspected visually | Stable hotspots |
+|---|---|---|
+| `yaris-dashboard-v2` | Monochrome and color instrument displays, pages 130 and 133-134; headlight/high-beam controls, pages 270-271; fog controls, pages 276-277 | `fuel-gauge`, `temperature-gauge`, `high-beam`, `front-fog`, `rear-fog` |
+| `yaris-climate-v2` | Automatic climate panel and defogger operation, pages 434-435 and 438 | `front-demist`, `rear-demist` |
+| `yaris-door-v2` | Driver-door power-window and window-lock controls, page 230 | `window-lock` |
+| `yaris-body-v2` | Back-door opener, page 178; hood release, page 481; 12 V battery under the rear-right seat, page 493 | `boot-release`, `bonnet-release`, `battery-under-rear-right-seat` |
+| `yaris-engine-bay-v2` | Engine overview and oil/coolant checks, pages 485-486 and 489 | `engine-oil`, `coolant` |
+
+Pages 485-486 and 489 place the oil dipstick and the engine and power-control-unit
+coolant reservoirs in the engine compartment. Page 493 places the 12 V battery
+under the rear-right seat, so the battery must never appear in the engine-bay
+diagram.
+
+The manual documents different instrument displays: the color display includes
+an engine coolant temperature gauge, while the monochrome version uses an
+over-temperature warning. The front fog lights and their combined stalk ring are
+shown only **if equipped**; pages 276-277 also show a rear-only switch. The rear
+demister may additionally operate mirror defoggers on equipped vehicles. These
+variants are flagged in model provenance and must be confirmed against the
+actual test car instead of guessed.
+
+Actual-vehicle photographs may later replace schematic backgrounds while
+retaining every stable diagram and hotspot ID, so response history and
+provenance remain comparable.
+
 ## Atomic precheck inventory (15 variants)
 
 These 15 variants replace the seven grouped precheck cards in v0.23. Existing

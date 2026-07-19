@@ -1,5 +1,13 @@
 # Changelog
 
+## Stage 2 action surfaces — implemented for release review
+
+- Replaced eligible arbitrary choices with seeded, action-matched junction, roundabout, manoeuvre, steering, vehicle-securing, and Yaris precheck response surfaces while preserving stable command, action, phrasing, target, and provenance IDs.
+- Added original manual-derived Toyota Yaris Hybrid 2019 schematics, with actual-vehicle photographs able to replace the schematic backgrounds later without changing hotspot IDs.
+- Retained exactly three honest semantic exceptions: speed adaptation, involuntary stopping, and exam finish. Parking and voluntary-stopping scenarios remain provisional pending practical-lesson evidence.
+- Recorded landscape-iPad and same-Wi-Fi hardened `serve:lan` guidance, the automatic-hybrid reference versus intended manual test-vehicle uncertainty, and the browser-automation limitation for backup export/import smoke.
+- Kept road simulation, additional phrasing variation, and deeper phrasing/voice mastery reporting deferred for evidence from real practice sessions.
+
 ## v0.1.0 — Standalone daily-practice baseline
 
 - Extracted the practical-driving command drill into an independent static app with preserved command, action, phrasing, and provenance IDs.

@@ -1,7 +1,7 @@
 # Examen Práctico de Conducir — Product Design
 
 **Date:** 2026-07-17
-**Status:** Approved design; Stage 1 implemented for release review
+**Status:** Approved design; Stage 2 implemented for review; release review pending
 **Origin:** Extraction and redesign of the practical-exam drill in Piso Asturiano
 
 ## Purpose
@@ -156,18 +156,26 @@ possible.
 
 ### Driving surfaces
 
-- **Junction:** drag or swipe the car left, right, or straight; use a distinct
-  U-shaped response for change of direction.
-- **Roundabout:** trace the car from entry to the requested exit rather than
-  tapping a numbered icon.
-- **Steering:** rotate an on-screen wheel to turn or centre it.
-- **Speed:** manipulate accelerator/brake controls or a speed control toward
-  the commanded result.
-- **Stopping and parking:** place the car in an appropriate roadside target and
-  represent the distinct final states for *parada*, *detención*, and
-  *estacionamiento*.
-- **Other manoeuvres:** use the simplest spatial action that represents the
-  command without claiming simulator realism.
+Stage 2 uses action-matched static responses at the landscape-iPad baseline:
+
+- **Junction and roundabout:** tap the intended outgoing road, with the vehicle
+  entering from the bottom; roundabout exits use four- and five-exit geometry.
+- **U-turn and overtaking:** tap the completed direction or overtaking path.
+- **Steering:** centre a large on-screen wheel.
+- **Secure vehicle:** operate the Yaris parking brake then selector P in its
+  actual short sequence.
+- **Stopping and parking:** tap a legal roadside or parking target. These
+  scenarios are provisional hypotheses to correct during practical lessons.
+
+Exactly three context-dependent commands remain honest semantic exceptions:
+adapt speed, involuntary stopping, and finish exam. They retain simplified
+responses because a pedal, control, or road placement would imply a falsely
+specific action without a road situation. This is explicit product scope, not a
+renderer fallback.
+
+Road simulation, additional phrasing variation, and deeper phrasing/voice
+mastery reporting remain deferred until real practice shows that static spatial
+responses are the limiting factor.
 
 ### Precheck surfaces
 
@@ -178,9 +186,10 @@ possible.
 - Mark trim-dependent or instructor-unverified controls visibly and preserve
   their evidence status.
 
-The shared action vocabulary is intentionally small: drag, rotate, press,
-swipe, or tap a physical location. Pointer input on Mac mirrors touch input on
-iPad. Grading uses the resulting state, not the exact gesture path.
+The shared action vocabulary is intentionally small: tap a road or physical
+location, centre the wheel, or press a control. Pointer input on Mac mirrors
+touch input on iPad. Grading uses the resulting state, not the exact gesture
+path.
 
 Multi-step interactions allow correction before submission. Simple directional
 responses submit immediately so response-time measurement remains meaningful.
@@ -331,10 +340,12 @@ Automated tests cover:
 - Touch/pointer result normalization
 - Save migration, atomic import, export, and restore
 
-Manual iPad Safari checks cover landscape and portrait layouts, touch targets,
-system gesture conflicts, audio startup, interruption recovery, and caching of
+Manual iPad Safari checks cover the landscape baseline, touch targets, system
+gesture conflicts, audio startup, interruption recovery, and caching of
 downloaded assets. Mac checks cover pointer equivalents and keyboard access
-where supplied.
+where supplied. Browser automation cannot reliably observe the export download
+or complete the confirm-plus-file-picker import flow, so release review includes
+a manual export/import smoke in addition to automated backup tests.
 
 Product acceptance is repeated unaided correct response to every validated
 command, accompanied by falling response time and low hint dependence. Fewer

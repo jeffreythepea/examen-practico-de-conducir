@@ -152,6 +152,35 @@ test('records a complete immutable scored attempt with injected time and identif
   assert.equal(timeout.attempt.weight, 0);
 });
 
+test('records optional surface-model provenance alongside a scored attempt', () => {
+  const surfaceModel = {
+    version: 2,
+    seed: 42,
+    expectedResult: 'roundabout-exit-3'
+  };
+
+  const result = record({ attempts: [], actionProgress: {} }, {
+    surfaceModel,
+    selectedTargetId: 'exit-3'
+  });
+
+  assert.deepEqual(
+    {
+      surfaceVersion: result.attempt.surfaceVersion,
+      surfaceSeed: result.attempt.surfaceSeed,
+      expectedResult: result.attempt.expectedResult,
+      selectedTargetId: result.attempt.selectedTargetId
+    },
+    {
+      surfaceVersion: 2,
+      surfaceSeed: 42,
+      expectedResult: 'roundabout-exit-3',
+      selectedTargetId: 'exit-3'
+    }
+  );
+  assert.equal(record({ attempts: [], actionProgress: {} }).attempt.surfaceVersion, undefined);
+});
+
 test('does not create attempts or update mastery when audio is missing or interrupted', () => {
   const initial = { attempts: [], actionProgress: {} };
   for (const audio of [undefined, { scored: false, reason: 'missing' }, { scored: false, reason: 'interrupted' }]) {

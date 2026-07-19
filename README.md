@@ -6,7 +6,19 @@ An iPad-first static web app for daily practice of Spanish practical-driving-exa
 
 Stage 1 provides a standalone daily-practice baseline: driving, precheck, and mixed filters; three audio speeds; written-Spanish hint policies; optional timing; weak/due and free-practice ordering; unaided, text-assisted, and incorrect scoring; diagnostics; and local backup/restore.
 
-The app has no runtime dependency on Piso Asturiano, no backend, no required build step, and no browser speech fallback. Stage 2 physical controls are deferred until real-session evidence shows which response surfaces limit learning. Sequential exam simulation and automatic difficulty progression are also out of scope for this release.
+The app has no runtime dependency on Piso Asturiano, no backend, no required build step, and no browser speech fallback. Stage 2 is implemented for release review with an action-matched response model; road simulation, additional command phrasings, deeper phrasing/voice mastery reporting, sequential exam simulation, and automatic difficulty progression remain deferred.
+
+## Stage 2 action surfaces
+
+The landscape iPad baseline uses taps and direct controls that match the commanded action: junction turns and five roundabout exits use outgoing roads; U-turn, overtaking, parking, and voluntary stopping use spatial road choices; steering centres a wheel; securing the vehicle uses the Yaris parking-brake then selector-P sequence; and prechecks use vehicle-control and location schematics. Mac pointer and keyboard equivalents remain supported.
+
+There are exactly three semantic exceptions: `c-adapte`, `c-detencion`, and `c-final` retain `option-grid-v1`. They are intentional, not fallbacks: adapting speed, involuntary stopping, and finishing the test lack enough road context for a defensible physical gesture. Parking and voluntary stopping scenarios are provisional training hypotheses; practical lessons may correct their geometry, distractors, or accepted targets without changing stable command, action, phrasing, or provenance IDs.
+
+## Provisional Yaris schematics
+
+Stage 2 includes five manual-derived original schematics for the current reference baseline, a Toyota Yaris Hybrid 2019. They cite owner-manual publication `PZ49X-52A96-EN` and cover the instrument cluster and light stalk, climate controls, driver-door window controls, body releases and seat location, and engine-bay fluid checks. The 12 V battery is represented beneath the rear-right seat, never in the engine bay.
+
+The manual reference is an automatic hybrid, while the intended manual-transmission test vehicle is needed so the licence is not restricted; the driving school must confirm the actual vehicle and transmission. No manual-transmission-specific training is included. The current `c-inmov` parking-brake/selector-P sequence comes from the provisional automatic-hybrid reference and must be confirmed or replaced after the school identifies the actual manual test vehicle and securing procedure. Instrument-display, front-fog-light, and related equipment variants remain explicitly provisional until checked in the actual test car. Actual-vehicle photographs may later replace the original schematic backgrounds while retaining the stable diagram and hotspot IDs.
 
 ## Requirements and local use
 
@@ -18,6 +30,14 @@ npm --prefix /Users/jeffreypease/Projects/examen-practico-de-conducir run serve
 ```
 
 Then open `http://127.0.0.1:4173`. The supported baseline is current Safari on iPadOS and macOS, plus current Chromium browsers on macOS. Touch and pointer input use the same response controls.
+
+To serve the app to an iPad on the same Wi-Fi network, run:
+
+```sh
+npm --prefix /Users/jeffreypease/Projects/examen-practico-de-conducir run serve:lan
+```
+
+Then open the Mac's local-network address with port `4173` on the iPad. This explicit LAN command uses the same hardened project server as loopback development: it resolves files inside the real project root and rejects dotfiles such as `.git` and `.superpowers`. Use only a trusted local network, and stop the server when practice is finished.
 
 ## Static hosting
 
@@ -32,6 +52,8 @@ Creating a remote repository or enabling hosting requires separate approval.
 ## Local data and backup
 
 Settings, mastery, schedules, and attempt history remain in this app's browser-local storage. Use **Export backup** before clearing browser data or moving devices, and **Import backup** to restore a compatible versioned JSON file. Import validation is atomic: an invalid backup does not replace the active save. Backups contain learning history, so store them as personal data.
+
+The Task 7 browser automation limitation means export downloads and confirm-plus-file-picker import cannot be completed reliably by automation; automated backup tests are green, but Jeffrey must perform a manual export/import smoke during release review.
 
 ## Audio provenance and disclosure
 
@@ -76,4 +98,5 @@ When finished, remove the variable from the shell with `unset ELEVENLABS_API_KEY
 - Exercise English and Spanish setup, playback, hint, response, reveal, results, export, and import in a supported browser.
 - Confirm the AI-generated-voice disclosure is visible in both locales.
 - Confirm no credentials or generated temporary files are included.
-- Use several real practice sessions before planning Stage 2; collect target confusion, audio complaints, outcomes, response times, replay reliance, and lesson mismatches.
+- Manually smoke export/import because browser automation cannot complete its download and file-picker path.
+- Use several real practice sessions before planning a moving-road prototype; collect command confusion, target-selection errors, misleading layouts, stopping/parking corrections, Yaris mismatches, response times, and hint/replay dependence.

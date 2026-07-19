@@ -64,7 +64,13 @@ export function exportState(state) {
  */
 export function importState(text) {
   if (typeof text !== 'string') throw new Error('Import must be JSON text');
-  return validateState(JSON.parse(text));
+  return discardImportedActiveSurface(validateState(JSON.parse(text)));
+}
+
+function discardImportedActiveSurface(state) {
+  delete state.activeSurfaceModel;
+  if (isRecord(state.activeSession)) delete state.activeSession.activeSurfaceModel;
+  return state;
 }
 
 function validateState(value) {
@@ -114,6 +120,16 @@ function validateAttempt(attempt, path) {
   if (typeof attempt.timed !== 'boolean') throw new Error(`Invalid ${path}.timed`);
   if (typeof attempt.timeout !== 'boolean') throw new Error(`Invalid ${path}.timeout`);
   if (attempt.missReason !== undefined) requireNonEmptyString(attempt.missReason, `${path}.missReason`);
+  if (attempt.surfaceVersion !== undefined && (!Number.isSafeInteger(attempt.surfaceVersion) || attempt.surfaceVersion < 1)) {
+    throw new Error(`Invalid ${path}.surfaceVersion`);
+  }
+  if (attempt.surfaceSeed !== undefined && (!Number.isInteger(attempt.surfaceSeed) || attempt.surfaceSeed < 0 || attempt.surfaceSeed > 0xffffffff)) {
+    throw new Error(`Invalid ${path}.surfaceSeed`);
+  }
+  if (attempt.expectedResult !== undefined) requireNonEmptyString(attempt.expectedResult, `${path}.expectedResult`);
+  if (attempt.selectedTargetId !== undefined && attempt.selectedTargetId !== null) {
+    requireNonEmptyString(attempt.selectedTargetId, `${path}.selectedTargetId`);
+  }
   if (attempt.outcome === 'unaided' && attempt.textShown) throw new Error(`Invalid ${path}.textShown`);
   if (attempt.outcome === 'assisted' && !attempt.textShown) throw new Error(`Invalid ${path}.textShown`);
   if (attempt.timeout && attempt.outcome !== 'incorrect') throw new Error(`Invalid ${path}.outcome`);

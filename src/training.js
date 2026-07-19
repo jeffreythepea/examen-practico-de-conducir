@@ -61,11 +61,12 @@ function shuffle(items, rng) {
 /**
  * @param {{ attempts?: Array<object>, actionProgress?: Record<string, object> }} state
  * @param {object} input
- * @param {{ now?: () => number, randomUUID?: () => string }} dependencies
+ * @param {{ now?: () => number, randomUUID?: (() => string) | null, cryptoRef?: Crypto }} dependencies
  */
 export function recordAttempt(state, input, {
   now = Date.now,
-  randomUUID = () => globalThis.crypto.randomUUID()
+  randomUUID,
+  cryptoRef = globalThis.crypto
 } = {}) {
   if (!input.audio?.scored) {
     return {
@@ -79,7 +80,7 @@ export function recordAttempt(state, input, {
   const outcome = classifyOutcome(input);
   const timestamp = now();
   const attempt = {
-    id: randomUUID(),
+    id: createAttemptId({ randomUUID, cryptoRef }),
     timestamp,
     commandId: input.commandId,
     actionId: input.actionId,
@@ -98,6 +99,12 @@ export function recordAttempt(state, input, {
     timeout: Boolean(input.timeout)
   };
   if (input.missReason) attempt.missReason = input.missReason;
+  if (input.surfaceModel) {
+    attempt.surfaceVersion = input.surfaceModel.version;
+    attempt.surfaceSeed = input.surfaceModel.seed;
+    attempt.expectedResult = input.surfaceModel.expectedResult;
+    attempt.selectedTargetId = input.selectedTargetId ?? null;
+  }
 
   const attempts = state.attempts ?? [];
   const priorSchedule = state.actionProgress?.[attempt.actionId]
@@ -115,6 +122,28 @@ export function recordAttempt(state, input, {
     attempt,
     scored: true
   };
+}
+
+/**
+ * Creates an RFC 4122-shaped version-4 identifier without weakening entropy
+ * when `Crypto.randomUUID()` is unavailable in a browser context.
+ *
+ * @param {{ randomUUID?: (() => string) | null, cryptoRef?: Crypto }} dependencies
+ * @returns {string}
+ */
+export function createAttemptId({ randomUUID, cryptoRef = globalThis.crypto } = {}) {
+  if (typeof randomUUID === 'function') return randomUUID();
+  if (typeof cryptoRef?.randomUUID === 'function') return cryptoRef.randomUUID();
+  if (typeof cryptoRef?.getRandomValues !== 'function') {
+    throw new Error('Cryptographic attempt ID generation is unavailable');
+  }
+
+  const bytes = new Uint8Array(16);
+  cryptoRef.getRandomValues(bytes);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, value => value.toString(16).padStart(2, '0'));
+  return `${hex.slice(0, 4).join('')}-${hex.slice(4, 6).join('')}-${hex.slice(6, 8).join('')}-${hex.slice(8, 10).join('')}-${hex.slice(10).join('')}`;
 }
 
 /**

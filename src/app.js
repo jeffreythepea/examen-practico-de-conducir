@@ -9,14 +9,54 @@ import {
   loadState,
   saveState
 } from './storage.js';
-import { renderSurface, supportedCommands, surfaceOptions } from './surfaces.js';
+import {
+  generateSurface,
+  reduceSurfaceResponse,
+  renderSurfaceModel,
+  supportedCommands
+} from './surfaces.js';
 import { createSession, recordAttempt, summarizeSession } from './training.js';
 
 export const MISS_REASONS = Object.freeze(['hearing', 'meaning', 'mapping', 'target', 'accidental', 'other']);
 export const TRIAL_TIME_MS = 8_000;
+const SURFACE_RETRY_INCREMENT = 0x9e3779b9;
+const RESULT_ONLY_SURFACE_FAMILIES = Object.freeze([
+  'junction',
+  'roundabout',
+  'u-turn',
+  'overtake',
+  'parking',
+  'stopping',
+  'semantic'
+]);
 
 export function promptControlsDisabled(model) {
-  return model.screen !== 'prompt' || Boolean(model.replayPending);
+  return model.screen !== 'prompt' || Boolean(model.replayPending) || !model.activeSurfaceModel;
+}
+
+export function nextSurfaceSeed(cryptoRef = globalThis.crypto) {
+  if (!cryptoRef || typeof cryptoRef.getRandomValues !== 'function') {
+    throw new Error('Cryptographic surface seed generation is unavailable');
+  }
+  const values = new Uint32Array(1);
+  cryptoRef.getRandomValues(values);
+  return values[0];
+}
+
+export function generateSurfaceWithRetries(command, requestedSeed, surfaceGenerator = generateSurface) {
+  if (!Number.isInteger(requestedSeed) || requestedSeed < 0 || requestedSeed > 0xffff_ffff) {
+    throw new Error('Surface seed must be a uint32');
+  }
+  let lastError = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const seed = (requestedSeed + attempt * SURFACE_RETRY_INCREMENT) >>> 0;
+    try {
+      return { model: surfaceGenerator(command, seed), error: null };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+  }
+  return { model: null, error: lastError };
 }
 
 export function localizedVehicleAnswer(command, locale) {
@@ -28,6 +68,8 @@ const FOCUS_IDENTITY_ATTRIBUTES = Object.freeze([
   'data-setting',
   'data-locale',
   'data-action',
+  'data-target',
+  'data-control-event',
   'data-result',
   'data-miss-reason',
   'id',
@@ -99,24 +141,35 @@ export function focusScreen(documentRef, { previousScreen, nextScreen }) {
   return true;
 }
 
-export function reduceScreen(model, event) {
+export function reduceScreen(model, event, { surfaceGenerator = generateSurface } = {}) {
   if (event.type === 'SET_LOCALE') {
     return { ...model, settings: { ...model.settings, locale: event.locale } };
   }
   if (event.type === 'GO_TO_SETUP') {
-    return { screen: 'setup', settings: model.settings, session: [], index: 0 };
+    return resetTrial({ ...model, screen: 'setup', settings: model.settings, session: [] }, 0);
   }
   if (event.type === 'START_SESSION') {
     return resetTrial({ ...model, screen: 'loading-audio', session: [...event.session] }, 0);
   }
-  if (event.type === 'AUDIO_COMPLETED' && model.screen === 'loading-audio') {
+  if (['AUDIO_COMPLETED', 'TRIAL_AUDIO_ENDED'].includes(event.type) && model.screen === 'loading-audio') {
+    const continuingTrial = Boolean(model.activeSurfaceModel);
+    const generated = continuingTrial
+      ? { model: model.activeSurfaceModel, error: null }
+      : generateSurfaceWithRetries(
+          model.session[model.index],
+          event.seed ?? nextSurfaceSeed(),
+          surfaceGenerator
+        );
     return {
       ...model,
       screen: 'prompt',
-      variant: Object.freeze({ ...event.variant }),
+      variant: event.variant ? Object.freeze({ ...event.variant }) : model.variant,
       audioError: null,
-      textShown: model.settings.hintPolicy === 'shown',
-      replays: 0,
+      activeSurfaceModel: generated.model,
+      surfaceResponse: continuingTrial ? model.surfaceResponse : {},
+      surfaceError: generated.error?.message ?? null,
+      textShown: continuingTrial ? model.textShown : model.settings.hintPolicy === 'shown',
+      replays: continuingTrial ? model.replays : 0,
       promptStartedAt: event.completedAt,
       outcome: null,
       selectedResult: null,
@@ -161,6 +214,23 @@ export function reduceScreen(model, event) {
   if (event.type === 'RETRY_AUDIO' && model.screen === 'loading-audio') {
     return { ...model, audioError: null };
   }
+  if (event.type === 'RETRY_SURFACE'
+      && model.screen === 'prompt'
+      && model.surfaceError
+      && !model.activeSurfaceModel) {
+    const generated = generateSurfaceWithRetries(
+      model.session[model.index],
+      event.seed ?? nextSurfaceSeed(),
+      surfaceGenerator
+    );
+    return {
+      ...model,
+      activeSurfaceModel: generated.model,
+      surfaceResponse: {},
+      surfaceError: generated.error?.message ?? null,
+      promptStartedAt: event.startedAt ?? model.promptStartedAt
+    };
+  }
   if (event.type === 'REPLAY_STARTED' && model.screen === 'prompt' && !model.replayPending) {
     return { ...model, replayPending: true, replayOperationId: event.operationId };
   }
@@ -197,19 +267,72 @@ export function reduceScreen(model, event) {
       replayOperationId: null
     };
   }
-  if (event.type === 'SELECT_RESULT' && model.screen === 'prompt' && !model.replayPending) {
-    const command = model.session[model.index];
-    const correct = event.selectedResult === command.acceptedResult;
+  if (event.type === 'SELECT_RESULT'
+      && model.screen === 'prompt'
+      && model.activeSurfaceModel
+      && RESULT_ONLY_SURFACE_FAMILIES.includes(model.activeSurfaceModel.family)
+      && !model.replayPending) {
+    const selectedTarget = model.activeSurfaceModel.targets
+      .find(target => target.resultId === event.selectedResult);
+    if (!selectedTarget) return model;
+    const selectedResult = selectedTarget.resultId;
+    const selectedTargetId = selectedTarget.id;
+    const correct = selectedResult === model.activeSurfaceModel.expectedResult;
     return reveal(model, {
-      selectedResult: event.selectedResult,
+      selectedResult,
+      selectedTargetId,
+      surfaceResponse: { complete: true, selectedResult, selectedTargetId },
       correct,
       timeout: false,
       completedAt: event.completedAt
     });
   }
-  if (event.type === 'TIMEOUT' && model.screen === 'prompt' && !model.replayPending) {
+  if (event.type === 'SURFACE_EVENT'
+      && model.screen === 'prompt'
+      && model.activeSurfaceModel
+      && !model.replayPending) {
+    let response;
+    try {
+      response = reduceSurfaceResponse(
+        model.activeSurfaceModel,
+        model.surfaceResponse,
+        event.surfaceEvent
+      );
+    } catch {
+      return model;
+    }
+    if (!response || typeof response !== 'object' || response === model.surfaceResponse) return model;
+    if (!response.complete && !response.incorrect) return { ...model, surfaceResponse: { ...response } };
+    if (response.complete && response.incorrect) return model;
+    const selectedTargetId = response.selectedTargetId ?? null;
+    const selectedTarget = model.activeSurfaceModel.targets
+      .find(target => target.id === selectedTargetId);
+    if (!selectedTarget) return model;
+    const selectedResult = response.selectedResult ?? null;
+    if (response.complete && selectedResult !== selectedTarget.resultId) return model;
+    const correct = !response.incorrect && selectedResult === model.activeSurfaceModel.expectedResult;
+    return reveal(model, {
+      selectedResult,
+      selectedTargetId,
+      surfaceResponse: { ...response },
+      correct,
+      timeout: false,
+      completedAt: event.completedAt
+    });
+  }
+  if (event.type === 'TIMEOUT'
+      && model.screen === 'prompt'
+      && model.activeSurfaceModel
+      && !model.replayPending) {
     return reveal(model, {
       selectedResult: null,
+      selectedTargetId: null,
+      surfaceResponse: {
+        ...model.surfaceResponse,
+        complete: true,
+        selectedResult: null,
+        selectedTargetId: null
+      },
       correct: false,
       timeout: true,
       completedAt: event.completedAt
@@ -221,7 +344,7 @@ export function reduceScreen(model, event) {
   }
   if (event.type === 'CONTINUE' && model.screen === 'reveal') {
     const nextIndex = model.index + 1;
-    if (nextIndex >= model.session.length) return { ...model, screen: 'results' };
+    if (nextIndex >= model.session.length) return resetTrial({ ...model, screen: 'results' }, nextIndex);
     return resetTrial({ ...model, screen: 'loading-audio' }, nextIndex);
   }
   return model;
@@ -243,12 +366,17 @@ function resetTrial(model, index) {
     ...model,
     index,
     variant: null,
+    activeSurfaceModel: null,
+    surfaceResponse: {},
+    surfaceError: null,
     audioError: null,
     textShown: false,
     replays: 0,
     promptStartedAt: null,
     outcome: null,
     selectedResult: null,
+    selectedTargetId: null,
+    correct: false,
     responseMs: null,
     timeout: false,
     missReason: null,
@@ -258,7 +386,7 @@ function resetTrial(model, index) {
   };
 }
 
-function reveal(model, { selectedResult, correct, timeout, completedAt }) {
+function reveal(model, { selectedResult, selectedTargetId, surfaceResponse, correct, timeout, completedAt }) {
   const responseMs = Number.isFinite(completedAt) && Number.isFinite(model.promptStartedAt)
     ? Math.max(0, completedAt - model.promptStartedAt)
     : null;
@@ -267,6 +395,8 @@ function reveal(model, { selectedResult, correct, timeout, completedAt }) {
     ...model,
     screen: 'reveal',
     selectedResult,
+    selectedTargetId,
+    surfaceResponse,
     correct,
     timeout,
     responseMs,
@@ -299,7 +429,6 @@ async function bootstrap() {
   let timerDeadline = null;
   let sessionAttemptIds = [];
   let currentAttemptId = null;
-  let trialOptions = [];
   let audioOperation = 0;
   let lastRenderedScreen = null;
   let deferredFocusSnapshot = null;
@@ -459,7 +588,14 @@ async function bootstrap() {
           : ''}
       </div>
       ${model.textShown ? `<p class="spanish-hint" lang="es">${escapeHtml(phrasing.es)}</p>` : ''}
-      ${renderSurface(command, trialOptions, locale(), { disabled: controlsDisabled })}
+      ${model.surfaceError
+        ? `<div class="surface-error" role="alert">
+             <p>${translate(locale(), 'surface.error')}</p>
+             <button class="primary" type="button" data-action="surface-retry">${translate(locale(), 'surface.retry')}</button>
+           </div>`
+        : renderSurfaceModel(model.activeSurfaceModel, model.surfaceResponse, locale(), {
+            disabled: controlsDisabled
+          })}
     </section>`;
   }
 
@@ -469,6 +605,11 @@ async function bootstrap() {
     return `<section class="panel reveal" aria-labelledby="outcome-title">
       <p class="progress">${progressText()}</p>
       <h2 id="outcome-title" role="status" aria-live="polite" class="outcome ${model.outcome}" data-screen-focus tabindex="-1">${translate(locale(), `result.${model.outcome}`)}</h2>
+      ${renderSurfaceModel(model.activeSurfaceModel, model.surfaceResponse, locale(), {
+        disabled: true,
+        reveal: true,
+        selectedTargetId: model.selectedTargetId
+      })}
       <dl class="answer-details">
         <div><dt>${translate(locale(), 'reveal.spanish')}</dt><dd lang="es">${escapeHtml(phrasing.es)}</dd></div>
         ${locale() === 'en' ? `<div><dt>${translate(locale(), 'reveal.meaning')}</dt><dd>${escapeHtml(phrasing.en)}</dd></div>` : ''}
@@ -571,9 +712,26 @@ async function bootstrap() {
       model = reduceScreen(model, { type: 'SHOW_SPANISH' });
       render();
     });
-    app.querySelectorAll('[data-result]').forEach(button => button.addEventListener('click', () => {
-      completeTrial({ type: 'SELECT_RESULT', selectedResult: button.dataset.result, completedAt: Date.now() });
+    app.querySelector('[data-action="surface-retry"]')?.addEventListener('click', () => {
+      model = reduceScreen(model, { type: 'RETRY_SURFACE', startedAt: Date.now() });
+      if (model.surfaceError) console.warn(`Surface unavailable for ${currentCommand().id}: ${model.surfaceError}`);
+      render();
+      if (model.activeSurfaceModel) startTimer();
+    });
+    app.querySelectorAll('[data-target]:not([data-control-event])').forEach(button => button.addEventListener('click', () => {
+      dispatchSurfaceEvent({ type: 'select-target', targetId: button.dataset.target });
     }));
+    app.querySelectorAll('[data-control-event="activate"]').forEach(button => button.addEventListener('click', () => {
+      dispatchSurfaceEvent({ type: 'activate', targetId: button.dataset.target });
+    }));
+    app.querySelectorAll('[data-control-event="set-wheel"]').forEach(control => control.addEventListener('input', () => {
+      dispatchSurfaceEvent({ type: 'set-wheel', degrees: Number(control.value) });
+    }));
+  }
+
+  function dispatchSurfaceEvent(surfaceEvent) {
+    if (!model.activeSurfaceModel || promptControlsDisabled(model)) return;
+    completeTrial({ type: 'SURFACE_EVENT', surfaceEvent, completedAt: Date.now() });
   }
 
   function bindRevealEvents() {
@@ -585,7 +743,6 @@ async function bootstrap() {
     app.querySelector('[data-action="continue"]').addEventListener('click', () => {
       currentAttemptId = null;
       model = reduceScreen(model, { type: 'CONTINUE' });
-      if (model.screen === 'loading-audio') trialOptions = [];
       render();
       if (model.screen === 'loading-audio') void playCurrentCommand();
     });
@@ -617,7 +774,6 @@ async function bootstrap() {
       attempts: state.attempts
     });
     model = reduceScreen({ ...model, settings: state.settings }, { type: 'START_SESSION', session });
-    trialOptions = [];
     render();
     void playCurrentCommand();
   }
@@ -642,7 +798,7 @@ async function bootstrap() {
         model = reduceScreen(model, { type: 'AUDIO_FAILED', reason: result.reason });
       } else {
         model = reduceScreen(model, { type: 'AUDIO_COMPLETED', variant, completedAt: Date.now() });
-        trialOptions = surfaceOptions(command, commandsForPhase(selectableCommands, command.phase));
+        if (model.surfaceError) console.warn(`Surface unavailable for ${command.id}: ${model.surfaceError}`);
       }
     } catch {
       model = reduceScreen(model, { type: 'AUDIO_FAILED', reason: 'error' });
@@ -680,10 +836,14 @@ async function bootstrap() {
 
   function completeTrial(event) {
     if (model.screen !== 'prompt') return;
-    stopTimer();
     const before = model;
     model = reduceScreen(model, event);
-    if (model === before || model.screen !== 'reveal') return;
+    if (model === before) return;
+    if (model.screen !== 'reveal') {
+      render();
+      return;
+    }
+    stopTimer();
     const command = before.session[before.index];
     const result = recordAttempt(state, {
       audio: { scored: true },
@@ -694,7 +854,9 @@ async function bootstrap() {
       speed: before.variant.speed,
       phase: command.phase,
       surfaceId: command.surfaceId,
+      surfaceModel: before.activeSurfaceModel,
       selectedResult: model.selectedResult,
+      selectedTargetId: model.selectedTargetId,
       correct: model.correct,
       textShown: model.textShown,
       responseMs: model.responseMs,
@@ -722,7 +884,7 @@ async function bootstrap() {
 
   function startTimer() {
     stopTimer();
-    if (!state.settings.timed || model.screen !== 'prompt') return;
+    if (!state.settings.timed || model.screen !== 'prompt' || !model.activeSurfaceModel) return;
     timerDeadline = Date.now() + TRIAL_TIME_MS;
     timerTickId = window.setInterval(refreshTimerText, 200);
     timerId = window.setTimeout(() => {

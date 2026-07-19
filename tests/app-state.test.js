@@ -3,13 +3,18 @@ import assert from 'node:assert/strict';
 import {
   captureFocusSnapshot,
   focusScreen,
+  generateSurfaceWithRetries,
   localizedVehicleAnswer,
+  nextSurfaceSeed,
   promptControlsDisabled,
   reduceScreen,
   restoreFocusSnapshot,
   restoreOrDeferFocus,
   selectAudioVariant
 } from '../src/app.js';
+import { defaultState, loadState, saveState } from '../src/storage.js';
+import { renderSurfaceModel } from '../src/surfaces.js';
+import { recordAttempt } from '../src/training.js';
 
 const settings = Object.freeze({
   locale: 'en', phase: 'driving', speed: 0.9, hintPolicy: 'available', timed: false, length: 'short'
@@ -17,16 +22,32 @@ const settings = Object.freeze({
 const session = Object.freeze([
   Object.freeze({
     id: 'c-der', actionId: 'turn-right', phase: 'driving', acceptedResult: 'turn-right',
-    surfaceId: 'junction-v1', phrasings: [{ id: 'c-der-canonical', es: 'Gire a la derecha', en: 'turn right' }]
+    surfaceId: 'junction-v2', phrasings: [{ id: 'c-der-canonical', es: 'Gire a la derecha', en: 'turn right' }]
   }),
   Object.freeze({
     id: 'c-izq', actionId: 'turn-left', phase: 'driving', acceptedResult: 'turn-left',
-    surfaceId: 'junction-v1', phrasings: [{ id: 'c-izq-canonical', es: 'Gire a la izquierda', en: 'turn left' }]
+    surfaceId: 'junction-v2', phrasings: [{ id: 'c-izq-canonical', es: 'Gire a la izquierda', en: 'turn left' }]
   })
 ]);
 const rightVariant = Object.freeze({
   id: 'right-roger', commandId: 'c-der', phrasingId: 'c-der-canonical', voiceId: 'roger', speed: 0.9,
   path: 'audio/right.mp3'
+});
+const wheelCommand = Object.freeze({
+  id: 'c-volante',
+  actionId: 'steering-straight',
+  phase: 'driving',
+  acceptedResult: 'steering-straight',
+  surfaceId: 'wheel-center-v1',
+  phrasings: [{ id: 'c-volante-canonical', es: 'Enderece el volante', en: 'straighten the wheel' }]
+});
+const secureCommand = Object.freeze({
+  id: 'c-inmov',
+  actionId: 'secure-vehicle',
+  phase: 'driving',
+  acceptedResult: 'secure-vehicle',
+  surfaceId: 'secure-yaris-v1',
+  phrasings: [{ id: 'c-inmov-canonical', es: 'Inmovilice el vehículo', en: 'secure the vehicle' }]
 });
 
 function setupModel() {
@@ -35,10 +56,382 @@ function setupModel() {
 
 function promptModel({ textShown = false } = {}) {
   let model = reduceScreen(setupModel(), { type: 'START_SESSION', session });
-  model = reduceScreen(model, { type: 'AUDIO_COMPLETED', variant: rightVariant, completedAt: 1_000 });
+  model = reduceScreen(model, { type: 'AUDIO_COMPLETED', variant: rightVariant, completedAt: 1_000, seed: 123 });
   if (textShown) model = reduceScreen(model, { type: 'SHOW_SPANISH' });
   return model;
 }
+
+function controlPrompt(command, seed) {
+  let model = reduceScreen(setupModel(), { type: 'START_SESSION', session: [command] });
+  return reduceScreen(model, {
+    type: 'AUDIO_COMPLETED', variant: rightVariant, completedAt: 1_000, seed
+  });
+}
+
+function memoryStorage() {
+  const values = new Map();
+  return {
+    getItem(key) { return values.get(key) ?? null; },
+    setItem(key, value) { values.set(key, String(value)); },
+    removeItem(key) { values.delete(key); }
+  };
+}
+
+test('a trial creates one immutable surface model and preserves its reference through same-trial events', () => {
+  let model = reduceScreen(setupModel(), { type: 'START_SESSION', session });
+  model = reduceScreen(model, {
+    type: 'AUDIO_COMPLETED', variant: rightVariant, completedAt: 1_000, seed: 123
+  });
+  const activeSurfaceModel = model.activeSurfaceModel;
+
+  assert.equal(activeSurfaceModel.seed, 123);
+  assert.equal(Object.isFrozen(activeSurfaceModel), true);
+  model = reduceScreen(model, { type: 'SHOW_SPANISH' });
+  assert.strictEqual(model.activeSurfaceModel, activeSurfaceModel);
+  model = reduceScreen(model, { type: 'REPLAY_STARTED', operationId: 9 });
+  assert.strictEqual(model.activeSurfaceModel, activeSurfaceModel);
+  model = reduceScreen(model, { type: 'REPLAY_COMPLETED', operationId: 9, completedAt: 1_100 });
+  assert.strictEqual(model.activeSurfaceModel, activeSurfaceModel);
+  model = reduceScreen(model, { type: 'AUDIO_INTERRUPTED', reason: 'visibilitychange' });
+  assert.strictEqual(model.activeSurfaceModel, activeSurfaceModel);
+  model = reduceScreen(model, {
+    type: 'AUDIO_COMPLETED', variant: rightVariant, completedAt: 1_200, seed: 999
+  });
+  assert.strictEqual(model.activeSurfaceModel, activeSurfaceModel, 'same-trial retry must not regenerate');
+});
+
+test('empty taps and incomplete surface responses never leave the prompt or become scoreable', () => {
+  const active = controlPrompt(wheelCommand, 4);
+  const empty = reduceScreen(active, { type: 'SURFACE_EMPTY_TAPPED' });
+  const partial = reduceScreen(active, {
+    type: 'SURFACE_EVENT', surfaceEvent: { type: 'set-wheel', degrees: 18 }
+  });
+
+  assert.strictEqual(empty, active);
+  assert.equal(partial.screen, 'prompt');
+  assert.strictEqual(partial.activeSurfaceModel, active.activeSurfaceModel);
+  assert.deepEqual(partial.surfaceResponse, { complete: false, wheelDegrees: 18 });
+  assert.equal(partial.outcome, null);
+});
+
+test('native surface events normalize correct and incorrect reveal provenance', () => {
+  const active = promptModel();
+  const correctTarget = active.activeSurfaceModel.targets.find(target =>
+    target.resultId === active.activeSurfaceModel.expectedResult
+  );
+  const wrongTarget = active.activeSurfaceModel.targets.find(target => target.id !== correctTarget.id);
+
+  const correct = reduceScreen(active, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: { type: 'select-target', targetId: correctTarget.id },
+    completedAt: 1_500
+  });
+  assert.equal(correct.screen, 'reveal');
+  assert.equal(correct.selectedResult, correctTarget.resultId);
+  assert.equal(correct.selectedTargetId, correctTarget.id);
+  assert.strictEqual(correct.activeSurfaceModel, active.activeSurfaceModel);
+
+  const incorrect = reduceScreen(active, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: { type: 'select-target', targetId: wrongTarget.id },
+    completedAt: 1_500
+  });
+  assert.equal(incorrect.screen, 'reveal');
+  assert.equal(incorrect.outcome, 'incorrect');
+  assert.equal(incorrect.selectedTargetId, wrongTarget.id);
+});
+
+test('first scored response saves and reveal-renders when randomUUID is absent but getRandomValues is available', () => {
+  const before = promptModel();
+  const target = before.activeSurfaceModel.targets.find(candidate =>
+    candidate.resultId === before.activeSurfaceModel.expectedResult
+  );
+  const after = reduceScreen(before, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: { type: 'select-target', targetId: target.id },
+    completedAt: 1_500
+  });
+  const cryptoRef = {
+    getRandomValues(values) {
+      for (let index = 0; index < values.length; index += 1) values[index] = index;
+      return values;
+    }
+  };
+
+  const result = recordAttempt(defaultState(), {
+    audio: { scored: true },
+    commandId: before.session[before.index].id,
+    actionId: before.session[before.index].actionId,
+    phrasingId: before.variant.phrasingId,
+    voiceId: before.variant.voiceId,
+    speed: before.variant.speed,
+    phase: before.session[before.index].phase,
+    surfaceId: before.session[before.index].surfaceId,
+    surfaceModel: before.activeSurfaceModel,
+    selectedResult: after.selectedResult,
+    selectedTargetId: after.selectedTargetId,
+    correct: after.correct,
+    textShown: after.textShown,
+    responseMs: after.responseMs,
+    replays: after.replays,
+    timed: false,
+    timeout: after.timeout
+  }, {
+    now: () => 2_000,
+    randomUUID: null,
+    cryptoRef
+  });
+
+  assert.equal(result.attempt.id, '00010203-0405-4607-8809-0a0b0c0d0e0f');
+  const storage = memoryStorage();
+  saveState(storage, result.state);
+  assert.equal(loadState(storage).attempts[0].id, result.attempt.id);
+  const markup = renderSurfaceModel(before.activeSurfaceModel, after.surfaceResponse, 'en', {
+    disabled: true,
+    reveal: true,
+    selectedTargetId: after.selectedTargetId
+  });
+  assert.match(markup, new RegExp(`data-target="${after.selectedTargetId}"`));
+  assert.match(markup, /aria-current="true"/);
+});
+
+test('forged, mismatched, and targetless completion events remain unscored', () => {
+  const active = promptModel();
+  const correctTarget = active.activeSurfaceModel.targets.find(target =>
+    target.resultId === active.activeSurfaceModel.expectedResult
+  );
+  const wrongTarget = active.activeSurfaceModel.targets.find(target => target.id !== correctTarget.id);
+
+  assert.strictEqual(reduceScreen(active, {
+    type: 'SELECT_RESULT', selectedResult: 'not-a-real-result', completedAt: 1_500
+  }), active);
+  assert.strictEqual(reduceScreen(active, {
+    type: 'SURFACE_RESPONSE_UPDATED',
+    response: {
+      complete: true,
+      selectedResult: correctTarget.resultId,
+      selectedTargetId: wrongTarget.id
+    },
+    completedAt: 1_500
+  }), active);
+  assert.strictEqual(reduceScreen(active, {
+    type: 'SURFACE_RESPONSE_UPDATED',
+    response: { complete: true, selectedResult: correctTarget.resultId, selectedTargetId: null },
+    completedAt: 1_500
+  }), active);
+
+  const exhausted = { ...active, activeSurfaceModel: null, surfaceError: 'invalid geometry' };
+  assert.strictEqual(reduceScreen(exhausted, {
+    type: 'SELECT_RESULT', selectedResult: correctTarget.resultId, completedAt: 1_500
+  }), exhausted);
+});
+
+test('forged terminal wheel and secure responses leave the identical prompt state', () => {
+  const wheel = controlPrompt(wheelCommand, 4);
+  assert.strictEqual(reduceScreen(wheel, {
+    type: 'SURFACE_RESPONSE_UPDATED',
+    response: {
+      complete: true,
+      selectedResult: 'steering-straight',
+      selectedTargetId: 'wheel-center',
+      wheelDegrees: 18
+    },
+    completedAt: 1_500
+  }), wheel);
+  assert.strictEqual(reduceScreen(wheel, {
+    type: 'SELECT_RESULT', selectedResult: 'steering-straight', completedAt: 1_500
+  }), wheel, 'legacy result-only events cannot bypass wheel tolerance');
+
+  const secure = controlPrompt(secureCommand, 5);
+  assert.strictEqual(reduceScreen(secure, {
+    type: 'SURFACE_RESPONSE_UPDATED',
+    response: {
+      complete: true,
+      selectedResult: 'secure-vehicle',
+      selectedTargetId: 'selector-park'
+    },
+    completedAt: 1_500
+  }), secure);
+  assert.strictEqual(reduceScreen(secure, {
+    type: 'SELECT_RESULT', selectedResult: 'secure-vehicle', completedAt: 1_500
+  }), secure, 'legacy result-only events cannot bypass the secure sequence');
+});
+
+test('reducer-owned native events score authentic centered wheel and complete secure sequence responses', () => {
+  const wheel = controlPrompt(wheelCommand, 4);
+  const centered = reduceScreen(wheel, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: { type: 'set-wheel', degrees: 0 },
+    completedAt: 1_500
+  });
+  assert.equal(centered.screen, 'reveal');
+  assert.equal(centered.correct, true);
+  assert.equal(centered.selectedResult, 'steering-straight');
+  assert.equal(centered.selectedTargetId, 'wheel-center');
+
+  const secure = controlPrompt(secureCommand, 5);
+  const parkingBrakeSet = reduceScreen(secure, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: { type: 'activate', targetId: 'parking-brake' },
+    completedAt: 1_250
+  });
+  assert.equal(parkingBrakeSet.screen, 'prompt');
+  assert.deepEqual(parkingBrakeSet.surfaceResponse, {
+    complete: false,
+    completedSteps: ['parking-brake'],
+    nextStepIndex: 1
+  });
+  const secured = reduceScreen(parkingBrakeSet, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: { type: 'activate', targetId: 'selector-park' },
+    completedAt: 1_500
+  });
+  assert.equal(secured.screen, 'reveal');
+  assert.equal(secured.correct, true);
+  assert.equal(secured.selectedResult, 'secure-vehicle');
+  assert.equal(secured.selectedTargetId, 'selector-park');
+  assert.deepEqual(secured.surfaceResponse.completedSteps, ['parking-brake', 'selector-park']);
+});
+
+test('driving-only c-inmov prompt and reveal both expose the accessible provisional notice', () => {
+  let model = controlPrompt(secureCommand, 5);
+  assert.equal(model.settings.phase, 'driving');
+  const promptMarkup = renderSurfaceModel(model.activeSurfaceModel, model.surfaceResponse, 'en', {
+    disabled: false
+  });
+  assert.match(promptMarkup, /role="note"[^>]+data-command="c-inmov"/);
+  assert.match(promptMarkup, /provisional automatic-hybrid reference/i);
+  assert.doesNotMatch(promptMarkup.match(/<aside[\s\S]*?<\/aside>/)[0], /parking|brake|selector|→/i);
+
+  model = reduceScreen(model, {
+    type: 'SURFACE_EVENT', surfaceEvent: { type: 'activate', targetId: 'parking-brake' }
+  });
+  model = reduceScreen(model, {
+    type: 'SURFACE_EVENT', surfaceEvent: { type: 'activate', targetId: 'selector-park' }
+  });
+  assert.equal(model.textShown, false);
+  assert.equal(model.outcome, 'unaided');
+  const revealMarkup = renderSurfaceModel(model.activeSurfaceModel, model.surfaceResponse, 'es', {
+    disabled: true,
+    reveal: true,
+    selectedTargetId: model.selectedTargetId
+  });
+  assert.match(revealMarkup, /role="note"[^>]+data-command="c-inmov"/);
+  assert.match(revealMarkup, /referencia provisional del híbrido automático/i);
+  assert.match(revealMarkup.match(/<aside[\s\S]*?<\/aside>/)[0], /freno de estacionamiento.*selector P/i);
+});
+
+test('bounded surface generation uses exactly three deterministic seeds and exposes unscored exhaustion', () => {
+  const attemptedSeeds = [];
+  const generated = generateSurfaceWithRetries(session[0], 7, (_command, seed) => {
+    attemptedSeeds.push(seed);
+    if (attemptedSeeds.length < 3) throw new Error('invalid geometry');
+    return Object.freeze({ seed });
+  });
+  assert.deepEqual(attemptedSeeds, [
+    7,
+    (7 + 0x9e3779b9) >>> 0,
+    (7 + 2 * 0x9e3779b9) >>> 0
+  ]);
+  assert.deepEqual(generated, { model: Object.freeze({ seed: attemptedSeeds[2] }), error: null });
+  assert.throws(() => generateSurfaceWithRetries(session[0], -1), /uint32/);
+  assert.throws(() => generateSurfaceWithRetries(session[0], 1.5), /uint32/);
+  assert.throws(() => generateSurfaceWithRetries(session[0], 0x1_0000_0000), /uint32/);
+
+  let loading = reduceScreen(setupModel(), { type: 'START_SESSION', session });
+  loading = reduceScreen(loading, {
+    type: 'AUDIO_COMPLETED', variant: rightVariant, completedAt: 1_000, seed: 7
+  }, {
+    surfaceGenerator() { throw new Error('still invalid'); }
+  });
+  assert.equal(loading.screen, 'prompt');
+  assert.equal(loading.activeSurfaceModel, null);
+  assert.match(loading.surfaceError, /still invalid/);
+  assert.equal(loading.outcome, null);
+  assert.strictEqual(reduceScreen(loading, { type: 'TIMEOUT', completedAt: 9_000 }), loading);
+});
+
+test('surface seeds come from one cryptographic uint32 and advancing clears trial-local surface state', () => {
+  const cryptoRef = {
+    getRandomValues(values) {
+      values[0] = 0xfedcba98;
+      return values;
+    }
+  };
+  assert.equal(nextSurfaceSeed(cryptoRef), 0xfedcba98);
+
+  const active = promptModel();
+  const target = active.activeSurfaceModel.targets.find(candidate =>
+    candidate.resultId === active.activeSurfaceModel.expectedResult
+  );
+  const revealed = reduceScreen(active, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: { type: 'select-target', targetId: target.id }
+  });
+  const next = reduceScreen(revealed, { type: 'CONTINUE' });
+  assert.equal(next.activeSurfaceModel, null);
+  assert.deepEqual(next.surfaceResponse, {});
+  assert.equal(next.selectedTargetId, null);
+  assert.equal(next.correct, false);
+
+  const abandoned = reduceScreen(revealed, { type: 'GO_TO_SETUP' });
+  assert.equal(abandoned.screen, 'setup');
+  assert.equal(abandoned.activeSurfaceModel, null);
+  assert.deepEqual(abandoned.surfaceResponse, {});
+  assert.equal(abandoned.selectedTargetId, null);
+  assert.equal(abandoned.correct, false);
+});
+
+test('secure first step survives timeout so reveal identifies selector P as the remaining control', () => {
+  let model = controlPrompt(secureCommand, 5);
+  model = reduceScreen(model, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: { type: 'activate', targetId: 'parking-brake' }
+  });
+  model = reduceScreen(model, { type: 'TIMEOUT', completedAt: 9_000 });
+
+  assert.equal(model.screen, 'reveal');
+  assert.deepEqual(model.surfaceResponse, {
+    complete: true,
+    completedSteps: ['parking-brake'],
+    nextStepIndex: 1,
+    selectedResult: null,
+    selectedTargetId: null
+  });
+  const markup = renderSurfaceModel(model.activeSurfaceModel, model.surfaceResponse, 'en', {
+    disabled: true,
+    reveal: true,
+    selectedTargetId: model.selectedTargetId
+  });
+  assert.match(markup, /data-target="parking-brake"[^>]+aria-pressed="true"/);
+  assert.doesNotMatch(markup, /data-target="parking-brake"[^>]+aria-current="true"/);
+  assert.match(markup, /data-target="selector-park"[^>]+aria-current="true"/);
+});
+
+test('partial wheel position survives timeout and reveal keeps it distinct from the centered reference', () => {
+  let model = controlPrompt(wheelCommand, 4);
+  model = reduceScreen(model, {
+    type: 'SURFACE_EVENT', surfaceEvent: { type: 'set-wheel', degrees: 18 }
+  });
+  model = reduceScreen(model, { type: 'TIMEOUT', completedAt: 9_000 });
+
+  assert.equal(model.correct, false);
+  assert.deepEqual(model.surfaceResponse, {
+    complete: true,
+    wheelDegrees: 18,
+    selectedResult: null,
+    selectedTargetId: null
+  });
+  const markup = renderSurfaceModel(model.activeSurfaceModel, model.surfaceResponse, 'en', {
+    disabled: true,
+    reveal: true,
+    selectedTargetId: model.selectedTargetId
+  });
+  assert.match(markup, /data-wheel-position="learner" data-selection-state="wrong"/);
+  assert.match(markup, /data-wheel-position="correct-reference"/);
+  assert.match(markup, /style="--wheel-degrees:18deg"/);
+  assert.match(markup, /style="--wheel-degrees:0deg"/);
+});
 
 test('screen reducer follows setup to loading, prompt, reveal, the next prompt, and results only through Continue', () => {
   let model = reduceScreen(setupModel(), { type: 'START_SESSION', session });

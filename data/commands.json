@@ -5,7 +5,7 @@
     "category": "dir",
     "phase": "driving",
     "responseType": "spoken-direction",
-    "surfaceId": "junction-v1",
+    "surfaceId": "junction-v2",
     "icon": "➡️",
     "acceptedResult": "turn-right",
     "phrasings": [
@@ -26,7 +26,7 @@
     "category": "dir",
     "phase": "driving",
     "responseType": "spoken-direction",
-    "surfaceId": "junction-v1",
+    "surfaceId": "junction-v2",
     "icon": "⬅️",
     "acceptedResult": "turn-left",
     "phrasings": [
@@ -47,7 +47,7 @@
     "category": "dir",
     "phase": "driving",
     "responseType": "terminology-maneuver",
-    "surfaceId": "junction-v1",
+    "surfaceId": "u-turn-v1",
     "icon": "🔄",
     "acceptedResult": "change-direction",
     "phrasings": [
@@ -68,7 +68,7 @@
     "category": "dir",
     "phase": "driving",
     "responseType": "control-instruction",
-    "surfaceId": "junction-v1",
+    "surfaceId": "wheel-center-v1",
     "icon": "⬆️",
     "acceptedResult": "steering-straight",
     "phrasings": [
@@ -89,7 +89,7 @@
     "category": "rot",
     "phase": "driving",
     "responseType": "spoken-direction",
-    "surfaceId": "roundabout-v1",
+    "surfaceId": "roundabout-v2",
     "icon": "1️⃣",
     "acceptedResult": "roundabout-exit-1",
     "phrasings": [
@@ -110,7 +110,7 @@
     "category": "rot",
     "phase": "driving",
     "responseType": "spoken-direction",
-    "surfaceId": "roundabout-v1",
+    "surfaceId": "roundabout-v2",
     "icon": "2️⃣",
     "acceptedResult": "roundabout-exit-2",
     "phrasings": [
@@ -131,7 +131,7 @@
     "category": "rot",
     "phase": "driving",
     "responseType": "spoken-direction",
-    "surfaceId": "roundabout-v1",
+    "surfaceId": "roundabout-v2",
     "icon": "3️⃣",
     "acceptedResult": "roundabout-exit-3",
     "phrasings": [
@@ -152,7 +152,7 @@
     "category": "rot",
     "phase": "driving",
     "responseType": "terminology-direction",
-    "surfaceId": "roundabout-v1",
+    "surfaceId": "roundabout-v2",
     "icon": "4️⃣",
     "acceptedResult": "roundabout-exit-4",
     "phrasings": [
@@ -173,7 +173,7 @@
     "category": "rot",
     "phase": "driving",
     "responseType": "terminology-direction",
-    "surfaceId": "roundabout-v1",
+    "surfaceId": "roundabout-v2",
     "icon": "5️⃣",
     "acceptedResult": "roundabout-exit-5",
     "phrasings": [
@@ -194,7 +194,7 @@
     "category": "spd",
     "phase": "driving",
     "responseType": "spoken-maneuver",
-    "surfaceId": "option-grid-v1",
+    "surfaceId": "stopping-v1",
     "icon": "🛑",
     "acceptedResult": "voluntary-stop",
     "phrasings": [
@@ -257,7 +257,7 @@
     "category": "man",
     "phase": "driving",
     "responseType": "spoken-maneuver",
-    "surfaceId": "option-grid-v1",
+    "surfaceId": "parking-v1",
     "icon": "🅿️",
     "acceptedResult": "park",
     "phrasings": [
@@ -278,7 +278,7 @@
     "category": "man",
     "phase": "driving",
     "responseType": "spoken-multi-step",
-    "surfaceId": "option-grid-v1",
+    "surfaceId": "secure-yaris-v1",
     "icon": "✋",
     "acceptedResult": "secure-vehicle",
     "phrasings": [
@@ -299,7 +299,7 @@
     "category": "man",
     "phase": "driving",
     "responseType": "terminology-maneuver",
-    "surfaceId": "option-grid-v1",
+    "surfaceId": "overtake-v1",
     "icon": "⏩",
     "acceptedResult": "overtake",
     "phrasings": [
@@ -341,7 +341,7 @@
     "category": "pre-eng",
     "phase": "precheck",
     "responseType": "component-location",
-    "surfaceId": "yaris-manual-v1-eng",
+    "surfaceId": "yaris-body-v2",
     "icon": "🔋",
     "acceptedResult": "locate-battery",
     "phrasings": [
@@ -367,7 +367,7 @@
     "category": "pre-eng",
     "phase": "precheck",
     "responseType": "component-location",
-    "surfaceId": "yaris-manual-v1-eng",
+    "surfaceId": "yaris-engine-bay-v2",
     "icon": "🛢️",
     "acceptedResult": "locate-oil-check",
     "phrasings": [
@@ -393,7 +393,7 @@
     "category": "pre-eng",
     "phase": "precheck",
     "responseType": "component-location",
-    "surfaceId": "yaris-manual-v1-eng",
+    "surfaceId": "yaris-engine-bay-v2",
     "icon": "💧",
     "acceptedResult": "locate-coolant-check",
     "phrasings": [
@@ -419,7 +419,7 @@
     "category": "pre-eng",
     "phase": "precheck",
     "responseType": "multi-step-demonstration",
-    "surfaceId": "yaris-manual-v1-eng",
+    "surfaceId": "yaris-body-v2",
     "icon": "🚘",
     "acceptedResult": "open-bonnet-check-levels",
     "phrasings": [
@@ -445,7 +445,7 @@
     "category": "pre-dash",
     "phase": "precheck",
     "responseType": "dashboard-location",
-    "surfaceId": "yaris-manual-v1-dash",
+    "surfaceId": "yaris-dashboard-v2",
     "icon": "⛽",
     "acceptedResult": "locate-fuel-level",
     "phrasings": [
@@ -471,7 +471,7 @@
     "category": "pre-dash",
     "phase": "precheck",
     "responseType": "dashboard-location",
-    "surfaceId": "yaris-manual-v1-dash",
+    "surfaceId": "yaris-dashboard-v2",
     "icon": "🌡️",
     "acceptedResult": "locate-engine-temperature",
     "phrasings": [
@@ -497,7 +497,7 @@
     "category": "pre-dash",
     "phase": "precheck",
     "responseType": "control-operation",
-    "surfaceId": "yaris-manual-v1-dash",
+    "surfaceId": "yaris-door-v2",
     "icon": "🔒",
     "acceptedResult": "lock-rear-windows",
     "phrasings": [
@@ -523,7 +523,7 @@
     "category": "pre-dash",
     "phase": "precheck",
     "responseType": "control-operation",
-    "surfaceId": "yaris-manual-v1-dash",
+    "surfaceId": "yaris-door-v2",
     "icon": "🔓",
     "acceptedResult": "unlock-rear-windows",
     "phrasings": [
@@ -549,7 +549,7 @@
     "category": "pre-light",
     "phase": "precheck",
     "responseType": "control-operation",
-    "surfaceId": "yaris-manual-v1-light",
+    "surfaceId": "yaris-dashboard-v2",
     "icon": "🔦",
     "acceptedResult": "high-beams",
     "phrasings": [
@@ -575,7 +575,7 @@
     "category": "pre-light",
     "phase": "precheck",
     "responseType": "control-operation",
-    "surfaceId": "yaris-manual-v1-light",
+    "surfaceId": "yaris-dashboard-v2",
     "icon": "🌁",
     "acceptedResult": "front-fog-lights",
     "phrasings": [
@@ -601,7 +601,7 @@
     "category": "pre-light",
     "phase": "precheck",
     "responseType": "control-operation",
-    "surfaceId": "yaris-manual-v1-light",
+    "surfaceId": "yaris-dashboard-v2",
     "icon": "🌫️",
     "acceptedResult": "rear-fog-light",
     "phrasings": [
@@ -627,7 +627,7 @@
     "category": "pre-body",
     "phase": "precheck",
     "responseType": "physical-demonstration",
-    "surfaceId": "yaris-manual-v1-body",
+    "surfaceId": "yaris-body-v2",
     "icon": "🧳",
     "acceptedResult": "open-boot",
     "phrasings": [
@@ -653,7 +653,7 @@
     "category": "pre-body",
     "phase": "precheck",
     "responseType": "control-explanation",
-    "surfaceId": "yaris-manual-v1-body",
+    "surfaceId": "yaris-climate-v2",
     "icon": "🪟",
     "acceptedResult": "front-demist",
     "phrasings": [
@@ -679,7 +679,7 @@
     "category": "pre-body",
     "phase": "precheck",
     "responseType": "control-explanation",
-    "surfaceId": "yaris-manual-v1-body",
+    "surfaceId": "yaris-climate-v2",
     "icon": "♨️",
     "acceptedResult": "rear-demist",
     "phrasings": [

@@ -214,6 +214,70 @@ test('validates every known Task 4 attempt field while retaining valid optional 
   );
 });
 
+test('validates optional Stage 2 surface provenance without requiring it on prior attempts', () => {
+  const provenance = {
+    surfaceVersion: 2,
+    surfaceSeed: 42,
+    expectedResult: 'roundabout-exit-3',
+    selectedTargetId: 'exit-3'
+  };
+  const state = {
+    ...defaultState(),
+    attempts: [completedAttempt(provenance)]
+  };
+
+  assert.deepEqual(importState(JSON.stringify(state)).attempts, state.attempts);
+  assert.deepEqual(
+    importState(JSON.stringify({ ...defaultState(), attempts: [completedAttempt()] })).attempts,
+    [completedAttempt()]
+  );
+
+  for (const [field, value] of [
+    ['surfaceVersion', 0],
+    ['surfaceSeed', -1],
+    ['expectedResult', ''],
+    ['selectedTargetId', '']
+  ]) {
+    assert.throws(
+      () => importState(JSON.stringify({
+        ...defaultState(),
+        attempts: [completedAttempt({ ...provenance, [field]: value })]
+      })),
+      new RegExp(`Invalid attempts\\[0\\]\\.${field}`)
+    );
+  }
+
+  assert.deepEqual(
+    importState(JSON.stringify({
+      ...defaultState(),
+      attempts: [completedAttempt({ ...provenance, selectedTargetId: null })]
+    })).attempts,
+    [completedAttempt({ ...provenance, selectedTargetId: null })]
+  );
+});
+
+test('imports historical provenance but never restores an imported active surface model', () => {
+  const futureAttempt = completedAttempt({
+    surfaceVersion: 99,
+    surfaceSeed: 42,
+    expectedResult: 'turn-right',
+    selectedTargetId: 'right'
+  });
+  const imported = importState(JSON.stringify({
+    ...defaultState(),
+    attempts: [futureAttempt],
+    activeSurfaceModel: { id: 'do-not-restore' },
+    activeSession: {
+      id: 'future-session',
+      activeSurfaceModel: { id: 'also-do-not-restore' }
+    }
+  }));
+
+  assert.deepEqual(imported.attempts, [futureAttempt]);
+  assert.equal(Object.hasOwn(imported, 'activeSurfaceModel'), false);
+  assert.deepEqual(imported.activeSession, { id: 'future-session' });
+});
+
 test('validates known action-progress schedules without discarding additive fields', () => {
   const validProgress = {
     'turn-right': { consecutiveUnaided: 2, nextDueAt: 123, futureScheduleField: 'keep me' }

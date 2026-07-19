@@ -9,6 +9,14 @@ import { promisify } from 'node:util';
 const ROOT = resolve(new URL('..', import.meta.url).pathname);
 const execFileAsync = promisify(execFile);
 const EXCLUDED_RELEASE_PREFIXES = Object.freeze(['audio/']);
+const UNSAFE_MARKDOWN_SERVING_PATTERNS = Object.freeze([
+  /http\.server/i,
+  /\b0\.0\.0\.0\b/,
+  /\[\s*::\s*\]/
+]);
+const UNSAFE_NORMALIZED_BIND_PATTERNS = Object.freeze([
+  /(?:--host|--bind|-b)(?:\s*=\s*|\s+)::(?:\s|$)|(?:\bbind(?:ing)?(?:\s+to)?|\blisten(?:ing)?(?:\s+on)?)\s+::(?:\s|$)/i
+]);
 
 async function candidateTextFiles(directory = ROOT) {
   const files = directory === ROOT
@@ -41,6 +49,23 @@ async function regularFiles(directory) {
   return files;
 }
 
+async function releaseDocumentationFiles() {
+  return (await gitReleaseFiles()).filter(path => path.endsWith('.md'));
+}
+
+function assertSafeReleaseDocumentation(path, text) {
+  for (const pattern of UNSAFE_MARKDOWN_SERVING_PATTERNS) {
+    assert.doesNotMatch(text, pattern, `${path} contains an unsafe static-server instruction`);
+  }
+  const normalized = text
+    .normalize('NFKC')
+    .replace(/[`'"*_~\[\](){}<>.,;!?]/g, ' ')
+    .replace(/\s+/g, ' ');
+  for (const pattern of UNSAFE_NORMALIZED_BIND_PATTERNS) {
+    assert.doesNotMatch(normalized, pattern, `${path} contains an unsafe static-server instruction`);
+  }
+}
+
 test('release candidate contains no credential-shaped text', async () => {
   const forbidden = [
     'OPENAI_API_KEY' + '=',
@@ -68,6 +93,49 @@ test('release text discovery includes extensionless files and dotfiles while ski
   } finally {
     await rm(fixture, { recursive: true, force: true });
   }
+});
+
+test('all release documentation routes LAN use through serve:lan without repository-root server commands', async () => {
+  const documentationFiles = await releaseDocumentationFiles();
+  const documentationPaths = documentationFiles.map(path => relative(ROOT, path));
+  assert.ok(documentationPaths.includes('AGENTS.md'), 'root AGENTS.md must be audited');
+  assert.ok(documentationPaths.includes('references/audio-audition.md'), 'reference Markdown must be audited');
+  const lanGuides = [];
+  for (const path of documentationFiles) {
+    const text = await readFile(path, 'utf8');
+    assertSafeReleaseDocumentation(relative(ROOT, path), text);
+    if (/same[- ]Wi-?Fi|local network|LAN bind/i.test(text)) lanGuides.push([path, text]);
+  }
+  assert.ok(lanGuides.length >= 2, 'README and implementation plan must document LAN use');
+  for (const [path, text] of lanGuides) {
+    assert.match(text, /serve:lan/, `${relative(ROOT, path)} must use serve:lan`);
+  }
+});
+
+test('documentation audit rejects HTTP-server references and normalized wildcard-bind guidance', () => {
+  const unsafeFixtures = [
+    ['AGENTS.md', 'python -m http.server'],
+    ['references/example.md', 'python3 -m http.server 9000 --directory .'],
+    ['references/versioned.md', 'python3.14 -mhttp.server 8123'],
+    ['docs/reference.md', 'The HTTP.SERVER module is convenient for previews.'],
+    ['README.md', 'Serve with --host 0.0.0.0'],
+    ['docs/design.md', 'Listen on [::] for LAN access'],
+    ['docs/quoted.md', 'Listen on `"::"` for LAN access'],
+    ['docs/spec.md', 'Start the server with --bind ::'],
+    ['docs/equals-host.md', 'Start the server with --host=::'],
+    ['docs/equals-single-quote.md', "Start the server with --bind='::'"],
+    ['docs/equals-double-quote.md', 'Start the server with --bind="::"'],
+    ['docs/short-option.md', 'Start the server with `-b "::"`.'],
+    ['docs/prose.md', 'Bind to **`::`** for other devices.'],
+    ['CHANGELOG.md', 'Binding to :: exposes every interface']
+  ];
+  for (const [path, text] of unsafeFixtures) {
+    assert.throws(() => assertSafeReleaseDocumentation(path, text), /unsafe static-server instruction/);
+  }
+  assert.doesNotThrow(() => assertSafeReleaseDocumentation(
+    'README.md',
+    'Use `npm --prefix /project run serve:lan`; the hardened script owns the approved bind configuration.'
+  ));
 });
 
 test('audio manifest references complete nonempty static assets', async () => {
@@ -100,4 +168,42 @@ test('release identity, isolation, scope, and bilingual AI voice disclosure are 
   assert.match(design, /no runtime dependency on Piso Asturiano/i);
   assert.match(readme, /no runtime dependency on Piso Asturiano/i);
   assert.match(readme, /Stage 2[^\n]*deferred/i);
+});
+
+test('Stage 2 release documents the activated action surfaces and review limits', async () => {
+  const [catalogText, readme, changelog, design] = await Promise.all([
+    readFile(resolve(ROOT, 'data/commands.json'), 'utf8'),
+    readFile(resolve(ROOT, 'README.md'), 'utf8'),
+    readFile(resolve(ROOT, 'CHANGELOG.md'), 'utf8'),
+    readFile(resolve(ROOT, 'docs/design.md'), 'utf8')
+  ]);
+  const catalog = JSON.parse(catalogText);
+
+  assert.deepEqual(
+    catalog.filter(command => command.phase === 'driving' && command.surfaceId === 'option-grid-v1')
+      .map(command => command.id).sort(),
+    ['c-adapte', 'c-detencion', 'c-final']
+  );
+  assert.equal(catalog.filter(command => command.surfaceId === 'roundabout-v2').length, 5);
+  assert.ok(catalog.filter(command => command.phase === 'precheck')
+    .every(command => command.surfaceId.startsWith('yaris-') && command.surfaceId.endsWith('-v2')));
+
+  assert.match(readme, /action-matched response model/i);
+  assert.match(readme, /landscape iPad/i);
+  assert.match(readme, /exactly three semantic exceptions/i);
+  assert.match(readme, /c-adapte.*c-detencion.*c-final/s);
+  assert.match(readme, /parking.*stopping.*provisional/i);
+  assert.match(readme, /Toyota Yaris Hybrid 2019/i);
+  assert.match(readme, /manual-derived original schematics/i);
+  assert.match(readme, /photographs.*replace/i);
+  assert.match(readme, /npm --prefix \/Users\/jeffreypease\/Projects\/examen-practico-de-conducir run serve:lan/);
+  assert.doesNotMatch(readme, /python3 -m http\.server/);
+  assert.match(readme, /rejects dotfiles.*\.git.*\.superpowers/i);
+  assert.match(readme, /automatic hybrid.*manual-transmission test vehicle/i);
+  assert.match(readme, /no manual-transmission-specific training is included/i);
+  assert.match(readme, /current `c-inmov` parking-brake\/selector-P sequence comes from the provisional automatic-hybrid reference and must be confirmed or replaced after the school identifies the actual manual test vehicle and securing procedure/i);
+  assert.match(readme, /browser.*automation.*export.*import.*manual.*smoke/i);
+  assert.match(changelog, /Stage 2 action surfaces/i);
+  assert.match(design, /Stage 2 implemented for review/i);
+  assert.match(design, /simulation.*phrasing.*mastery.*deferred/is);
 });

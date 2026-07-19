@@ -20,7 +20,8 @@ test('all setup controls receive a 44px-capable layout', async () => {
 
 test('local server rejects dotfiles and resolves files within its real root', async () => {
   const source = await readFile(new URL('../scripts/serve.mjs', import.meta.url), 'utf8');
-  assert.match(source, /pathname\.split\('\/'\)\.some\(part => part\.startsWith\('\.'\)\)/);
+  assert.match(source, /import \{ isForbiddenPathname, parseServerOptions \} from '\.\/serve-options\.mjs'/);
+  assert.match(source, /isForbiddenPathname\(pathname\)/);
   assert.match(source, /realpath\(/);
 });
 
@@ -79,4 +80,16 @@ test('app selects only supported surfaces and uses normalized actions, localized
   assert.match(source, /localizedVehicleAnswer\(command, locale\(\)\)/);
   assert.match(source, /translate\(locale\(\), 'data\.management'\)/);
   assert.match(source, /class="data-controls" role="group" aria-label="\$\{translate\(locale\(\), 'data\.management'\)\}"/);
+});
+
+test('app routes model-aware responses, reveal provenance, and unscored surface retries', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  assert.match(source, /generateSurface/);
+  assert.match(source, /reduceSurfaceResponse/);
+  assert.match(source, /renderSurfaceModel/);
+  assert.match(source, /surfaceModel:\s*before\.activeSurfaceModel/);
+  assert.match(source, /selectedTargetId:\s*model\.selectedTargetId/);
+  assert.match(source, /data-action="surface-retry"/);
+  assert.match(source, /type:\s*'SURFACE_EVENT',\s*surfaceEvent/);
+  assert.doesNotMatch(source, /SURFACE_RESPONSE_UPDATED/);
 });
