@@ -44,3 +44,31 @@ test('precheck scene and icon lookups reject unsupported identifiers', () => {
   assert.throws(() => precheckSceneForCommand('missing'), /Unsupported precheck command: missing/);
   assert.throws(() => renderPrecheckIcon('mystery'), /Unsupported precheck icon: mystery/);
 });
+
+test('cabin prechecks map to three packaged scenes with distinct, described icon targets', async () => {
+  const expectedMappings = {
+    'c-pre-combustible': ['generic-instrument-cluster', 'assets/precheck/generic-instrument-cluster.png'],
+    'c-pre-temperatura': ['generic-instrument-cluster', 'assets/precheck/generic-instrument-cluster.png'],
+    'c-pre-bloquear-elevalunas': ['generic-driver-door', 'assets/precheck/generic-driver-door.png'],
+    'c-pre-desbloquear-elevalunas': ['generic-driver-door', 'assets/precheck/generic-driver-door.png'],
+    'c-pre-desempanar-delantera': ['generic-climate-panel', 'assets/precheck/generic-climate-panel.png'],
+    'c-pre-desempanar-trasera': ['generic-climate-panel', 'assets/precheck/generic-climate-panel.png']
+  };
+
+  for (const [commandId, [sceneId, assetPath]] of Object.entries(expectedMappings)) {
+    const scene = precheckSceneForCommand(commandId);
+    assert.equal(scene.id, sceneId);
+    assert.equal(scene.asset, assetPath);
+    assert.ok(Object.keys(scene.targets).length >= 3);
+    assert.ok(Object.values(scene.targets).every(target => target.iconKey && target.anchorDescription));
+    const asset = await stat(new URL(`../${assetPath}`, import.meta.url));
+    assert.ok(asset.size > 0);
+  }
+
+  assert.notEqual(PRECHECK_SCENES['generic-instrument-cluster'].targets['fuel-gauge'].iconKey,
+    PRECHECK_SCENES['generic-instrument-cluster'].targets['temperature-gauge'].iconKey);
+  assert.notEqual(PRECHECK_SCENES['generic-driver-door'].targets['window-lock'].iconKey,
+    PRECHECK_SCENES['generic-driver-door'].targets['door-lock'].iconKey);
+  assert.notEqual(PRECHECK_SCENES['generic-climate-panel'].targets['front-demist'].iconKey,
+    PRECHECK_SCENES['generic-climate-panel'].targets['rear-demist'].iconKey);
+});

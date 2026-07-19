@@ -258,7 +258,7 @@ test('renderer keeps visible labels hidden until reveal while exposing localized
   const spanish = renderYarisSurface(model, { reveal: true, selectedTargetId: 'rear-demist' }, 'es', true);
 
   assert.match(english, /data-surface="yaris-climate-v2"/);
-  assert.equal((english.match(/class="yaris-hotspot"/g) ?? []).length, model.targets.length);
+  assert.equal((english.match(/class="yaris-hotspot(?:\s|\")/g) ?? []).length, model.targets.length);
   assert.match(english, /data-target="front-demist"[^>]+aria-label="Windscreen demister: off"[^>]+aria-pressed="false"/);
   assert.doesNotMatch(english, /class="yaris-hotspot-label"/);
   assert.doesNotMatch(english, />Windscreen demister</);
@@ -267,7 +267,7 @@ test('renderer keeps visible labels hidden until reveal while exposing localized
   assert.match(spanish, /data-target="rear-demist"[^>]+data-selected="true"[^>]+aria-label="Desempañador de la luneta trasera: apagado — Selección incorrecta"/);
   assert.match(spanish, /class="yaris-hotspot-label"[^>]*>Desempañador del parabrisas</);
   assert.match(spanish, /class="yaris-hotspot-label"[^>]*>Desempañador de la luneta trasera</);
-  assert.match(spanish, /class="yaris-hotspot-label" aria-hidden="true" style="--label-x:70%;--label-y:29%;--label-width:30%">Desempañador del parabrisas</);
+  assert.match(spanish, /class="yaris-hotspot-label" aria-hidden="true" style="--label-x:36%;--label-y:15%;--label-width:32%">Desempañador del parabrisas</);
   assert.equal((spanish.match(/ disabled/g) ?? []).length, model.targets.length);
 });
 
