@@ -10,6 +10,33 @@ import {
 
 const FOUR_EXIT_ANGLES = Object.freeze([-12, -83, -163, -206]);
 const FIVE_EXIT_ANGLES = Object.freeze([24, -22, -90, -154, -200]);
+const ROUNDABOUT_SCENES = Object.freeze({
+  4: Object.freeze({
+    sceneId: 'roundabout-four-photo-v1',
+    angles: FOUR_EXIT_ANGLES,
+    routeCircle: Object.freeze({ x: 50, y: 48, radius: 20 }),
+    targetAnchors: Object.freeze([
+      Object.freeze({ x: 87, y: 43 }),
+      Object.freeze({ x: 55, y: 11 }),
+      Object.freeze({ x: 13, y: 39 }),
+      Object.freeze({ x: 13, y: 67 })
+    ])
+  }),
+  5: Object.freeze({
+    sceneId: 'roundabout-five-photo-v1',
+    angles: FIVE_EXIT_ANGLES,
+    routeCircle: Object.freeze({ x: 50, y: 46, radius: 21 }),
+    targetAnchors: Object.freeze([
+      Object.freeze({ x: 87, y: 67 }),
+      Object.freeze({ x: 87, y: 34 }),
+      Object.freeze({ x: 50, y: 11 }),
+      Object.freeze({ x: 13, y: 34 }),
+      Object.freeze({ x: 13, y: 67 })
+    ])
+  })
+});
+const ROAD_MOUTH_JITTER = 0.75;
+const ROUTE_ANGLE_JITTER = 2;
 const JUNCTION_ACTION_RESULTS = Object.freeze(['turn-right', 'turn-left', 'continue-forward']);
 const JUNCTION_TARGETS = Object.freeze([
   Object.freeze({ id: 'left', resultId: 'turn-left', x: 15, y: 42 }),
@@ -70,9 +97,15 @@ export function generateSpatialSurface(command, seed, options = {}) {
   if (exitCount !== 4 && exitCount !== 5) throw new Error('Roundabout exit count must be four or five');
   if (ordinal > exitCount) throw new Error('Requested roundabout exit is unavailable');
 
-  const angles = (exitCount === 5 ? FIVE_EXIT_ANGLES : FOUR_EXIT_ANGLES)
-    .map(angle => jitterAngle(angle, 8, rng));
-  const targets = angles.map((angle, index) => roadExitTarget(index + 1, angle));
+  const scene = ROUNDABOUT_SCENES[exitCount];
+  const angles = scene.angles.map(angle => jitterAngle(angle, ROUTE_ANGLE_JITTER, rng));
+  const targets = scene.targetAnchors.map((anchor, index) => roadExitTarget(index + 1, anchor, rng));
+  const exitJoins = angles.map(angle => polarPoint(
+    scene.routeCircle.x,
+    scene.routeCircle.y,
+    scene.routeCircle.radius,
+    angle
+  ));
   assertNonOverlappingTargets(targets);
 
   return createSurfaceModel({
@@ -86,7 +119,9 @@ export function generateSpatialSurface(command, seed, options = {}) {
       entry: 'bottom',
       exitCount,
       angles,
-      sceneId: exitCount === 5 ? 'roundabout-five-photo-v1' : 'roundabout-four-photo-v1'
+      exitJoins,
+      routeCircle: scene.routeCircle,
+      sceneId: scene.sceneId
     },
     meta: { commandId: command.id }
   });
@@ -168,10 +203,19 @@ function roundaboutOrdinal(command) {
   return Number(match[1]);
 }
 
-function roadExitTarget(ordinal, angle) {
+function roadExitTarget(ordinal, anchor, rng) {
   const resultId = `roundabout-exit-${ordinal}`;
-  const point = polarPoint(50, 50, 39, angle);
-  return targetBox(`exit-${ordinal}`, resultId, point.x, point.y, STAGE);
+  return targetBox(
+    `exit-${ordinal}`,
+    resultId,
+    jitterRoadMouthCoordinate(anchor.x, rng),
+    jitterRoadMouthCoordinate(anchor.y, rng),
+    STAGE
+  );
+}
+
+function jitterRoadMouthCoordinate(base, rng) {
+  return Math.round((base + (rng() * 2 - 1) * ROAD_MOUTH_JITTER) * 100) / 100;
 }
 
 function roadDrawing(model) {
@@ -187,8 +231,7 @@ function roadDrawing(model) {
   }
 
   const exitRoads = model.targets.map((target, index) => {
-    const ringPoint = polarPoint(50, 50, 25, model.geometry.angles[index]);
-    return `<path d="${svgRoadPath([ringPoint, target])}" class="spatial-road"/>`;
+    return `<path d="${svgRoadPath([model.geometry.exitJoins[index], target])}" class="spatial-road"/>`;
   }).join('');
   return `<path d="M 50 100 L 50 75" class="spatial-road"/>
     ${exitRoads}
@@ -204,9 +247,11 @@ function correctRoute(model, target) {
 
   const index = model.targets.indexOf(target);
   const angle = model.geometry.angles[index];
-  const ringPoint = polarPoint(50, 50, 25, angle);
+  const ringPoint = model.geometry.exitJoins[index];
+  const circle = model.geometry.routeCircle;
+  const entryY = circle.y + circle.radius;
   const largeArc = Math.abs(90 - angle) > 180 ? 1 : 0;
-  return `<path data-correct-route d="M 50 100 L 50 75 A 25 25 0 ${largeArc} 0 ${ringPoint.x} ${ringPoint.y} L ${target.x} ${target.y}"/>`;
+  return `<path data-correct-route d="M 50 100 L ${circle.x} ${entryY} A ${circle.radius} ${circle.radius} 0 ${largeArc} 0 ${ringPoint.x} ${ringPoint.y} L ${target.x} ${target.y}"/>`;
 }
 
 function roadTargetButton(target, labels, expectedResult, state) {

@@ -41,6 +41,12 @@ const CONTROL_SURFACE_IDS = new Set(['wheel-center-v1', 'secure-yaris-v1']);
 const SEMANTIC_RESULTS = Object.freeze(['adapt-speed', 'involuntary-stop', 'exam-finish']);
 const SEMANTIC_LAYOUT_SEED_SALT = 0x9e3779b9;
 
+export const SEMANTIC_RESULT_ICONS = Object.freeze({
+  'adapt-speed': '⏬',
+  'involuntary-stop': '🚧',
+  'exam-finish': '🏁'
+});
+
 /**
  * Generates one immutable model for every active production surface.
  */
@@ -150,7 +156,8 @@ function renderSemanticSurface(model, locale, state) {
       : selectionState === 'wrong'
         ? '<span class="target-status-marker wrong" aria-hidden="true">×</span>'
         : '';
-    return `<button class="surface-option semantic-option" type="button" data-target="${escapeAttribute(target.id)}" data-result="${escapeAttribute(target.resultId)}" aria-label="${escapeAttribute(translate(locale, `actionResult.${target.resultId}`) + accessibleOutcome)}"${selectedAttributes}${revealAttributes}${state.disabled ? ' disabled' : ''}>${marker}<span>${escapeHtml(translate(locale, `actionResult.${target.resultId}`))}</span></button>`;
+    const icon = `<span class="option-icon" aria-hidden="true">${SEMANTIC_RESULT_ICONS[target.resultId]}</span>`;
+    return `<button class="surface-option semantic-option" type="button" data-target="${escapeAttribute(target.id)}" data-result="${escapeAttribute(target.resultId)}" aria-label="${escapeAttribute(translate(locale, `actionResult.${target.resultId}`) + accessibleOutcome)}"${selectedAttributes}${revealAttributes}${state.disabled ? ' disabled' : ''}>${marker}${icon}<span>${escapeHtml(translate(locale, `actionResult.${target.resultId}`))}</span></button>`;
   }).join('');
   return `<div class="surface-grid semantic-grid" data-surface="option-grid-v1">${buttons}</div>`;
 }

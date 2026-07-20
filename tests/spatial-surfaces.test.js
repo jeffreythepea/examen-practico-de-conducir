@@ -94,17 +94,17 @@ test('straight-ahead junction commands use the photographed center road across s
 test('four- and five-exit targets stay within their photographed road mouths', () => {
   const bands = {
     4: [
-      [85, 90, 34, 51],
-      [46, 62, 9, 14],
-      [9, 17, 31, 46],
-      [10, 20, 59, 74]
+      [86, 88, 42, 44],
+      [54, 56, 10, 12],
+      [12, 14, 38, 40],
+      [12, 14, 66, 68]
     ],
     5: [
-      [81, 90, 58, 73],
-      [82, 90, 29, 44],
-      [44, 56, 9, 13],
-      [10, 19, 28, 44],
-      [9, 17, 56, 73]
+      [86, 88, 66, 68],
+      [86, 88, 33, 35],
+      [49, 51, 10, 12],
+      [12, 14, 33, 35],
+      [12, 14, 66, 68]
     ]
   };
 
@@ -118,6 +118,26 @@ test('four- and five-exit targets stay within their photographed road mouths', (
         assert.ok(target.y >= minY && target.y <= maxY,
           `${exitCount}-exit ${target.id} y=${target.y} must remain in its photographed mouth`);
       });
+    }
+  }
+});
+
+test('roundabout reveal routes stay on the photographed lane and finish at the selected road mouth', () => {
+  for (const exitCount of [4, 5]) {
+    for (let ordinal = 1; ordinal <= exitCount; ordinal += 1) {
+      const model = generateSpatialSurface(command(`roundabout-exit-${ordinal}`), 40 + ordinal, { exitCount });
+      const target = model.targets[ordinal - 1];
+      const join = model.geometry.exitJoins?.[ordinal - 1];
+      const circle = model.geometry.routeCircle;
+
+      assert.ok(join, `${exitCount}-exit route ${ordinal} needs a calibrated lane join`);
+      assert.ok(circle, `${exitCount}-exit scene needs a calibrated roundabout lane`);
+      assert.ok(Math.abs(Math.hypot(join.x - circle.x, join.y - circle.y) - circle.radius) < 0.1,
+        `${exitCount}-exit route ${ordinal} join must remain on the roundabout lane`);
+
+      const markup = renderSpatialSurface(model, 'en', { reveal: true });
+      assert.match(markup, new RegExp(`0 ${join.x} ${join.y} L ${target.x} ${target.y}`),
+        `${exitCount}-exit route ${ordinal} must connect the lane join to its exact target`);
     }
   }
 });

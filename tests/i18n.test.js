@@ -14,7 +14,7 @@ const requiredKeys = [
   'screen.setup','screen.loading','screen.prompt','screen.results','prompt.listen','prompt.progress','prompt.timer',
   'reveal.spanish','reveal.meaning','reveal.expected','reveal.vehicle','result.unaided','result.assisted','result.incorrect',
   'miss.hearing','miss.meaning','miss.mapping','miss.target','miss.accidental','miss.other',
-  'miss.title','miss.optional','warning.source','warning.vehicle','data.export','data.import','data.importConfirm',
+  'miss.title','miss.optional','warning.source','warning.vehicle','settings.title','data.export','data.import','data.importConfirm',
   'data.management','data.reset','data.resetConfirm','error.audio','error.import','error.recovery','error.init','summary.unaidedPercent','summary.averageTime',
   'summary.replays','summary.hints','summary.weak','summary.noWeak','summary.milliseconds','status.audioReady',
   'surface.selectRoad','surface.selectSpace','surface.correctRoute','surface.correctControl','surface.correctSpace',
@@ -102,6 +102,29 @@ test('feedback-sound setting is explicit and bilingual', () => {
   assert.equal(translate('es', 'setting.feedbackSounds'), 'Sonidos de respuesta');
   assert.equal(translate('es', 'feedbackSounds.on'), 'Activados');
   assert.equal(translate('es', 'feedbackSounds.off'), 'Desactivados');
+});
+
+test('headlight labels name the controls without redundant symbol wording', () => {
+  assert.equal(translate('en', 'surface.yaris.positionLights'), 'Position lights');
+  assert.equal(translate('en', 'surface.yaris.dippedHeadlights'), 'Dipped headlights');
+  assert.equal(translate('es', 'surface.yaris.positionLights'), 'Luces de posición');
+  assert.equal(translate('es', 'surface.yaris.dippedHeadlights'), 'Luces de cruce');
+});
+
+test('the setup Settings disclosure control is bilingual', () => {
+  assert.equal(translate('en', 'settings.title'), 'Settings');
+  assert.equal(translate('es', 'settings.title'), 'Ajustes');
+});
+
+test('the reveal heading and setup warning describe a generic manual car, not a Toyota Yaris Hybrid', () => {
+  assert.doesNotMatch(translate('en', 'reveal.vehicle'), /toyota|yaris|hybrid/i);
+  assert.doesNotMatch(translate('es', 'reveal.vehicle'), /toyota|yaris|h[ií]brido/i);
+  assert.doesNotMatch(translate('en', 'warning.vehicle'), /toyota|yaris|hybrid/i);
+  assert.doesNotMatch(translate('es', 'warning.vehicle'), /toyota|yaris|h[ií]brido/i);
+  assert.match(translate('en', 'reveal.vehicle'), /generic.*manual|manual.*generic/i);
+  assert.match(translate('es', 'reveal.vehicle'), /gen[eé]rico.*manual|manual.*gen[eé]rico/i);
+  assert.match(translate('en', 'warning.vehicle'), /generic.*manual|manual.*generic/i);
+  assert.match(translate('es', 'warning.vehicle'), /gen[eé]rico.*manual|manual.*gen[eé]rico/i);
 });
 
 test('backup confirmation and import failure copy are localized', () => {

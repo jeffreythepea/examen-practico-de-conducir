@@ -218,6 +218,44 @@ hr {
   gap: 0.7rem;
 }
 
+.settings-disclosure {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1.2rem;
+}
+
+.settings-disclosure summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.7rem 1rem;
+  border: 1px solid #aebdb3;
+  border-radius: 0.75rem;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  list-style: none;
+  width: fit-content;
+}
+
+.settings-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.settings-disclosure summary:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.settings-disclosure[open] summary {
+  margin-bottom: 1rem;
+}
+
 .loading {
   display: grid;
   min-height: 20rem;

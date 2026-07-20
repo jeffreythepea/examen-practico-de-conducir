@@ -77,6 +77,10 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       id: 'marked-bays-clear-entry',
       expectedResult: 'park',
       features: ['marked-bays', 'driveway', 'restricted-marking'],
+      correctRoute: [
+        { x: 50, y: 74 }, { x: 54, y: 67 }, { x: 62, y: 55 },
+        { x: 69, y: 45 }, { x: 74, y: 37 }
+      ],
       targets: [
         { id: 'open-bay', resultId: 'park', kind: 'legal-space', feature: 'open-bay', x: 74, y: 37 },
         { id: 'driveway-bay', resultId: 'blocked-access', kind: 'illegal-space', feature: 'driveway', explanationKey: 'surface.restricted.blockedAccess', x: 86, y: 15 },
@@ -87,6 +91,10 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       id: 'curb-bays-clear-space',
       expectedResult: 'park',
       features: ['curb-bays', 'crosswalk', 'no-parking-sign'],
+      correctRoute: [
+        { x: 50, y: 74 }, { x: 54, y: 67 }, { x: 62, y: 55 },
+        { x: 69, y: 45 }, { x: 74, y: 37 }
+      ],
       targets: [
         { id: 'clear-curb-bay', resultId: 'park', kind: 'legal-space', feature: 'open-bay', x: 74, y: 37 },
         { id: 'crosswalk-bay', resultId: 'crosswalk', kind: 'illegal-space', feature: 'crosswalk', explanationKey: 'surface.restricted.crosswalk', x: 43, y: 15 },
@@ -99,6 +107,10 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       id: 'urban-curb-clear',
       expectedResult: 'voluntary-stop',
       features: ['curb', 'driveway', 'crosswalk'],
+      correctRoute: [
+        { x: 50, y: 74 }, { x: 55, y: 72 }, { x: 62, y: 68 },
+        { x: 66, y: 64 }, { x: 70.5, y: 60 }
+      ],
       targets: [
         { id: 'clear-curb', resultId: 'voluntary-stop', kind: 'legal-stop', feature: 'clear-curb', x: 70.5, y: 60 },
         { id: 'driveway', resultId: 'blocked-access', kind: 'restricted-stop', feature: 'driveway', explanationKey: 'surface.restricted.blockedAccess', x: 84, y: 37 },
@@ -109,6 +121,10 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       id: 'no-stopping-curb-clear',
       expectedResult: 'voluntary-stop',
       features: ['curb', 'no-stopping-sign', 'crosswalk'],
+      correctRoute: [
+        { x: 50, y: 74 }, { x: 55, y: 72 }, { x: 62, y: 68 },
+        { x: 66, y: 64 }, { x: 70.5, y: 60 }
+      ],
       targets: [
         { id: 'clear-left-curb', resultId: 'voluntary-stop', kind: 'legal-stop', feature: 'clear-curb', x: 70.5, y: 60 },
         { id: 'no-stopping-curb', resultId: 'signed-no-stopping', kind: 'restricted-stop', feature: 'no-stopping-sign', explanationKey: 'surface.restricted.noStoppingSign', x: 72, y: 37 },

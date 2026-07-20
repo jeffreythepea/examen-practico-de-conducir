@@ -23,7 +23,7 @@ test('engine prechecks share one immutable photo scene with precisely audited an
   assert.deepEqual(
     Object.fromEntries(Object.entries(scene.targets).map(([id, target]) => [id, [target.x, target.y, target.iconKey]])),
     {
-      'engine-oil': [73.2, 73, 'oil'],
+      'engine-oil': [70.5, 71, 'oil'],
       coolant: [13.5, 37.5, 'coolant'],
       'brake-fluid': [63, 29, 'brake-fluid'],
       'battery-under-rear-right-seat': [74, 44.5, 'battery'],
@@ -35,6 +35,9 @@ test('engine prechecks share one immutable photo scene with precisely audited an
   assert.match(scene.targets['brake-fluid'].anchorDescription, /firewall.*reservoir cap/i);
   assert.match(scene.targets['battery-under-rear-right-seat'].anchorDescription, /centre.*battery/i);
   assert.match(scene.targets['washer-fluid'].anchorDescription, /washer.*cap/i);
+  assert.match(renderPrecheckIcon('brake-fluid'), /🛑/u);
+  assert.match(renderPrecheckIcon('brake-fluid'), /💧/u);
+  assert.doesNotMatch(renderPrecheckIcon('brake-fluid'), /<svg/u);
 
   for (const target of Object.values(scene.targets)) {
     assert.ok(target.iconKey);
@@ -104,13 +107,33 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
   assert.ok(Object.values(lighting.targets).every(target => target.iconKey === 'native-symbol'));
   assert.deepEqual(
     [lighting.targets['high-beam'].x, lighting.targets['high-beam'].y],
-    [29.1, 46.5]
+    [27, 46.5]
   );
 
   const headlightRing = PRECHECK_SCENES['generic-headlight-ring'];
   assert.equal(headlightRing.asset, lighting.asset);
   assert.deepEqual(Object.keys(headlightRing.targets).sort(), ['dipped-headlights', 'position-lights']);
   assert.ok(Object.values(headlightRing.targets).every(target => target.iconKey === 'native-symbol'));
+  assert.deepEqual(
+    [
+      headlightRing.targets['position-lights'].x,
+      headlightRing.targets['position-lights'].y,
+      headlightRing.targets['dipped-headlights'].x,
+      headlightRing.targets['dipped-headlights'].y
+    ],
+    [22.5, 39.5, 31, 48.5]
+  );
+  assert.deepEqual(
+    [
+      headlightRing.targets['position-lights'].width,
+      headlightRing.targets['position-lights'].height,
+      headlightRing.targets['dipped-headlights'].width,
+      headlightRing.targets['dipped-headlights'].height
+    ],
+    [8, 15, 8, 15],
+    'adjacent lighting targets must stay compact and non-overlapping'
+  );
+  assert.equal(headlightRing.targets['dipped-headlights'].labelPlacement.y, 76);
   assertNonOverlappingTargets(Object.entries(headlightRing.targets).map(([id, target]) => ({ id, ...target })));
   assert.match(headlightRing.targets['position-lights'].anchorDescription, /position-light symbol/i);
   assert.match(headlightRing.targets['dipped-headlights'].anchorDescription, /dipped-headlight symbol/i);
@@ -120,7 +143,7 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
   assert.ok(Object.values(indicator.targets).every(target => target.iconKey === 'native-symbol'));
   assertNonOverlappingTargets(Object.entries(indicator.targets).map(([id, target]) => ({ id, ...target })));
   assert.match(indicator.targets.indicator.anchorDescription, /indicator arrows/i);
-  assert.match(lighting.targets['high-beam'].anchorDescription, /centred.*native high-beam symbol/i);
+  assert.match(lighting.targets['high-beam'].anchorDescription, /offset.*native high-beam symbol/i);
   assert.match(lighting.targets['front-fog'].anchorDescription, /front.*fog.*ring/i);
   assert.match(lighting.targets['rear-fog'].anchorDescription, /rear.*fog.*ring/i);
   assert.deepEqual(

@@ -599,13 +599,15 @@ async function bootstrap() {
       </div>
       <button class="primary" type="button" data-action="start" ${canStart ? '' : 'disabled'}>${translate(locale(), 'action.start')}</button>
       ${canStart ? '' : `<p class="notice error" role="alert">${translate(locale(), 'error.audio')}</p>`}
-      <hr>
-      <div class="data-controls" role="group" aria-label="${translate(locale(), 'data.management')}">
-        <button type="button" data-action="export">${translate(locale(), 'data.export')}</button>
-        <button type="button" data-action="import">${translate(locale(), 'data.import')}</button>
-        <button class="danger" type="button" data-action="reset">${translate(locale(), 'data.reset')}</button>
-        <input type="file" data-import-file accept="application/json" hidden>
-      </div>
+      <details class="settings-disclosure">
+        <summary><span aria-hidden="true">⚙️</span> ${translate(locale(), 'settings.title')}</summary>
+        <div class="data-controls" role="group" aria-label="${translate(locale(), 'data.management')}">
+          <button type="button" data-action="export">${translate(locale(), 'data.export')}</button>
+          <button type="button" data-action="import">${translate(locale(), 'data.import')}</button>
+          <button class="danger" type="button" data-action="reset">${translate(locale(), 'data.reset')}</button>
+          <input type="file" data-import-file accept="application/json" hidden>
+        </div>
+      </details>
       ${importError ? `<p class="notice error" role="alert">${importError}</p>` : ''}
     </section>`;
   }
@@ -666,7 +668,7 @@ async function bootstrap() {
         <div><dt>${translate(locale(), 'reveal.spanish')}</dt><dd lang="es">${escapeHtml(phrasing.es)}</dd></div>
         ${locale() === 'en' ? `<div><dt>${translate(locale(), 'reveal.meaning')}</dt><dd>${escapeHtml(phrasing.en)}</dd></div>` : ''}
         <div><dt>${translate(locale(), 'reveal.expected')}</dt><dd>${escapeHtml(translate(locale(), `actionResult.${command.acceptedResult}`))}</dd></div>
-        ${command.vehicle ? `<div><dt>${translate(locale(), 'reveal.vehicle')}</dt><dd lang="${locale()}">${escapeHtml(localizedVehicleAnswer(command, locale()))} <span class="source-page">p. ${command.vehicle.page}</span></dd></div>` : ''}
+        ${command.vehicle ? `<div><dt>${translate(locale(), 'reveal.vehicle')}</dt><dd lang="${locale()}">${escapeHtml(localizedVehicleAnswer(command, locale()))}</dd></div>` : ''}
       </dl>
       ${model.outcome === 'incorrect' ? renderDiagnosis() : ''}
       <button class="primary" type="button" data-action="continue">${translate(locale(), 'action.continue')}</button>

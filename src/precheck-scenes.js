@@ -3,7 +3,7 @@ const ICONS = Object.freeze({
   coolant: '<span class="precheck-icon precheck-icon-coolant" aria-hidden="true"><span>🌡️</span><span>💧</span></span>',
   battery: '<span class="precheck-icon precheck-icon-battery" aria-hidden="true">🔋</span>',
   washer: '<span class="precheck-icon precheck-icon-washer" aria-hidden="true"><span>🪟</span><span>💦</span></span>',
-  'brake-fluid': '<span class="precheck-icon precheck-icon-brake-fluid" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M3 7q-3 5 0 10M21 7q3 5 0 10M12 7v6M12 16v1"/></svg><span>💧</span></span>',
+  'brake-fluid': '<span class="precheck-icon precheck-icon-brake-fluid" aria-hidden="true"><span>🛑</span><span>💧</span></span>',
   fuel: '<span class="precheck-icon precheck-icon-fuel" aria-hidden="true">⛽</span>',
   temperature: '<span class="precheck-icon precheck-icon-temperature" aria-hidden="true">🌡️</span>',
   speedometer: '<span class="precheck-icon precheck-icon-speedometer" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 17a8 8 0 1 1 16 0M12 14l4-5M7 17h10"/></svg></span>',
@@ -34,8 +34,8 @@ export const PRECHECK_SCENES = deepFreeze({
     targets: {
       'engine-oil': {
         resultId: 'locate-oil-check',
-        x: 73.2,
-        y: 73,
+        x: 70.5,
+        y: 71,
         width: 12,
         height: 18,
         kind: 'fluid-location',
@@ -121,7 +121,7 @@ export const PRECHECK_SCENES = deepFreeze({
       speedometer: {
         resultId: 'locate-speedometer', x: 50, y: 48.8, width: 12, height: 18,
         kind: 'gauge-location', interaction: 'locate', iconKey: 'native-symbol',
-        labelKey: 'surface.yaris.speedometer', labelPlacement: { x: 50, y: 26, width: 28 },
+        labelKey: 'surface.yaris.speedometer', labelPlacement: { x: 50, y: 20, width: 28 },
         anchorDescription: 'Centred on the large central speedometer face'
       }
     }
@@ -194,11 +194,11 @@ export const PRECHECK_SCENES = deepFreeze({
     reference: 'Generic manual hatchback lighting stalk — illustrative AI-generated photo',
     targets: {
       'high-beam': {
-        resultId: 'high-beams', x: 29.1, y: 46.5, width: 8, height: 15,
+        resultId: 'high-beams', x: 27, y: 46.5, width: 8, height: 15,
         kind: 'stalk-movement', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.highBeam', labelPlacement: { x: 17, y: 78, width: 28 },
         stateKind: 'power', initialState: false, desiredState: true,
-        anchorDescription: 'Centred on the native high-beam symbol on the stalk movement ring'
+        anchorDescription: 'Offset left of the native high-beam symbol on the stalk movement ring'
       },
       'front-fog': {
         resultId: 'front-fog-lights', x: 37.2, y: 42, width: 8, height: 15,
@@ -224,18 +224,18 @@ export const PRECHECK_SCENES = deepFreeze({
     reference: 'Generic manual hatchback headlight control ring — illustrative AI-generated photo',
     targets: {
       'position-lights': {
-        resultId: 'position-lights', x: 22.5, y: 41, width: 8, height: 15,
+        resultId: 'position-lights', x: 22.5, y: 39.5, width: 8, height: 15,
         kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.positionLights', labelPlacement: { x: 22, y: 70, width: 30 },
         stateKind: 'power', initialState: false, desiredState: true,
-        anchorDescription: 'Centred on the native position-light symbol on the headlight ring'
+        anchorDescription: 'Offset left while containing the native position-light symbol on the headlight ring'
       },
       'dipped-headlights': {
-        resultId: 'dipped-headlights', x: 30.5, y: 53, width: 8, height: 15,
+        resultId: 'dipped-headlights', x: 31, y: 48.5, width: 8, height: 15,
         kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
-        labelKey: 'surface.yaris.dippedHeadlights', labelPlacement: { x: 45, y: 70, width: 32 },
+        labelKey: 'surface.yaris.dippedHeadlights', labelPlacement: { x: 45, y: 76, width: 32 },
         stateKind: 'power', initialState: false, desiredState: true,
-        anchorDescription: 'Centred on the native dipped-headlight symbol on the headlight ring'
+        anchorDescription: 'Offset right while containing the native dipped-headlight symbol on the headlight ring'
       }
     }
   },

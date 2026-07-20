@@ -18,7 +18,7 @@ There are exactly three semantic exceptions: `c-adapte`, `c-detencion`, and `c-f
 
 Stage 2 uses seven packaged photo-backed scenes for the instrument cluster, lighting stalk, climate panel, driver-door controls, bonnet release, tailgate release, and engine bay. These are illustrative generic images, not photographs of the test vehicle. The precise physical anchors place every response ring on the relevant gauge, switch, control symbol, cap, battery body, or oil dipstick handle. The icon-first design tests Spanish language comprehension without requiring the learner to decode abstract stick figures. Stable diagram and target IDs preserve progress and response provenance as imagery improves.
 
-The active baseline treats the car as conventional for the location drill: the 12 V battery is under the bonnet. The Article 92 generic manual immobilization exercise requires stopping the engine, applying the hand parking brake, and selecting first gear uphill or reverse downhill. The actual test car must still be confirmed with the driving school because control positions, dashboard displays, lighting equipment, release mechanisms, and the precise securing procedure can differ. The Toyota Yaris Hybrid 2019 manual remains useful evidence for some controls, but its hybrid-specific battery position and automatic transmission are not the active training baseline.
+The active baseline treats the car as a generic conventional manual car for the location drill: the 12 V battery is under the bonnet. The Article 92 generic manual immobilization exercise requires stopping the engine, applying the hand parking brake, and selecting first gear uphill or reverse downhill. The actual test car must still be confirmed with the driving school because control positions, dashboard displays, lighting equipment, release mechanisms, and the precise securing procedure can differ.
 
 ## Requirements and local use
 
@@ -103,4 +103,4 @@ When finished, remove the variable from the shell with `unset ELEVENLABS_API_KEY
 - Confirm the AI-generated-voice disclosure is visible in both locales.
 - Confirm no credentials or generated temporary files are included.
 - Manually smoke export/import because browser automation cannot complete its download and file-picker path.
-- Use several real practice sessions before planning a moving-road prototype; collect command confusion, target-selection errors, misleading layouts, stopping/parking corrections, Yaris mismatches, response times, and hint/replay dependence.
+- Use several real practice sessions before planning a moving-road prototype; collect command confusion, target-selection errors, misleading layouts, stopping/parking corrections, precheck-target mismatches, response times, and hint/replay dependence.

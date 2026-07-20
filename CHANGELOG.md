@@ -2,6 +2,7 @@
 
 ## Command and phrasing expansion — in progress
 
+- Removed remaining user-visible Toyota Yaris Hybrid 2019 wording (reveal heading, setup warning, and the coolant-reservoir precheck answer) in favor of generic-manual-car language; the reveal screen no longer cites a bare, now-unnamed manual page number. Stable command, action, phrasing, and internal `yaris-*` surface/diagram IDs are unchanged pending a later migration decision.
 - Expanded the source-ledgered catalog from 30 to 36 commands, adding straight ahead, indicator, brake-fluid, washer-fluid, position-light, and dipped-headlight practice while keeping brake and washer fluid distinct.
 - Added 18 supplementary source-labeled alternatives for 54 total Spanish phrasings. A trial now retains the exact randomly selected playable phrasing through audio, Show Spanish, reveal, and attempt provenance.
 - Added action-matched surfaces for all six commands using the existing four-way junction, precisely anchored engine-bay components, native lighting-ring symbols, and the photographed indicator stalk.

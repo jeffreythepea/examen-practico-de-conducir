@@ -104,6 +104,36 @@ test('app selects only supported surfaces and uses normalized actions, localized
   assert.match(source, /class="data-controls" role="group" aria-label="\$\{translate\(locale\(\), 'data\.management'\)\}"/);
 });
 
+test('setup hides data-management actions behind a collapsed-by-default Settings disclosure', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  const detailsMatch = source.match(/<details class="settings-disclosure">[\s\S]*?<\/details>/);
+  assert.ok(detailsMatch, 'setup must render a settings-disclosure <details> element');
+  const detailsMarkup = detailsMatch[0];
+
+  assert.doesNotMatch(detailsMarkup, /<details class="settings-disclosure"[^>]* open/, 'disclosure must never render pre-opened');
+  assert.match(detailsMarkup, /<summary[^>]*>[\s\S]*?aria-hidden="true">⚙️<\/span>[\s\S]*?translate\(locale\(\), 'settings\.title'\)/);
+  assert.match(detailsMarkup, /data-action="export"/);
+  assert.match(detailsMarkup, /data-action="import"/);
+  assert.match(detailsMarkup, /data-import-file/);
+  assert.match(detailsMarkup, /data-action="reset"/);
+  assert.match(detailsMarkup, /class="data-controls" role="group" aria-label="\$\{translate\(locale\(\), 'data\.management'\)\}"/);
+  assert.doesNotMatch(detailsMarkup, /importError/, 'an import failure must remain visible after the disclosure collapses on rerender');
+  assert.match(source, /<\/details>\s*\$\{importError \? `<p class="notice error" role="alert">\$\{importError\}<\/p>` : ''\}/);
+});
+
+test('settings disclosure summary receives a 44px-capable, keyboard-focusable layout', async () => {
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  assert.match(css, /\.settings-disclosure[\s\S]*?summary[\s\S]*?min-height:\s*44px;/);
+  assert.match(css, /\.settings-disclosure[\s\S]*?summary[\s\S]*?:focus-visible[\s\S]*?outline/);
+});
+
+test('reveal no longer cites a model-specific manual page for vehicle procedures', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /class="source-page"/, 'a bare page number with no named manual no longer supports generic guidance');
+  assert.match(source, /localizedVehicleAnswer\(command, locale\(\)\)/, 'the generic vehicle-answer text itself must still render');
+});
+
 test('app routes model-aware responses, reveal provenance, and unscored surface retries', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
   assert.match(source, /generateSurface/);

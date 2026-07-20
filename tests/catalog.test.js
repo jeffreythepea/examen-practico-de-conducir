@@ -81,6 +81,13 @@ test('right-turn action retains source-backed canonical phrasing', () => {
   });
 });
 
+test('vehicle procedures describe a generic manual car, not a Toyota Yaris Hybrid', () => {
+  for (const command of commandsForPhase(commands, 'precheck')) {
+    assert.doesNotMatch(command.vehicle.answer, /toyota|yaris|h[ií]brido/i, `${command.id} Spanish vehicle answer must stay generic`);
+    assert.doesNotMatch(command.vehicle.answerEn, /toyota|yaris|hybrid/i, `${command.id} English vehicle answer must stay generic`);
+  }
+});
+
 test('prechecks retain vehicle evidence and uncertainty status', () => {
   for (const command of commandsForPhase(commands, 'precheck')) {
     assert.ok(command.vehicle?.page, `${command.id} needs a vehicle manual page`);

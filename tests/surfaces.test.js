@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
+  SEMANTIC_RESULT_ICONS,
   SUPPORTED_SURFACE_IDS,
   generateSurface,
   reduceSurfaceResponse,
@@ -9,6 +10,7 @@ import {
   supportedCommands
 } from '../src/surfaces.js';
 import { YARIS_COMMAND_CONTRACT, YARIS_SURFACE_IDS } from '../src/yaris-surfaces.js';
+import { translate } from '../src/i18n.js';
 
 const commands = JSON.parse(await readFile(new URL('../data/commands.json', import.meta.url), 'utf8'));
 
@@ -99,6 +101,36 @@ test('semantic reveal shows both the correct response and a selected wrong respo
   assert.match(markup, new RegExp(`data-target="${wrong.id}"[^>]+data-selection-state="wrong"`));
   assert.match(markup, /class="target-status-marker correct"[^>]*>✓</);
   assert.match(markup, /class="target-status-marker wrong"[^>]*>×</);
+});
+
+test('every semantic button renders its stable result icon, decorative and distinct from the reveal marker', () => {
+  assert.deepEqual(SEMANTIC_RESULT_ICONS, {
+    'adapt-speed': '⏬',
+    'involuntary-stop': '🚧',
+    'exam-finish': '🏁'
+  });
+  const command = commands.find(candidate => candidate.id === 'c-adapte');
+  const model = generateSurface(command, 12);
+  const markup = renderSurfaceModel(model, {}, 'en', {});
+  for (const [resultId, icon] of Object.entries(SEMANTIC_RESULT_ICONS)) {
+    const buttonMatch = markup.match(new RegExp(`<button[^>]*data-result="${resultId}"[^>]*>([\\s\\S]*?)</button>`));
+    assert.ok(buttonMatch, `${resultId} button must render`);
+    assert.match(buttonMatch[1], new RegExp(`<span class="option-icon" aria-hidden="true">${icon}</span>`));
+  }
+});
+
+test('semantic icons never change the accessible label computed from the translated result name', () => {
+  const command = commands.find(candidate => candidate.id === 'c-adapte');
+  const model = generateSurface(command, 12);
+  for (const locale of ['en', 'es']) {
+    const markup = renderSurfaceModel(model, {}, locale, {});
+    for (const target of model.targets) {
+      const expectedLabel = translate(locale, `actionResult.${target.resultId}`);
+      const buttonMatch = markup.match(new RegExp(`<button[^>]*data-target="${target.id}"[^>]*aria-label="([^"]*)"`));
+      assert.ok(buttonMatch, `${target.id} must render an aria-label`);
+      assert.equal(buttonMatch[1], expectedLabel);
+    }
+  }
 });
 
 test('Task 7 atomically activates every eligible model-aware surface and exactly three semantic exceptions', () => {

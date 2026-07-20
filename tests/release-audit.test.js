@@ -142,8 +142,16 @@ test('documentation audit rejects HTTP-server references and normalized wildcard
 });
 
 test('audio manifest references complete nonempty static assets', async () => {
-  const manifest = JSON.parse(await readFile(resolve(ROOT, 'data/audio-manifest.json'), 'utf8'));
-  assert.equal(manifest.length, 180);
+  const [manifest, catalog] = await Promise.all([
+    readFile(resolve(ROOT, 'data/audio-manifest.json'), 'utf8').then(JSON.parse),
+    readFile(resolve(ROOT, 'data/commands.json'), 'utf8').then(JSON.parse)
+  ]);
+  const phrasingCount = catalog.reduce((total, command) => total + command.phrasings.length, 0);
+  const voiceCount = new Set(manifest.map(variant => variant.voiceId)).size;
+  const speedCount = new Set(manifest.map(variant => variant.speed)).size;
+  assert.equal(voiceCount, 2);
+  assert.equal(speedCount, 3);
+  assert.equal(manifest.length, phrasingCount * voiceCount * speedCount);
   for (const variant of manifest) {
     const assetPath = resolve(ROOT, variant.path.replace(/^\.\//, ''));
     assert.ok(assetPath.startsWith(`${ROOT}/audio/`), `${variant.id} must stay inside audio/`);
@@ -172,6 +180,29 @@ test('release identity, isolation, scope, and bilingual AI voice disclosure are 
   assert.match(design, /no runtime dependency on Piso Asturiano/i);
   assert.match(readme, /no runtime dependency on Piso Asturiano/i);
   assert.match(readme, /Stage 2[^\n]*deferred/i);
+});
+
+test('user-visible copy describes a generic manual car, not a Toyota Yaris Hybrid', async () => {
+  const [readme, design, i18n, app] = await Promise.all([
+    readFile(resolve(ROOT, 'README.md'), 'utf8'),
+    readFile(resolve(ROOT, 'docs/design.md'), 'utf8'),
+    readFile(resolve(ROOT, 'src/i18n.js'), 'utf8'),
+    readFile(resolve(ROOT, 'src/app.js'), 'utf8')
+  ]);
+
+  assert.doesNotMatch(readme, /toyota|yaris hybrid|hybrid.*transmission/i);
+  assert.doesNotMatch(app, /toyota|yaris hybrid/i);
+  // design.md keeps one historical mention of the superseded hybrid manual by design; it must stay
+  // clearly framed as history, not as current guidance.
+  assert.match(design, /superseded hybrid\s+manual/i);
+  assert.equal((design.match(/hybrid/gi) ?? []).length, 1, 'design.md must keep exactly the one historical "superseded hybrid manual" mention');
+
+  const enBlock = i18n.slice(i18n.indexOf("const ENGLISH"), i18n.indexOf("const SPANISH"));
+  const esBlock = i18n.slice(i18n.indexOf("const SPANISH"), i18n.indexOf("export const STRINGS"));
+  assert.doesNotMatch(enBlock, /'reveal\.vehicle':[^\n]*(?:toyota|yaris|hybrid)/i);
+  assert.doesNotMatch(enBlock, /'warning\.vehicle':[^\n]*(?:toyota|yaris|hybrid)/i);
+  assert.doesNotMatch(esBlock, /'reveal\.vehicle':[^\n]*(?:toyota|yaris|h[ií]brido)/i);
+  assert.doesNotMatch(esBlock, /'warning\.vehicle':[^\n]*(?:toyota|yaris|h[ií]brido)/i);
 });
 
 test('Stage 2 release documents the activated action surfaces and review limits', async () => {

@@ -172,6 +172,34 @@ test('parking, stopping, and U-turn use reviewed photo scenes', () => {
   assert.doesNotMatch(uTurnMarkup, /class="manoeuvre-road"|class="manoeuvre-side-road"|class="road-marking"/);
 });
 
+test('parking and voluntary-stop feedback trace the learner car into the accepted space', () => {
+  for (const [action, surfaceId] of [['park', 'parking-v1'], ['voluntary-stop', 'stopping-v1']]) {
+    for (let seed = 1; seed <= 32; seed += 1) {
+      const model = generateManoeuvreSurface(command(action, surfaceId), seed);
+      const accepted = model.targets.find(target => target.resultId === model.expectedResult);
+      const route = model.geometry.correctRoute;
+
+      assert.ok(route, `${model.geometry.templateId} must provide post-answer movement feedback`);
+      assert.deepEqual(route.at(-1), { x: accepted.x, y: accepted.y });
+      assert.ok(route[0].x >= 45 && route[0].x <= 58 && route[0].y >= 68 && route[0].y <= 78,
+        `${model.geometry.templateId} route must begin immediately ahead of the learner car`);
+      assert.ok(route.at(-1).x > route[0].x, `${model.geometry.templateId} route must move toward the right curb`);
+
+      if (action === 'park') {
+        assert.ok(route.some(point => point.x >= 62 && point.y >= 42 && point.y <= 58),
+          'parking route must bend through open road before entering the photographed gap');
+      } else {
+        const driveway = model.targets.find(target => target.feature === 'driveway');
+        assert.ok(!driveway || route.at(-1).y >= driveway.y + 18,
+          'voluntary-stop route must finish clearly below the driveway');
+      }
+
+      assert.doesNotMatch(renderManoeuvreSurface(model, 'en'), /data-correct-route/);
+      assert.match(renderManoeuvreSurface(model, 'en', { reveal: true }), /data-correct-route/);
+    }
+  }
+});
+
 test('every urban-photo choice is anchored to its visible curb, driveway, crossing, or synthetic restriction', () => {
   const expectedBands = {
     'open-bay': [72, 76, 35, 39],
