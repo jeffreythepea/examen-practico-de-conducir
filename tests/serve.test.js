@@ -4,15 +4,24 @@ import { readFile } from 'node:fs/promises';
 import { isForbiddenPathname, parseServerOptions } from '../scripts/serve-options.mjs';
 
 test('server options default to loopback and accept only the explicit all-interface LAN bind', () => {
-  assert.deepEqual(parseServerOptions([], {}), { host: '127.0.0.1', port: 4173 });
-  assert.deepEqual(parseServerOptions(['--host', '0.0.0.0'], {}), { host: '0.0.0.0', port: 4173 });
+  assert.deepEqual(parseServerOptions([], {}), { host: '127.0.0.1', port: 4173, root: 'project' });
+  assert.deepEqual(parseServerOptions(['--host', '0.0.0.0'], {}), { host: '0.0.0.0', port: 4173, root: 'project' });
   assert.deepEqual(parseServerOptions(['--host=0.0.0.0'], { PORT: '4310' }), {
     host: '0.0.0.0',
-    port: 4310
+    port: 4310,
+    root: 'project'
   });
   assert.throws(() => parseServerOptions(['--host', '192.168.1.8'], {}), /Unsupported host/);
   assert.throws(() => parseServerOptions(['--host'], {}), /requires a value/);
   assert.throws(() => parseServerOptions(['--public'], {}), /Unknown server option/);
+});
+
+test('server root is constrained to the project or its generated distribution', () => {
+  assert.equal(parseServerOptions([]).root, 'project');
+  assert.equal(parseServerOptions(['--root', 'dist']).root, 'dist');
+  assert.equal(parseServerOptions(['--root=project']).root, 'project');
+  assert.throws(() => parseServerOptions(['--root', '..']), /root/i);
+  assert.throws(() => parseServerOptions(['--root', '/tmp']), /root/i);
 });
 
 test('server path policy rejects repository and nested dotfiles before filesystem resolution', () => {
@@ -33,6 +42,7 @@ test('package and same-Wi-Fi docs route LAN use through the hardened server', as
   const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
 
   assert.equal(packageJson.scripts['serve:lan'], 'node scripts/serve.mjs --host 0.0.0.0');
+  assert.equal(packageJson.scripts['serve:dist'], 'npm run build:runtime && node scripts/serve.mjs --root dist');
   assert.match(readme, /npm --prefix .* run serve:lan/);
   assert.doesNotMatch(readme, /python3 -m http\.server/);
   assert.match(readme, /rejects dotfiles/i);

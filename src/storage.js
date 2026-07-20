@@ -1,5 +1,7 @@
+import { validateStoredActiveSession } from './active-session.js';
+
 export const STORAGE_KEY = 'examen-practico-de-conducir';
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 const LOCALES = new Set(['en', 'es']);
 const PHASES = new Set(['driving', 'precheck', 'mixed']);
@@ -22,7 +24,8 @@ export function defaultState() {
       length: 'medium'
     },
     attempts: [],
-    actionProgress: {}
+    actionProgress: {},
+    activeSession: null
   };
 }
 
@@ -34,7 +37,7 @@ export function loadState(storage) {
   if (saved === null) return defaultState();
 
   try {
-    return validateState(JSON.parse(saved));
+    return migrateState(JSON.parse(saved));
   } catch (error) {
     return {
       ...defaultState(),
@@ -65,7 +68,25 @@ export function exportState(state) {
  */
 export function importState(text) {
   if (typeof text !== 'string') throw new Error('Import must be JSON text');
-  return discardImportedActiveSurface(validateState(JSON.parse(text)));
+  return discardImportedActiveSurface(migrateState(JSON.parse(text)));
+}
+
+const MIGRATIONS = new Map([
+  [1, state => ({ ...state, schemaVersion: 2, activeSession: null })]
+]);
+
+export function migrateState(value) {
+  let candidate = clone(value);
+  if (!isRecord(candidate)) throw new Error('Invalid state');
+  if (!Number.isSafeInteger(candidate.schemaVersion) || candidate.schemaVersion > SCHEMA_VERSION) {
+    throw new Error(`Unsupported schema: ${String(candidate.schemaVersion)}`);
+  }
+  while (candidate.schemaVersion < SCHEMA_VERSION) {
+    const migrate = MIGRATIONS.get(candidate.schemaVersion);
+    if (!migrate) throw new Error(`No migration from schema ${candidate.schemaVersion}`);
+    candidate = migrate(candidate);
+  }
+  return validateState(candidate);
 }
 
 function discardImportedActiveSurface(state) {
@@ -85,6 +106,13 @@ function validateState(value) {
   validateAttempts(state.attempts);
   if (!isRecord(state.actionProgress)) throw new Error('Invalid actionProgress');
   validateActionProgress(state.actionProgress);
+  if (state.activeSession !== null) {
+    state.activeSession = validateStoredActiveSession(state.activeSession);
+    const attemptIds = new Set(state.attempts.map(attempt => attempt.id));
+    if (!state.activeSession.attemptIds.every(attemptId => attemptIds.has(attemptId))) {
+      throw new Error('Invalid activeSession.attemptIds reference');
+    }
+  }
   return state;
 }
 

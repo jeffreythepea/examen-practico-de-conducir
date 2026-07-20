@@ -4,15 +4,21 @@ import { extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isForbiddenPathname, parseServerOptions } from './serve-options.mjs';
 
-const root = await realpath(fileURLToPath(new URL('..', import.meta.url)));
-const { host, port } = parseServerOptions(process.argv.slice(2), process.env);
+const projectRoot = await realpath(fileURLToPath(new URL('..', import.meta.url)));
+const { host, port, root: rootOption } = parseServerOptions(process.argv.slice(2), process.env);
+const root = rootOption === 'dist'
+  ? await realpath(resolve(projectRoot, 'dist'))
+  : projectRoot;
 const mimeTypes = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.mp3': 'audio/mpeg',
-  '.svg': 'image/svg+xml'
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp'
 };
 
 const server = createServer(async (request, response) => {

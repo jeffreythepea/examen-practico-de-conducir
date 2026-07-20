@@ -6,6 +6,7 @@ import {
   exportState,
   importState,
   loadState,
+  migrateState,
   saveState
 } from '../src/storage.js';
 
@@ -51,12 +52,12 @@ function completedAttempt(overrides = {}) {
   };
 }
 
-test('creates fresh version 1 defaults for English mixed practice with 10 commands', () => {
+test('creates fresh version 2 defaults for English mixed practice with 10 commands', () => {
   const first = defaultState();
   const second = defaultState();
 
   assert.deepEqual(first, {
-    schemaVersion: 1,
+    schemaVersion: 2,
     settings: {
       locale: 'en',
       phase: 'mixed',
@@ -67,10 +68,83 @@ test('creates fresh version 1 defaults for English mixed practice with 10 comman
       length: 'medium'
     },
     attempts: [],
-    actionProgress: {}
+    actionProgress: {},
+    activeSession: null
   });
   assert.notEqual(first, second);
   assert.notEqual(first.settings, second.settings);
+});
+
+test('schema 1 save migrates to schema 2 with activeSession null', () => {
+  const legacy = {
+    schemaVersion: 1,
+    settings: { ...defaultState().settings },
+    attempts: [completedAttempt()],
+    actionProgress: { 'turn-right': { consecutiveUnaided: 1, nextDueAt: 123 } },
+    futureTopLevel: { keep: true }
+  };
+  const migrated = migrateState(legacy);
+  assert.equal(migrated.schemaVersion, 2);
+  assert.equal(migrated.activeSession, null);
+  assert.deepEqual(migrated.attempts, legacy.attempts);
+  assert.deepEqual(migrated.futureTopLevel, { keep: true });
+  assert.equal(legacy.schemaVersion, 1);
+  assert.equal(Object.hasOwn(legacy, 'activeSession'), false);
+});
+
+test('schema 2 round-trips a valid active session', () => {
+  const activeSession = {
+    version: 1,
+    id: 'session-1',
+    startedAt: 123,
+    items: [{ commandId: 'c-der', phrasingId: 'c-der-canonical', voiceId: 'voice-es', speed: 0.9 }],
+    nextIndex: 0,
+    attemptIds: [],
+    settings: {
+      phase: 'mixed', speed: 0.9, hintPolicy: 'available', timed: false,
+      feedbackSounds: true, length: 'medium', mode: 'weakest-first'
+    }
+  };
+  const state = { ...defaultState(), activeSession };
+  assert.deepEqual(importState(exportState(state)).activeSession, activeSession);
+});
+
+test('schema 2 rejects active-session attempts that are absent from completed history', () => {
+  const activeSession = {
+    version: 1, id: 'session-1', startedAt: 123,
+    items: [{ commandId: 'c-der', phrasingId: 'c-der-canonical', voiceId: 'voice-es', speed: 0.9 }],
+    nextIndex: 1,
+    attemptIds: ['missing-attempt'],
+    settings: {
+      phase: 'mixed', speed: 0.9, hintPolicy: 'available', timed: false,
+      feedbackSounds: true, length: 'medium', mode: 'weakest-first'
+    }
+  };
+  assert.throws(
+    () => importState(JSON.stringify({ ...defaultState(), activeSession })),
+    /activeSession\.attemptIds reference/
+  );
+});
+
+test('migration validates atomically and does not write an invalid candidate', () => {
+  const storage = new MemoryStorage(JSON.stringify({
+    schemaVersion: 1,
+    settings: { ...defaultState().settings, speed: 4 },
+    attempts: [],
+    actionProgress: {}
+  }));
+  const before = storage.value;
+  const loaded = loadState(storage);
+  assert.match(loaded.recoveryError, /Invalid settings\.speed/);
+  assert.equal(storage.value, before);
+  assert.equal(storage.writes, 0);
+});
+
+test('future schema remains rejected without mutation', () => {
+  const future = { ...defaultState(), schemaVersion: 3 };
+  const before = structuredClone(future);
+  assert.throws(() => migrateState(future), /Unsupported schema: 3/);
+  assert.deepEqual(future, before);
 });
 
 test('feedback-sound preference persists, validates, and safely defaults for older backups', () => {
@@ -137,7 +211,7 @@ test('rejects invalid imports before a caller replaces active state', () => {
     /Invalid settings.locale/
   );
   assert.deepEqual(activeState, before);
-  assert.throws(() => importState('{"schemaVersion":2}'), /Unsupported schema/);
+  assert.throws(() => importState('{"schemaVersion":3}'), /Unsupported schema/);
 });
 
 test('preserves compatible unknown additive fields through import and re-export', () => {
@@ -298,7 +372,7 @@ test('round-trips optional audio-provider provenance while accepting older attem
   }
 });
 
-test('imports historical provenance but never restores an imported active surface model', () => {
+test('imports historical provenance but never restores a schema-1 active surface model', () => {
   const futureAttempt = completedAttempt({
     surfaceVersion: 99,
     surfaceSeed: 42,
@@ -307,6 +381,7 @@ test('imports historical provenance but never restores an imported active surfac
   });
   const imported = importState(JSON.stringify({
     ...defaultState(),
+    schemaVersion: 1,
     attempts: [futureAttempt],
     activeSurfaceModel: { id: 'do-not-restore' },
     activeSession: {
@@ -317,7 +392,7 @@ test('imports historical provenance but never restores an imported active surfac
 
   assert.deepEqual(imported.attempts, [futureAttempt]);
   assert.equal(Object.hasOwn(imported, 'activeSurfaceModel'), false);
-  assert.deepEqual(imported.activeSession, { id: 'future-session' });
+  assert.equal(imported.activeSession, null);
 });
 
 test('validates known action-progress schedules without discarding additive fields', () => {

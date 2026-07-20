@@ -1,5 +1,14 @@
 # Changelog
 
+## Offline iPad Release A — in progress
+
+- Added installable Home Screen metadata, landscape presentation, and dedicated iPad icons without claiming a native app.
+- Added a deterministic runtime-only distribution containing hashed static assets and the complete 324-record Spanish audio corpus.
+- Added resumable, integrity-verified offline downloads with active/staging cache isolation, exact byte progress, safe cancellation, and setup-only update application.
+- Migrated local storage to schema 2 and added Resume/Discard for interrupted sessions; an interrupted command restarts from the same phrasing, voice, and speed without being scored.
+- Added a constrained `serve:dist` preview and a GitHub Pages workflow that uploads only the verified `dist/` artifact.
+- Documented Safari installation, Safari-to-Home-Screen backup transfer, storage-eviction limits, and the physical iPad acceptance matrix still required before Release A is declared complete.
+
 ## Command and phrasing expansion — in progress
 
 - Removed remaining user-visible Toyota Yaris Hybrid 2019 wording (reveal heading, setup warning, and the coolant-reservoir precheck answer) in favor of generic-manual-car language; the reveal screen no longer cites a bare, now-unnamed manual page number. Stable command, action, phrasing, and internal `yaris-*` surface/diagram IDs are unchanged pending a later migration decision.
@@ -8,7 +17,7 @@
 - Added action-matched surfaces for all six commands using the existing four-way junction, precisely anchored engine-bay components, native lighting-ring symbols, and the photographed indicator stalk.
 - Generalized audio generation to all catalog phrasings with checksum-verified production reuse, durable per-clip recovery, restart reuse, and all-or-nothing publication.
 - Added automatic browser `es-ES` speech when a static MP3 is missing or fails. Recorded audio remains preferred; a completed fallback is scored normally and retains exact phrasing/replay provenance, while total playback failure remains unscored.
-- The 324-clip target is not yet published: 180 prior clips remain live, 136 new clips are recovered, and eight ElevenLabs variants remain provider-blocked. Browser Spanish fallback keeps all commands playable without weakening static-corpus integrity or requiring a runtime credential/backend.
+- Published and integrity-checked the complete 324-clip corpus. Browser Spanish fallback remains available for online playback failures without weakening the recorded offline guarantee or requiring a runtime credential/backend.
 
 ## Stage 2 action surfaces — implemented for release review
 

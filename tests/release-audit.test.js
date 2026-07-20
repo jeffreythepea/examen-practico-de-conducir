@@ -5,6 +5,7 @@ import { mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promise
 import { tmpdir } from 'node:os';
 import { basename, relative, resolve } from 'node:path';
 import { promisify } from 'node:util';
+import { buildRuntimePackage } from '../scripts/runtime-package.mjs';
 
 const ROOT = resolve(new URL('..', import.meta.url).pathname);
 const execFileAsync = promisify(execFile);
@@ -81,6 +82,27 @@ test('release candidate contains no credential-shaped text', async () => {
     for (const pattern of forbidden) {
       assert.equal(pattern.matches(text), false, `${relative(ROOT, path)} contains forbidden credential-shaped text: ${pattern.label}`);
     }
+  }
+});
+
+test('built runtime contains no development files or credential-shaped text', async () => {
+  const fixture = await mkdtemp(resolve(tmpdir(), 'runtime-release-audit-'));
+  const outDir = resolve(fixture, 'dist');
+  try {
+    await buildRuntimePackage({ root: ROOT, outDir });
+    const paths = (await regularFiles(outDir)).map(path => relative(outDir, path));
+    assert.equal(paths.some(path => /^(?:tests|docs|references|scripts)\//.test(path)), false);
+    assert.equal(paths.some(path => /(?:^|\/)\.(?:git|superpowers)(?:\/|$)/.test(path)), false);
+    assert.equal(paths.some(path => path.endsWith('.png') && !path.startsWith('icons/')), false);
+    for (const path of await candidateTextFiles(outDir)) {
+      const text = await readFile(path, 'utf8');
+      assert.equal(text.includes('OPENAI_API_KEY' + '='), false);
+      assert.equal(text.includes('ELEVENLABS_API_KEY' + '='), false);
+      assert.equal(text.includes('xi-' + 'api-key'), false);
+      assert.doesNotMatch(text, new RegExp(`\\b${'s' + 'k-'}[A-Za-z0-9_-]{8,}`));
+    }
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
   }
 });
 
@@ -251,6 +273,27 @@ test('Stage 2 release documents the activated action surfaces and review limits'
   assert.match(inventory, /conventional.*battery.*under the\s+bonnet/is);
   assert.match(inventory, /manual immobilization.*Article 92|Article 92.*manual immobilization/is);
   assert.match(design, /simulation.*phrasing.*mastery.*deferred/is);
+});
+
+test('Release A documentation explains hosted installation, verified offline limits, updates, and recovery', async () => {
+  const [readme, design] = await Promise.all([
+    readFile(resolve(ROOT, 'README.md'), 'utf8'),
+    readFile(resolve(ROOT, 'docs/design.md'), 'utf8')
+  ]);
+  assert.match(readme, /https:\/\/jeffreythepea\.github\.io\/examen-practico-de-conducir\//);
+  assert.match(readme, /Add to Home Screen/i);
+  assert.match(readme, /Download for offline use/i);
+  assert.match(readme, /Ready offline/i);
+  assert.match(readme, /Safari[\s\S]*Export backup[\s\S]*Home Screen[\s\S]*Import backup/i);
+  assert.match(readme, /(?:storage pressure[\s\S]*evict|evict[\s\S]*storage pressure)/i);
+  assert.match(readme, /browser speech[\s\S]*not[\s\S]*offline guarantee/i);
+  assert.match(readme, /serve:lan/);
+  assert.match(readme, /serve:dist/);
+  assert.match(design, /active[\s/-]*staging[\s/-]*pointer/i);
+  assert.match(design, /schema 2/i);
+  assert.match(design, /interrupted command[\s\S]*unscored/i);
+  assert.match(design, /staged update[\s\S]*setup/i);
+  assert.doesNotMatch(readme, /offline storage is permanent|native iPad app/i);
 });
 
 test('release documentation defines recorded-first browser Spanish speech fallback', async () => {

@@ -189,6 +189,48 @@ button:disabled {
   margin-bottom: 1rem;
 }
 
+.offline-card {
+  margin-block: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f4f7f3;
+}
+
+.resume-card {
+  margin-block: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: #f4f7f3;
+}
+
+.resume-card h3,
+.resume-card p {
+  margin-top: 0;
+}
+
+.resume-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.offline-card h3,
+.offline-card p {
+  margin-top: 0;
+}
+
+.offline-card progress {
+  display: block;
+  width: 100%;
+  margin-block: 0.75rem;
+}
+
+.offline-card details {
+  margin-top: 0.75rem;
+}
+
 .notice {
   margin: 0;
   border-left: 4px solid #8ba899;

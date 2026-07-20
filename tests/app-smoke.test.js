@@ -122,6 +122,32 @@ test('setup hides data-management actions behind a collapsed-by-default Settings
   assert.match(source, /<\/details>\s*\$\{importError \? `<p class="notice error" role="alert">\$\{importError\}<\/p>` : ''\}/);
 });
 
+test('setup exposes bilingual offline status and download actions without blocking Start', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.match(source, /createOfflineClient/);
+  assert.match(source, /class="offline-card"/);
+  assert.match(source, /role="status" aria-live="polite"/);
+  assert.match(source, /<progress[^>]*data-offline-progress/);
+  assert.match(source, /data-offline-action="download"/);
+  assert.match(source, /data-offline-action="cancel"/);
+  assert.match(source, /data-offline-action="apply-update"/);
+  assert.match(source, /offlineClient\.register\(\)/);
+  assert.match(css, /\.offline-card[\s\S]*?border/);
+});
+
+test('setup offers resumable sessions and scoring advances persisted progress before saving', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  assert.match(source, /resolveActiveSession/);
+  assert.match(source, /data-action="resume-session"/);
+  assert.match(source, /data-action="discard-session"/);
+  assert.match(source, /advanceActiveSession\(state\.activeSession/);
+  assert.match(source, /audioVariant/);
+  assert.match(css, /\.resume-card/);
+});
+
 test('settings disclosure summary receives a 44px-capable, keyboard-focusable layout', async () => {
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(css, /\.settings-disclosure[\s\S]*?summary[\s\S]*?min-height:\s*44px;/);

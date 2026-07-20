@@ -268,6 +268,16 @@ to show the bilingual AI-voice disclosure.
 
 ## State and Data Flow
 
+### Offline Release A architecture
+
+The public build is a deterministic runtime allowlist rather than a copy of the repository. It includes the shell, bilingual interface modules, command and audio manifests, optimized gameplay images, icons, recovery page, service worker, and all 324 recorded MP3s. Every packaged asset has an exact byte count and SHA-256 digest in `offline-package.json`; tests, plans, references, source images, recovery checkpoints, and credentials are excluded.
+
+Offline storage uses an **active / staging / pointer** architecture. The service worker serves only the integrity-verified active cache. A new package downloads into a distinct staging cache, resumes missing files after interruption, and cannot replace the active pointer until every required file verifies. The prior active package remains available until the replacement is confirmed. A staged update is applied only from setup, never during a practice session. A navigation failure without a valid active package returns the small bilingual recovery page instead of pretending the full game is ready.
+
+Browser storage schema 2 adds an optional active-session value containing only stable command, phrasing, voice, speed, settings, and completed-attempt IDs. It never serializes audio objects, timers, generated surface state, or DOM references. After a scored response, the attempt and next unscored index are saved together. On relaunch, the interrupted command restarts with its exact immutable audio variant and remains unscored; completed attempts are not repeated. A catalog mismatch clears only the resumable session and preserves completed history.
+
+The installed web app is local-first but is not a native iPad app, and iPadOS can evict website caches under storage pressure. **Ready offline** therefore means that the current package is complete and verified at that moment. Browser Spanish speech remains a playback fallback for online use and is not the offline guarantee.
+
 The app is local-first. A separate, versioned storage schema records:
 
 - UI and session settings

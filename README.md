@@ -2,11 +2,23 @@
 
 An iPad-first static web app for daily practice of Spanish practical-driving-exam commands. It trains the connection between a spoken Spanish examiner command and the corresponding action. Command content and audio remain Spanish; interface chrome is available in English and Spanish.
 
+## Use on iPad
+
+The public HTTPS release URL is:
+
+<https://jeffreythepea.github.io/examen-practico-de-conducir/>
+
+Open that address in Safari, use **Share → Add to Home Screen**, and launch **Examen Práctico** from the new Home Screen icon. On the setup screen, tap **Download for offline use** and keep the app open until it reports **Ready offline**. That status is shown only after the complete runtime—including all recorded Spanish audio—has downloaded and passed its integrity checks.
+
+Safari and the installed Home Screen app can keep separate local data. To transfer existing progress, use **Export backup** in Safari before installation, then in the Home Screen app use **Import backup**. Settings and completed attempts remain on the device; there is no account or server-side sync.
+
+Offline website storage is best-effort rather than permanent. iPadOS may evict cached website data under storage pressure; if the app stops reporting **Ready offline**, reconnect and restore the offline files. Browser speech is an online-playback fallback, not the offline guarantee—the verified recorded corpus is what makes the complete game available without a connection. Updates download into staging and can be applied only from the setup screen, so an active practice session continues on its current verified version.
+
 ## Scope
 
 Stage 1 provides a standalone daily-practice baseline: driving, precheck, and mixed filters; three audio speeds; written-Spanish hint policies; optional timing; selectable 5-, 10-, and 15-command sessions; previously-missed and free-practice ordering; unaided, text-assisted, and incorrect scoring; diagnostics; and local backup/restore. Fresh saves start with Mixed practice and 10 commands; existing saves retain their chosen settings.
 
-The app has no runtime dependency on Piso Asturiano, no backend, and no required build step. Stage 2 is implemented for release review with an action-matched response model. The current expansion contains 36 commands and 54 source-labeled Spanish phrasings; deeper phrasing/voice mastery reporting, road simulation, sequential exam simulation, and automatic difficulty progression remain deferred.
+The app has no runtime dependency on Piso Asturiano and no backend. The source remains a plain static browser application; public releases use a deterministic build step to select and verify only runtime assets. Stage 2 is implemented for release review with an action-matched response model. The current expansion contains 36 commands and 54 source-labeled Spanish phrasings; deeper phrasing/voice mastery reporting, road simulation, sequential exam simulation, and automatic difficulty progression remain deferred.
 
 ## Stage 2 action surfaces
 
@@ -31,6 +43,12 @@ npm --prefix /Users/jeffreypease/Projects/examen-practico-de-conducir run serve
 
 Then open `http://127.0.0.1:4173`. The supported baseline is current Safari on iPadOS and macOS, plus current Chromium browsers on macOS. Touch and pointer input use the same response controls.
 
+To preview the exact verified distribution package on loopback, run:
+
+```sh
+npm --prefix /Users/jeffreypease/Projects/examen-practico-de-conducir run serve:dist
+```
+
 To serve the app to an iPad on the same Wi-Fi network, run:
 
 ```sh
@@ -41,25 +59,25 @@ Then open the Mac's local-network address with port `4173` on the iPad. This exp
 
 ## Static hosting
 
-Publish the repository root as an ordinary static site, preserving the `audio/`, `data/`, `src/`, and `references/` paths. No environment variables, server functions, or build output belong in the deployed site. HTTPS is recommended for public hosting. Before publication, run:
+GitHub Pages deploys only the deterministic `dist/` artifact; it never publishes the repository root, tests, plans, scripts, or references. The workflow runs the full release check, builds and hashes the runtime allowlist, and uploads `dist/` only after those checks pass. No environment variables, server functions, provider credentials, or runtime API calls are required. Before publication, run:
 
 ```sh
 npm --prefix /Users/jeffreypease/Projects/examen-practico-de-conducir run release:check
 ```
 
-Creating a remote repository or enabling hosting requires separate approval.
+Enabling or changing the GitHub Pages source is an external repository action and requires separate approval.
 
 ## Local data and backup
 
-Settings, mastery, schedules, and attempt history remain in this app's browser-local storage. Use **Export backup** before clearing browser data or moving devices, and **Import backup** to restore a compatible versioned JSON file. Import validation is atomic: an invalid backup does not replace the active save. Backups contain learning history, so store them as personal data.
+Settings, mastery, schedules, attempt history, and stable interrupted-session identifiers remain in this app's browser-local storage. Use **Export backup** before clearing browser data or moving devices, and **Import backup** to restore a compatible versioned JSON file. Import validation is atomic: an invalid backup does not replace the active save. Backups contain learning history, so store them as personal data. Reloading during an unanswered command offers Resume; that interrupted command restarts from its exact Spanish recording and remains unscored.
 
 The Task 7 browser automation limitation means export downloads and confirm-plus-file-picker import cannot be completed reliably by automation; automated backup tests are green, but Jeffrey must perform a manual export/import smoke during release review.
 
 ## Audio provenance and disclosure
 
-The expanded corpus targets 324 pre-generated ElevenLabs `eleven_multilingual_v2` MP3s: 54 Spanish phrasings, Roger and Sarah voices, and provider-native speeds of 0.75x, 0.9x, and 1x. Each trial randomly selects one playable phrasing/voice recording and retains it through replay, Show Spanish, reveal, and attempt logging. Integrity and provider/model provenance are recorded in `data/audio-manifest.json`; the audition decision is in `references/audio-audition.md`.
+The expanded corpus contains 324 pre-generated ElevenLabs `eleven_multilingual_v2` MP3s: 54 Spanish phrasings, Roger and Sarah voices, and provider-native speeds of 0.75x, 0.9x, and 1x. Each trial randomly selects one playable phrasing/voice recording and retains it through replay, Show Spanish, reveal, and attempt logging. Integrity and provider/model provenance are recorded in `data/audio-manifest.json`; the audition decision is in `references/audio-audition.md`.
 
-Audio generation is resumable and fail-closed. It checksum-verifies reusable published and recovery assets, checkpoints every new clip outside the browser-delivered tree, and replaces the published audio tree and manifest only after the complete staged corpus validates. An interrupted generation therefore does not create a partially published static corpus. During the current local expansion checkpoint, 180 assets remain published, 136 new assets are safely recovered, and eight provider variants remain before atomic publication.
+Audio generation is resumable and fail-closed. It checksum-verifies reusable published and recovery assets, checkpoints every new clip outside the browser-delivered tree, and replaces the published audio tree and manifest only after the complete staged corpus validates. An interrupted generation therefore does not create a partially published static corpus.
 
 Static MP3 playback is always preferred. When a recording is missing or fails to play, the app automatically uses browser Spanish speech with `lang="es-ES"` and the selected speed. A successfully completed fallback is scored exactly like recorded audio and retains the same phrasing through Replay, Show Spanish, reveal, and attempt logging. If both the recording and browser speech fail or are interrupted, the attempt remains unscored. This fallback uses no runtime API key or other credential, no backend, and no paid browser request.
 

@@ -103,6 +103,17 @@ test('a trial creates one immutable surface model and preserves its reference th
   assert.strictEqual(model.activeSurfaceModel, activeSurfaceModel, 'same-trial retry must not regenerate');
 });
 
+test('resuming starts at the next unscored index or opens completed results', () => {
+  const resumed = reduceScreen(setupModel(), { type: 'RESUME_SESSION', session, index: 1 });
+  assert.equal(resumed.screen, 'loading-audio');
+  assert.equal(resumed.index, 1);
+  assert.equal(resumed.session[1].id, 'c-izq');
+
+  const completed = reduceScreen(setupModel(), { type: 'RESUME_SESSION', session, index: session.length });
+  assert.equal(completed.screen, 'results');
+  assert.equal(completed.index, session.length);
+});
+
 test('empty taps and incomplete surface responses never leave the prompt or become scoreable', () => {
   const active = controlPrompt(wheelCommand, 4);
   const empty = reduceScreen(active, { type: 'SURFACE_EMPTY_TAPPED' });

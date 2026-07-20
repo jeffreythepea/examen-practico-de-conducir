@@ -1,7 +1,14 @@
 import { createAudioPlayer, validateAudioManifest } from './audio.js';
+import {
+  advanceActiveSession,
+  createActiveSession,
+  discardActiveSession,
+  resolveActiveSession
+} from './active-session.js';
 import { commandsForPhase, validateCatalog } from './catalog.js';
 import { createFeedbackCuePlayer } from './feedback-audio.js';
 import { setDocumentLocale, translate } from './i18n.js';
+import { createOfflineClient } from './offline-client.js';
 import {
   STORAGE_KEY,
   defaultState,
@@ -16,7 +23,7 @@ import {
   renderSurfaceModel,
   supportedCommands
 } from './surfaces.js';
-import { createSession, recordAttempt, summarizeSession } from './training.js';
+import { createAttemptId, createSession, recordAttempt, summarizeSession } from './training.js';
 
 export const MISS_REASONS = Object.freeze(['hearing', 'meaning', 'mapping', 'target', 'accidental', 'other']);
 export const TRIAL_TIME_MS = 8_000;
@@ -162,6 +169,12 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
   }
   if (event.type === 'START_SESSION') {
     return resetTrial({ ...model, screen: 'loading-audio', session: [...event.session] }, 0);
+  }
+  if (event.type === 'RESUME_SESSION') {
+    if (!Array.isArray(event.session) || !Number.isSafeInteger(event.index)
+        || event.index < 0 || event.index > event.session.length) return model;
+    const screen = event.index === event.session.length ? 'results' : 'loading-audio';
+    return resetTrial({ ...model, screen, session: [...event.session] }, event.index);
   }
   if (['AUDIO_COMPLETED', 'TRIAL_AUDIO_ENDED'].includes(event.type) && model.screen === 'loading-audio') {
     const continuingTrial = Boolean(model.activeSurfaceModel);
@@ -465,8 +478,12 @@ async function bootstrap() {
   let manifest;
   let player;
   let feedbackPlayer;
+  let offlineClient;
+  let offlineState;
   let state;
   let model;
+  let resumableSession = null;
+  let sessionRecoveryError = false;
   let importError = '';
   let recoveryError = '';
   let audioBusy = false;
@@ -494,9 +511,24 @@ async function bootstrap() {
       ...savedState,
       settings: { ...savedState.settings, mode: practiceMode(savedState.settings.mode) }
     };
+    if (state.activeSession) {
+      try {
+        resumableSession = resolveActiveSession(state.activeSession, { commands: selectableCommands, audioManifest: manifest });
+      } catch {
+        state = discardActiveSession(state);
+        saveState(window.localStorage, state);
+        sessionRecoveryError = true;
+      }
+    }
     model = { screen: 'setup', settings: state.settings, session: [], index: 0 };
     player = createAudioPlayer({ AudioCtor: window.Audio, document });
     feedbackPlayer = createFeedbackCuePlayer();
+    offlineClient = createOfflineClient({ navigatorRef: navigator, windowRef: window });
+    offlineState = offlineClient.getState();
+    offlineClient.subscribe(nextState => {
+      offlineState = nextState;
+      if (model.screen === 'setup') render();
+    });
   } catch (error) {
     const locale = 'en';
     app.innerHTML = `<p class="notice error" role="alert">${escapeHtml(translate(locale, 'error.init'))}</p>`;
@@ -575,6 +607,8 @@ async function bootstrap() {
     return `<section class="panel" aria-labelledby="setup-title">
       <h2 id="setup-title" data-screen-focus tabindex="-1">${translate(locale(), 'screen.setup')}</h2>
       ${recoveryError ? `<p class="notice" role="alert">${translate(locale(), 'error.recovery')}</p>` : ''}
+      ${sessionRecoveryError ? `<p class="notice" role="alert">${translate(locale(), 'resume.recovery')}</p>` : ''}
+      ${renderResumeCard()}
       <div class="setup-grid">
         ${selectControl('phase', 'setting.phase', [
           ['driving', 'phase.driving'], ['precheck', 'phase.precheck'], ['mixed', 'phase.mixed']
@@ -599,6 +633,7 @@ async function bootstrap() {
       </div>
       <button class="primary" type="button" data-action="start" ${canStart ? '' : 'disabled'}>${translate(locale(), 'action.start')}</button>
       ${canStart ? '' : `<p class="notice error" role="alert">${translate(locale(), 'error.audio')}</p>`}
+      ${renderOfflineCard()}
       <details class="settings-disclosure">
         <summary><span aria-hidden="true">⚙️</span> ${translate(locale(), 'settings.title')}</summary>
         <div class="data-controls" role="group" aria-label="${translate(locale(), 'data.management')}">
@@ -609,6 +644,65 @@ async function bootstrap() {
         </div>
       </details>
       ${importError ? `<p class="notice error" role="alert">${importError}</p>` : ''}
+    </section>`;
+  }
+
+  function renderResumeCard() {
+    if (!resumableSession) return '';
+    const total = resumableSession.sessionItems.length;
+    const current = Math.min(resumableSession.index + 1, total);
+    return `<section class="resume-card" aria-labelledby="resume-title">
+      <h3 id="resume-title">${translate(locale(), 'resume.title')}</h3>
+      <p>${translate(locale(), 'resume.progress', { current, total })}</p>
+      <div class="resume-actions">
+        <button class="primary" type="button" data-action="resume-session">${translate(locale(), 'resume.action')}</button>
+        <button type="button" data-action="discard-session">${translate(locale(), 'resume.discard')}</button>
+      </div>
+    </section>`;
+  }
+
+  function renderOfflineCard() {
+    const status = offlineState?.status ?? 'unsupported';
+    const completed = offlineState?.completedBytes ?? 0;
+    const total = offlineState?.totalBytes ?? 0;
+    const progress = total > 0 ? Math.min(completed, total) : 0;
+    const isDownloading = status === 'downloading';
+    const hasProgress = (offlineState?.completedAssets ?? 0) > 0;
+    const messageKey = status === 'unsupported'
+      ? 'offline.unsupported'
+      : status === 'ready'
+        ? 'offline.ready'
+        : status === 'update-available'
+          ? 'offline.updateAvailable'
+        : status === 'update-ready'
+          ? 'offline.updateReady'
+          : status === 'failed'
+            ? 'offline.failedRetained'
+            : isDownloading
+              ? 'offline.downloading'
+              : 'offline.onlineOnly';
+    const actions = status === 'update-ready'
+      ? `<button type="button" data-offline-action="apply-update">${translate(locale(), 'offline.applyUpdate')}</button>`
+      : status === 'update-available'
+        ? `<button type="button" data-offline-action="download">${translate(locale(), 'offline.downloadUpdate')}</button>`
+      : isDownloading
+        ? `<button type="button" data-offline-action="cancel">${translate(locale(), 'offline.cancel')}</button>`
+        : ['unsupported', 'ready'].includes(status)
+          ? ''
+          : `<button type="button" data-offline-action="download">${translate(locale(), hasProgress ? 'offline.resumeDownload' : 'offline.download')}</button>`;
+    return `<section class="offline-card" aria-labelledby="offline-title">
+      <h3 id="offline-title">${translate(locale(), 'offline.title')}</h3>
+      <div role="status" aria-live="polite">
+        <p>${translate(locale(), messageKey)}</p>
+        ${total > 0 ? `<p>${translate(locale(), 'offline.bytes', { completed: formatBytes(completed), total: formatBytes(total) })}</p>` : ''}
+      </div>
+      <progress data-offline-progress value="${progress}" max="${total || 1}" ${total > 0 ? '' : 'hidden'}></progress>
+      ${actions}
+      ${offlineClient?.standalone ? '' : `<details>
+        <summary>${translate(locale(), 'offline.installTitle')}</summary>
+        <p>${translate(locale(), 'offline.installSafari')}</p>
+        <p>${translate(locale(), 'offline.transferProgress')}</p>
+      </details>`}
     </section>`;
   }
 
@@ -742,6 +836,11 @@ async function bootstrap() {
       updateSettings({ [setting]: value });
     }));
     app.querySelector('[data-action="start"]')?.addEventListener('click', startSession);
+    app.querySelector('[data-action="resume-session"]')?.addEventListener('click', resumeSession);
+    app.querySelector('[data-action="discard-session"]')?.addEventListener('click', discardSession);
+    app.querySelector('[data-offline-action="download"]')?.addEventListener('click', () => void offlineClient.download());
+    app.querySelector('[data-offline-action="cancel"]')?.addEventListener('click', () => void offlineClient.cancelDownload());
+    app.querySelector('[data-offline-action="apply-update"]')?.addEventListener('click', () => void offlineClient.applyUpdate());
     app.querySelector('[data-action="export"]').addEventListener('click', downloadBackup);
     app.querySelector('[data-action="import"]').addEventListener('click', () => app.querySelector('[data-import-file]').click());
     app.querySelector('[data-action="reset"]').addEventListener('click', resetProgress);
@@ -816,6 +915,9 @@ async function bootstrap() {
     app.querySelector('[data-action="setup"]').addEventListener('click', () => {
       model = reduceScreen(model, { type: 'GO_TO_SETUP' });
       sessionAttemptIds = [];
+      state = discardActiveSession(state);
+      resumableSession = null;
+      saveState(window.localStorage, state);
       render();
     });
   }
@@ -831,15 +933,53 @@ async function bootstrap() {
 
   function startSession() {
     sessionAttemptIds = [];
-    const session = createSession(selectableCommands, {
+    const selectedCommands = createSession(selectableCommands, {
       phase: state.settings.phase,
       length: state.settings.length,
       mode: state.settings.mode,
       attempts: state.attempts
     });
+    const session = selectedCommands.map(command => ({
+      ...command,
+      audioVariant: selectPlaybackVariant(manifest, command, state.settings.speed, player.supportsFallback())
+    }));
+    const activeSession = createActiveSession({
+      id: createAttemptId(),
+      startedAt: Date.now(),
+      items: session.map(command => ({
+        commandId: command.id,
+        phrasingId: command.audioVariant.phrasingId,
+        voiceId: command.audioVariant.voiceId,
+        speed: command.audioVariant.speed
+      })),
+      settings: resumableSettings(state.settings)
+    });
+    state = { ...state, activeSession };
+    saveState(window.localStorage, state);
     model = reduceScreen({ ...model, settings: state.settings }, { type: 'START_SESSION', session });
     render();
     void playCurrentCommand();
+  }
+
+  function resumeSession() {
+    if (!resumableSession) return;
+    const restoredSettings = { ...state.settings, ...resumableSession.settings };
+    state = { ...state, settings: restoredSettings };
+    sessionAttemptIds = [...resumableSession.attemptIds];
+    model = reduceScreen(
+      { ...model, settings: restoredSettings },
+      { type: 'RESUME_SESSION', session: resumableSession.sessionItems, index: resumableSession.index }
+    );
+    render();
+    if (model.screen === 'loading-audio') void playCurrentCommand();
+  }
+
+  function discardSession() {
+    state = discardActiveSession(state);
+    resumableSession = null;
+    sessionRecoveryError = false;
+    saveState(window.localStorage, state);
+    render();
   }
 
   async function playCurrentCommand() {
@@ -848,7 +988,7 @@ async function bootstrap() {
     audioBusy = true;
     const operation = ++audioOperation;
     const command = currentCommand();
-    let variant = model.variant;
+    let variant = model.variant ?? command.audioVariant;
     try {
       if (!variant) {
         variant = selectPlaybackVariant(manifest, command, state.settings.speed, player.supportsFallback());
@@ -931,7 +1071,11 @@ async function bootstrap() {
       timeout: model.timeout
     });
     if (result.scored) {
-      state = result.state;
+      const activeSession = advanceActiveSession(state.activeSession, {
+        nextIndex: before.index + 1,
+        attemptId: result.attempt.id
+      });
+      state = { ...result.state, activeSession };
       currentAttemptId = result.attempt.id;
       sessionAttemptIds.push(result.attempt.id);
       saveState(window.localStorage, state);
@@ -1015,10 +1159,15 @@ async function bootstrap() {
     try {
       const candidate = importState(await file.text());
       if (!window.confirm(translate(locale(), 'data.importConfirm'))) return;
-      state = {
+      const candidateState = {
         ...candidate,
         settings: { ...candidate.settings, mode: practiceMode(candidate.settings.mode) }
       };
+      const candidateSession = candidateState.activeSession
+        ? resolveActiveSession(candidateState.activeSession, { commands: selectableCommands, audioManifest: manifest })
+        : null;
+      state = candidateState;
+      resumableSession = candidateSession;
       saveState(window.localStorage, state);
       model = { screen: 'setup', settings: state.settings, session: [], index: 0 };
       importError = '';
@@ -1040,12 +1189,15 @@ async function bootstrap() {
     model = { screen: 'setup', settings: state.settings, session: [], index: 0 };
     sessionAttemptIds = [];
     currentAttemptId = null;
+    resumableSession = null;
+    sessionRecoveryError = false;
     importError = '';
     recoveryError = '';
     render();
   }
 
   render();
+  void offlineClient.register();
 }
 
 async function requireJsonResponse(response) {
@@ -1064,6 +1216,15 @@ function escapeHtml(value = '') {
 
 function practiceMode(value) {
   return ['weakest-first', 'free'].includes(value) ? value : 'weakest-first';
+}
+
+function resumableSettings(settings) {
+  const { phase, speed, hintPolicy, timed, feedbackSounds, length } = settings;
+  return { phase, speed, hintPolicy, timed, feedbackSounds, length, mode: practiceMode(settings.mode) };
+}
+
+function formatBytes(value) {
+  return `${(Number(value) / 1_000_000).toFixed(1)} MB`;
 }
 
 function attributeSelector(attribute, value) {
