@@ -627,10 +627,6 @@ async function bootstrap() {
         ${selectControl('mode', 'setting.mode', [['weakest-first', 'mode.weak'], ['free', 'mode.free']])}
       </div>
       <p class="pool-count">${translate(locale(), 'summary.count', { count: pool.length })}</p>
-      <div class="notice-group">
-        <p class="notice">${translate(locale(), 'warning.source')}</p>
-        ${state.settings.phase === 'driving' ? '' : `<p class="notice">${translate(locale(), 'warning.vehicle')}</p>`}
-      </div>
       <button class="primary" type="button" data-action="start" ${canStart ? '' : 'disabled'}>${translate(locale(), 'action.start')}</button>
       ${canStart ? '' : `<p class="notice error" role="alert">${translate(locale(), 'error.audio')}</p>`}
       ${renderOfflineCard()}

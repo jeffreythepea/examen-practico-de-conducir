@@ -31,6 +31,7 @@
 - Added optional game-show feedback sounds and a distinct written-Spanish-hint cue, with feedback sounds independently configurable.
 - Made session length explicit and selectable as 5, 10, or 15 commands; fresh saves default to Mixed practice with 10 commands.
 - Realigned every photo-backed manoeuvre and roundabout target to visible asphalt, curb, driveway, crossing, restriction, or exit geometry, and removed redundant crosswalk/driveway drawings from photographic scenes.
+- Removed the obsolete setup-source and provisional-vehicle notices, aligned the position-light target with its native symbol, separated crowded lighting-stalk labels, and contained road-answer markers within their targets.
 - Retained exactly three honest semantic exceptions: speed adaptation, involuntary stopping, and exam finish. Parking and voluntary-stopping scenarios remain provisional pending practical-lesson evidence.
 - Recorded landscape-iPad and same-Wi-Fi hardened `serve:lan` guidance, actual-test-vehicle uncertainty, and the browser-automation limitation for backup export/import smoke.
 - Kept road simulation and deeper phrasing/voice mastery reporting deferred for evidence from real practice sessions.

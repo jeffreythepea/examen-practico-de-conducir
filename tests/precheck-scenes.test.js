@@ -121,7 +121,7 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
       headlightRing.targets['dipped-headlights'].x,
       headlightRing.targets['dipped-headlights'].y
     ],
-    [22.5, 39.5, 31, 48.5]
+    [18.5, 39.5, 31, 48.5]
   );
   assert.deepEqual(
     [
@@ -143,6 +143,15 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
   assert.ok(Object.values(indicator.targets).every(target => target.iconKey === 'native-symbol'));
   assertNonOverlappingTargets(Object.entries(indicator.targets).map(([id, target]) => ({ id, ...target })));
   assert.match(indicator.targets.indicator.anchorDescription, /indicator arrows/i);
+  assert.deepEqual(
+    ['front-fog', 'rear-fog', 'indicator'].map(id => indicator.targets[id].labelPlacement),
+    [
+      { x: 34, y: 70, width: 25 },
+      { x: 53, y: 82, width: 25 },
+      { x: 75, y: 70, width: 25 }
+    ],
+    'indicator-stalk reveal labels must remain visually separated'
+  );
   assert.match(lighting.targets['high-beam'].anchorDescription, /offset.*native high-beam symbol/i);
   assert.match(lighting.targets['front-fog'].anchorDescription, /front.*fog.*ring/i);
   assert.match(lighting.targets['rear-fog'].anchorDescription, /rear.*fog.*ring/i);

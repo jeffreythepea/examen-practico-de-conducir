@@ -14,7 +14,7 @@ const requiredKeys = [
   'screen.setup','screen.loading','screen.prompt','screen.results','prompt.listen','prompt.progress','prompt.timer',
   'reveal.spanish','reveal.meaning','reveal.expected','reveal.vehicle','result.unaided','result.assisted','result.incorrect',
   'miss.hearing','miss.meaning','miss.mapping','miss.target','miss.accidental','miss.other',
-  'miss.title','miss.optional','warning.source','warning.vehicle','settings.title','data.export','data.import','data.importConfirm',
+  'miss.title','miss.optional','settings.title','data.export','data.import','data.importConfirm',
   'data.management','data.reset','data.resetConfirm','error.audio','error.import','error.recovery','error.init','summary.unaidedPercent','summary.averageTime',
   'offline.title','offline.onlineOnly','offline.unsupported','offline.download','offline.resumeDownload',
   'offline.downloading','offline.ready','offline.updateReady','offline.applyUpdate','offline.redownload',
@@ -121,15 +121,15 @@ test('the setup Settings disclosure control is bilingual', () => {
   assert.equal(translate('es', 'settings.title'), 'Ajustes');
 });
 
-test('the reveal heading and setup warning describe a generic manual car, not a Toyota Yaris Hybrid', () => {
+test('the reveal heading describes a generic manual car without obsolete setup-warning copy', () => {
   assert.doesNotMatch(translate('en', 'reveal.vehicle'), /toyota|yaris|hybrid/i);
   assert.doesNotMatch(translate('es', 'reveal.vehicle'), /toyota|yaris|h[ií]brido/i);
-  assert.doesNotMatch(translate('en', 'warning.vehicle'), /toyota|yaris|hybrid/i);
-  assert.doesNotMatch(translate('es', 'warning.vehicle'), /toyota|yaris|h[ií]brido/i);
   assert.match(translate('en', 'reveal.vehicle'), /generic.*manual|manual.*generic/i);
   assert.match(translate('es', 'reveal.vehicle'), /gen[eé]rico.*manual|manual.*gen[eé]rico/i);
-  assert.match(translate('en', 'warning.vehicle'), /generic.*manual|manual.*generic/i);
-  assert.match(translate('es', 'warning.vehicle'), /gen[eé]rico.*manual|manual.*gen[eé]rico/i);
+  assert.equal('warning.source' in STRINGS.en, false);
+  assert.equal('warning.vehicle' in STRINGS.en, false);
+  assert.equal('warning.source' in STRINGS.es, false);
+  assert.equal('warning.vehicle' in STRINGS.es, false);
 });
 
 test('backup confirmation and import failure copy are localized', () => {

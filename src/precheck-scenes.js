@@ -224,7 +224,7 @@ export const PRECHECK_SCENES = deepFreeze({
     reference: 'Generic manual hatchback headlight control ring — illustrative AI-generated photo',
     targets: {
       'position-lights': {
-        resultId: 'position-lights', x: 22.5, y: 39.5, width: 8, height: 15,
+        resultId: 'position-lights', x: 18.5, y: 39.5, width: 8, height: 15,
         kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.positionLights', labelPlacement: { x: 22, y: 70, width: 30 },
         stateKind: 'power', initialState: false, desiredState: true,
@@ -249,21 +249,21 @@ export const PRECHECK_SCENES = deepFreeze({
       indicator: {
         resultId: 'operate-indicator', x: 61.5, y: 51, width: 9, height: 15,
         kind: 'stalk-movement', interaction: 'operate', iconKey: 'native-symbol',
-        labelKey: 'surface.yaris.indicator', labelPlacement: { x: 68, y: 70, width: 28 },
+        labelKey: 'surface.yaris.indicator', labelPlacement: { x: 75, y: 70, width: 25 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the native left and right indicator arrows on the stalk'
       },
       'front-fog': {
         resultId: 'front-fog-lights', x: 37.2, y: 42, width: 8, height: 15,
         kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
-        labelKey: 'surface.yaris.frontFog', labelPlacement: { x: 40, y: 70, width: 28 },
+        labelKey: 'surface.yaris.frontFog', labelPlacement: { x: 34, y: 70, width: 25 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the front fog-light control ring'
       },
       'rear-fog': {
         resultId: 'rear-fog-light', x: 51.2, y: 44, width: 8, height: 15,
         kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
-        labelKey: 'surface.yaris.rearFog', labelPlacement: { x: 55, y: 78, width: 28 },
+        labelKey: 'surface.yaris.rearFog', labelPlacement: { x: 53, y: 82, width: 25 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the rear fog-light control ring'
       }

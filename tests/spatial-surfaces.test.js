@@ -200,6 +200,8 @@ test('spatial reveal distinguishes the selected wrong road from the correct road
 test('road target styles preserve a normalized 44px minimum and reveal route treatment', async () => {
   const styles = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(styles, /\.road-target\s*\{[^}]*position:\s*absolute[^}]*min-width:\s*44px[^}]*min-height:\s*44px/s);
+  assert.match(styles, /\.road-target\s+\.target-status-marker\s*\{[^}]*top:\s*0\.15rem[^}]*right:\s*0\.15rem/s,
+    'road result markers must sit fully inside their target instead of leaving clipped fragments');
   assert.match(styles, /\[data-correct-route\]\s*\{/);
   assert.match(styles, /\.surface-result-label\s*\{/);
   assert.match(styles, /\.surface-stage:has\(\.surface-result-label\)\s*\{[^}]*margin-bottom:/s);

@@ -183,12 +183,6 @@ button:disabled {
   font-weight: 800;
 }
 
-.notice-group {
-  display: grid;
-  gap: 0.55rem;
-  margin-bottom: 1rem;
-}
-
 .offline-card {
   margin-block: 1.25rem;
   padding: 1rem;
@@ -681,6 +675,11 @@ hr {
 
 .target-status-marker.wrong {
   color: var(--red);
+}
+
+.road-target .target-status-marker {
+  top: 0.15rem;
+  right: 0.15rem;
 }
 
 .surface-stage:has(.surface-restriction-label) {

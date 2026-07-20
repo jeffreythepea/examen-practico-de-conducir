@@ -137,6 +137,13 @@ test('setup exposes bilingual offline status and download actions without blocki
   assert.match(css, /\.offline-card[\s\S]*?border/);
 });
 
+test('setup omits the obsolete source and provisional-vehicle notices', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /warning\.source/);
+  assert.doesNotMatch(source, /warning\.vehicle/);
+  assert.doesNotMatch(source, /class="notice-group"/);
+});
+
 test('setup offers resumable sessions and scoring advances persisted progress before saving', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
