@@ -6,7 +6,7 @@ An iPad-first static web app for daily practice of Spanish practical-driving-exa
 
 Stage 1 provides a standalone daily-practice baseline: driving, precheck, and mixed filters; three audio speeds; written-Spanish hint policies; optional timing; selectable 5-, 10-, and 15-command sessions; previously-missed and free-practice ordering; unaided, text-assisted, and incorrect scoring; diagnostics; and local backup/restore. Fresh saves start with Mixed practice and 10 commands; existing saves retain their chosen settings.
 
-The app has no runtime dependency on Piso Asturiano, no backend, no required build step, and no browser speech fallback. Stage 2 is implemented for release review with an action-matched response model; road simulation, additional command phrasings, deeper phrasing/voice mastery reporting, sequential exam simulation, and automatic difficulty progression remain deferred.
+The app has no runtime dependency on Piso Asturiano, no backend, and no required build step. Stage 2 is implemented for release review with an action-matched response model. The current expansion contains 36 commands and 54 source-labeled Spanish phrasings; deeper phrasing/voice mastery reporting, road simulation, sequential exam simulation, and automatic difficulty progression remain deferred.
 
 ## Stage 2 action surfaces
 
@@ -57,7 +57,11 @@ The Task 7 browser automation limitation means export downloads and confirm-plus
 
 ## Audio provenance and disclosure
 
-Stage 1 uses 180 pre-generated ElevenLabs `eleven_multilingual_v2` MP3s: 30 canonical Spanish commands, Roger and Sarah voices, and provider-native speeds of 0.75x, 0.9x, and 1x. A voice is randomized per trial and replay preserves the selected recording. Integrity and provider/model provenance are recorded in `data/audio-manifest.json`; the audition decision is in `references/audio-audition.md`.
+The expanded corpus targets 324 pre-generated ElevenLabs `eleven_multilingual_v2` MP3s: 54 Spanish phrasings, Roger and Sarah voices, and provider-native speeds of 0.75x, 0.9x, and 1x. Each trial randomly selects one playable phrasing/voice recording and retains it through replay, Show Spanish, reveal, and attempt logging. Integrity and provider/model provenance are recorded in `data/audio-manifest.json`; the audition decision is in `references/audio-audition.md`.
+
+Audio generation is resumable and fail-closed. It checksum-verifies reusable published and recovery assets, checkpoints every new clip outside the browser-delivered tree, and replaces the published audio tree and manifest only after the complete staged corpus validates. An interrupted generation therefore does not create a partially published static corpus. During the current local expansion checkpoint, 180 assets remain published, 136 new assets are safely recovered, and eight provider variants remain before atomic publication.
+
+Static MP3 playback is always preferred. When a recording is missing or fails to play, the app automatically uses browser Spanish speech with `lang="es-ES"` and the selected speed. A successfully completed fallback is scored exactly like recorded audio and retains the same phrasing through Replay, Show Spanish, reveal, and attempt logging. If both the recording and browser speech fail or are interrupted, the attempt remains unscored. This fallback uses no runtime API key or other credential, no backend, and no paid browser request.
 
 **These voices are AI-generated. / Estas voces han sido generadas por inteligencia artificial.** The same disclosure is visible in the app in both UI locales.
 
@@ -94,7 +98,7 @@ When finished, remove the variable from the shell with `unset ELEVENLABS_API_KEY
 ## Release checklist
 
 - Run the release check and confirm every test passes with no whitespace errors.
-- Confirm `data/audio-manifest.json` resolves to all 180 nonempty assets.
+- Confirm `data/audio-manifest.json` resolves to all 324 nonempty, integrity-matching assets before treating the command expansion as release-ready.
 - Exercise English and Spanish setup, playback, hint, response, reveal, results, export, and import in a supported browser.
 - Confirm the AI-generated-voice disclosure is visible in both locales.
 - Confirm no credentials or generated temporary files are included.

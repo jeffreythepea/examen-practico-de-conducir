@@ -117,9 +117,9 @@ practical lessons or an instructor establish credible counts and ordering.
 ## Command and Action Model
 
 Mastery belongs to an underlying action, not to one sentence or recording. A
-single action such as `turn-right` may eventually have multiple validated
-Spanish phrasings and multiple audio variants without multiplying mastery
-targets.
+single action such as `turn-right` can have multiple validated Spanish
+phrasings and multiple audio variants without multiplying mastery targets. The
+current catalog contains 36 actions and 54 source-labeled phrasings.
 
 Each action definition includes:
 
@@ -179,9 +179,10 @@ responses because a pedal, control, or road placement would imply a falsely
 specific action without a road situation. This is explicit product scope, not a
 renderer fallback.
 
-Road simulation, additional phrasing variation, and deeper phrasing/voice
-mastery reporting remain deferred until real practice shows that static spatial
-responses are the limiting factor.
+Road simulation and deeper phrasing/voice mastery reporting remain deferred
+until real practice shows that static spatial responses are the limiting
+factor. The current phrasing expansion deliberately varies playback while
+continuing to score the underlying action.
 
 ### Precheck surfaces
 
@@ -217,10 +218,10 @@ surface. Increased entertainment alone is insufficient.
 
 ## Audio Strategy
 
-The first release uses pre-generated synthetic audio assets. Paid-provider API
-keys exist only in a local generation tool and never ship to the browser.
-Runtime audio therefore needs no backend, has predictable latency and cost, and
-can be cached with the static application.
+The first release prefers pre-generated synthetic audio assets. Paid-provider
+API keys exist only in a local generation tool and never ship to the browser.
+Static runtime audio therefore needs no backend, has predictable latency and
+cost, and can be cached with the application.
 
 Before full generation, conduct a voice audition with five representative
 commands: direction, roundabout, manoeuvre, speed, and precheck. Compare several
@@ -244,15 +245,26 @@ per trial. The setup screen visibly identifies the recordings as AI-generated
 in English and Spanish.
 
 Generate provider-native 0.75x, 0.9x, and 1x assets rather than relying on
-browser time-stretching. The small corpus makes additional files and generation
-cost acceptable. Later difficulty settings may choose canonical versus varied
-phrasing and one versus multiple voices.
+browser time-stretching. The expanded 54-phrasing, two-voice corpus contains
+324 variants. At trial start the app randomly selects any playable variant for
+the command and speed, then retains its phrasing and voice through replay,
+written hint, reveal, and attempt logging. Later difficulty settings may expose
+canonical-versus-varied and one-versus-multiple-voice controls.
 
-If an audio asset fails, the attempt is not scored and the app offers retry.
-The initial release has no browser-speech fallback because it would reintroduce
-the quality problem this product is meant to fix. Any later fallback requires a
-separate, explicit design decision and visible labeling. A public release must
-include any provider-required AI-voice disclosure.
+Generation checksum-verifies existing production and recovery assets before
+reuse. Every new clip and manifest record is written atomically to a durable,
+non-shipped recovery directory. The published audio tree and manifest are
+replaced only after the complete staged corpus passes integrity validation; an
+interrupted or quota-limited run leaves the prior production corpus untouched.
+
+Recorded MP3 playback remains preferred. If a matching recording is missing or
+fails, the app automatically invokes browser Spanish speech with `lang="es-ES"`,
+the exact retained phrasing, and the selected speed. A completed fallback is
+scored normally and preserves replay, hint, reveal, and attempt provenance. If
+both recorded MP3 and browser speech fail, are cancelled, or are interrupted by
+backgrounding, the attempt remains unscored and the app offers retry. Browser
+fallback requires no runtime credential or backend. A public release continues
+to show the bilingual AI-voice disclosure.
 
 ## State and Data Flow
 
@@ -284,7 +296,10 @@ possible.
 
 ## Error Handling
 
-- Missing or failed audio: do not start timing or score; offer retry.
+- Missing or failed recorded audio: automatically try browser Spanish speech;
+  score only after either source completes successfully.
+- Failure or interruption of both recorded and browser speech: do not start
+  timing or score; offer retry.
 - Interrupted audio or app backgrounding: cancel the active timed trial and
   restart it without recording an outcome.
 - Unrecognized or incomplete gesture: request correction rather than scoring a
@@ -326,8 +341,8 @@ closer to the commanded actions.
 
 ### Stage 3: Variation
 
-- Add validated alternative phrasings.
-- Add multiple voices.
+- Add validated alternative phrasings. **Implemented for the current focused set.**
+- Add multiple voices. **Implemented with Roger and Sarah.**
 - Add selectable canonical and varied difficulty.
 - Report action mastery separately from phrasing and voice exposure.
 
@@ -370,7 +385,7 @@ validation.
 ## Explicit Non-Goals for the Initial Release
 
 - Full driving simulation
-- Live TTS generation
+- Paid or credentialed runtime TTS generation
 - Accounts, cloud sync, or multi-user administration
 - Automatic difficulty progression
 - Community-authored command content

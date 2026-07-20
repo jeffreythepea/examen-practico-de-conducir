@@ -1,5 +1,14 @@
 # Changelog
 
+## Command and phrasing expansion — in progress
+
+- Expanded the source-ledgered catalog from 30 to 36 commands, adding straight ahead, indicator, brake-fluid, washer-fluid, position-light, and dipped-headlight practice while keeping brake and washer fluid distinct.
+- Added 18 supplementary source-labeled alternatives for 54 total Spanish phrasings. A trial now retains the exact randomly selected playable phrasing through audio, Show Spanish, reveal, and attempt provenance.
+- Added action-matched surfaces for all six commands using the existing four-way junction, precisely anchored engine-bay components, native lighting-ring symbols, and the photographed indicator stalk.
+- Generalized audio generation to all catalog phrasings with checksum-verified production reuse, durable per-clip recovery, restart reuse, and all-or-nothing publication.
+- Added automatic browser `es-ES` speech when a static MP3 is missing or fails. Recorded audio remains preferred; a completed fallback is scored normally and retains exact phrasing/replay provenance, while total playback failure remains unscored.
+- The 324-clip target is not yet published: 180 prior clips remain live, 136 new clips are recovered, and eight ElevenLabs variants remain provider-blocked. Browser Spanish fallback keeps all commands playable without weakening static-corpus integrity or requiring a runtime credential/backend.
+
 ## Stage 2 action surfaces — implemented for release review
 
 - Replaced eligible arbitrary choices with seeded, action-matched junction, roundabout, manoeuvre, steering, vehicle-securing, and Yaris precheck response surfaces while preserving stable command, action, phrasing, target, and provenance IDs.
@@ -14,7 +23,7 @@
 - Realigned every photo-backed manoeuvre and roundabout target to visible asphalt, curb, driveway, crossing, restriction, or exit geometry, and removed redundant crosswalk/driveway drawings from photographic scenes.
 - Retained exactly three honest semantic exceptions: speed adaptation, involuntary stopping, and exam finish. Parking and voluntary-stopping scenarios remain provisional pending practical-lesson evidence.
 - Recorded landscape-iPad and same-Wi-Fi hardened `serve:lan` guidance, actual-test-vehicle uncertainty, and the browser-automation limitation for backup export/import smoke.
-- Kept road simulation, additional phrasing variation, and deeper phrasing/voice mastery reporting deferred for evidence from real practice sessions.
+- Kept road simulation and deeper phrasing/voice mastery reporting deferred for evidence from real practice sessions.
 
 ## v0.1.0 — Standalone daily-practice baseline
 

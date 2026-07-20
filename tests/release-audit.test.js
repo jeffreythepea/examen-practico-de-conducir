@@ -221,3 +221,21 @@ test('Stage 2 release documents the activated action surfaces and review limits'
   assert.match(inventory, /manual immobilization.*Article 92|Article 92.*manual immobilization/is);
   assert.match(design, /simulation.*phrasing.*mastery.*deferred/is);
 });
+
+test('release documentation defines recorded-first browser Spanish speech fallback', async () => {
+  const [readme, changelog, design] = await Promise.all([
+    readFile(resolve(ROOT, 'README.md'), 'utf8'),
+    readFile(resolve(ROOT, 'CHANGELOG.md'), 'utf8'),
+    readFile(resolve(ROOT, 'docs/design.md'), 'utf8')
+  ]);
+
+  for (const [name, text] of [['README', readme], ['CHANGELOG', changelog], ['design', design]]) {
+    assert.match(text, /pre-generated|recorded|static MP3/i, `${name} must identify recorded audio as preferred`);
+    assert.match(text, /automatic.*browser.*(?:Spanish|es-ES).*(?:fallback|missing|fail)|(?:fallback|missing|fail).*automatic.*browser.*(?:Spanish|es-ES)/is,
+      `${name} must document browser Spanish fallback`);
+    assert.match(text, /fallback.*scor|scor.*fallback/is, `${name} must document fallback scoring`);
+    assert.doesNotMatch(text, /no browser[- ]speech fallback/i, `${name} must not describe fallback as absent`);
+  }
+  assert.match(readme, /no (?:runtime )?(?:credential|API key).*no backend|no backend.*no (?:runtime )?(?:credential|API key)/is);
+  assert.match(design, /both.*(?:recorded|MP3).*browser.*fail.*unscored|unscored.*both.*(?:recorded|MP3).*browser.*fail/is);
+});
