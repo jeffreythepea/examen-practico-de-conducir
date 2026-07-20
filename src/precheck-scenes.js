@@ -27,7 +27,7 @@ const ICONS = Object.freeze({
 export const PRECHECK_SCENES = deepFreeze({
   'generic-engine-bay': {
     id: 'generic-engine-bay',
-    asset: 'assets/precheck/generic-engine-bay.png',
+    asset: 'assets/precheck/generic-engine-bay.webp',
     altKey: 'surface.precheck.scene.engineBay',
     provenance: 'generic-illustrative-photo',
     reference: 'Generic conventional vehicle — illustrative AI-generated photo',
@@ -101,7 +101,7 @@ export const PRECHECK_SCENES = deepFreeze({
   },
   'generic-instrument-cluster': {
     id: 'generic-instrument-cluster',
-    asset: 'assets/precheck/generic-instrument-cluster.png',
+    asset: 'assets/precheck/generic-instrument-cluster.webp',
     altKey: 'surface.precheck.scene.instrumentCluster',
     provenance: 'generic-illustrative-photo',
     reference: 'Generic manual hatchback instrument cluster — illustrative AI-generated photo',
@@ -128,7 +128,7 @@ export const PRECHECK_SCENES = deepFreeze({
   },
   'generic-driver-door': {
     id: 'generic-driver-door',
-    asset: 'assets/precheck/generic-driver-door.png',
+    asset: 'assets/precheck/generic-driver-door.webp',
     altKey: 'surface.precheck.scene.driverDoor',
     provenance: 'generic-illustrative-photo',
     reference: 'Generic manual hatchback driver-door controls — illustrative AI-generated photo',
@@ -158,7 +158,7 @@ export const PRECHECK_SCENES = deepFreeze({
   },
   'generic-climate-panel': {
     id: 'generic-climate-panel',
-    asset: 'assets/precheck/generic-climate-panel.png',
+    asset: 'assets/precheck/generic-climate-panel.webp',
     altKey: 'surface.precheck.scene.climatePanel',
     provenance: 'generic-illustrative-photo',
     reference: 'Generic manual hatchback climate controls — illustrative AI-generated photo',
@@ -188,7 +188,7 @@ export const PRECHECK_SCENES = deepFreeze({
   },
   'generic-lighting-stalk': {
     id: 'generic-lighting-stalk',
-    asset: 'assets/precheck/generic-lighting-stalk.png',
+    asset: 'assets/precheck/generic-lighting-stalk.webp',
     altKey: 'surface.precheck.scene.lightingStalk',
     provenance: 'generic-illustrative-photo',
     reference: 'Generic manual hatchback lighting stalk — illustrative AI-generated photo',
@@ -218,7 +218,7 @@ export const PRECHECK_SCENES = deepFreeze({
   },
   'generic-headlight-ring': {
     id: 'generic-headlight-ring',
-    asset: 'assets/precheck/generic-lighting-stalk.png',
+    asset: 'assets/precheck/generic-lighting-stalk.webp',
     altKey: 'surface.precheck.scene.headlightRing',
     provenance: 'generic-illustrative-photo',
     reference: 'Generic manual hatchback headlight control ring — illustrative AI-generated photo',
@@ -241,7 +241,7 @@ export const PRECHECK_SCENES = deepFreeze({
   },
   'generic-indicator-stalk': {
     id: 'generic-indicator-stalk',
-    asset: 'assets/precheck/generic-lighting-stalk.png',
+    asset: 'assets/precheck/generic-lighting-stalk.webp',
     altKey: 'surface.precheck.scene.indicatorStalk',
     provenance: 'generic-illustrative-photo',
     reference: 'Generic manual hatchback indicator stalk — illustrative AI-generated photo',
@@ -271,7 +271,7 @@ export const PRECHECK_SCENES = deepFreeze({
   },
   'generic-bonnet-release': {
     id: 'generic-bonnet-release',
-    asset: 'assets/precheck/generic-bonnet-release.png',
+    asset: 'assets/precheck/generic-bonnet-release.webp',
     altKey: 'surface.precheck.scene.bonnetRelease',
     provenance: 'generic-illustrative-photo',
     reference: 'Generic manual hatchback driver footwell — illustrative AI-generated photo',
@@ -301,7 +301,7 @@ export const PRECHECK_SCENES = deepFreeze({
   },
   'generic-tailgate-release': {
     id: 'generic-tailgate-release',
-    asset: 'assets/precheck/generic-tailgate-release.png',
+    asset: 'assets/precheck/generic-tailgate-release.webp',
     altKey: 'surface.precheck.scene.tailgateRelease',
     provenance: 'generic-illustrative-photo',
     reference: 'Generic manual hatchback tailgate — illustrative AI-generated photo',

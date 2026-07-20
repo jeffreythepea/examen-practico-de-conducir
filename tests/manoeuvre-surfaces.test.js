@@ -137,7 +137,7 @@ test('overtaking separates the learner, lead vehicle, safe-follow target, and op
     const markup = renderManoeuvreSurface(model, 'en');
     assert.equal(model.geometry.sceneId, 'overtaking-photo-v1');
     assert.match(markup, /class="driving-scene-image"[^>]+data-scene="overtaking-photo-v1"/);
-    assert.match(markup, /src="\.\/assets\/driving\/overtaking-photo-v1\.png"/);
+    assert.match(markup, /src="\.\/assets\/driving\/overtaking-photo-v1\.webp"/);
     assert.match(markup, /<svg viewBox="0 0 100 100" preserveAspectRatio="none"/);
     assert.doesNotMatch(markup, /class="scenario-vehicle (?:learner|lead)-vehicle"/);
   }
@@ -149,7 +149,7 @@ test('parking, stopping, and U-turn use reviewed photo scenes', () => {
   const parkingMarkup = renderManoeuvreSurface(parking, 'es');
   assert.match(parkingMarkup, /class="surface-stage manoeuvre parking driving-photo-stage"/);
   assert.match(parkingMarkup, /data-scene="parallel-parking-gap-photo-v1"/);
-  assert.match(parkingMarkup, /src="\.\/assets\/driving\/parallel-parking-gap-photo-v1\.png"/);
+  assert.match(parkingMarkup, /src="\.\/assets\/driving\/parallel-parking-gap-photo-v1\.webp"/);
   assert.match(parkingMarkup, /alt="[^"]{20,}"/);
   assert.doesNotMatch(parkingMarkup, /class="manoeuvre-road-fill"/);
 
@@ -158,7 +158,7 @@ test('parking, stopping, and U-turn use reviewed photo scenes', () => {
   const stoppingMarkup = renderManoeuvreSurface(stopping, 'es');
   assert.match(stoppingMarkup, /class="surface-stage manoeuvre stopping driving-photo-stage"/);
   assert.match(stoppingMarkup, /data-scene="urban-roadside-photo-v1"/);
-  assert.match(stoppingMarkup, /src="\.\/assets\/driving\/urban-roadside-photo-v1\.png"/);
+  assert.match(stoppingMarkup, /src="\.\/assets\/driving\/urban-roadside-photo-v1\.webp"/);
   assert.match(stoppingMarkup, /alt="[^"]{20,}"/);
   assert.doesNotMatch(stoppingMarkup, /class="manoeuvre-road-fill"/);
 
@@ -167,7 +167,7 @@ test('parking, stopping, and U-turn use reviewed photo scenes', () => {
   const uTurnMarkup = renderManoeuvreSurface(uTurn, 'en');
   assert.match(uTurnMarkup, /class="surface-stage manoeuvre u-turn driving-photo-stage"/);
   assert.match(uTurnMarkup, /data-scene="u-turn-photo-v1"/);
-  assert.match(uTurnMarkup, /src="\.\/assets\/driving\/u-turn-photo-v1\.png"/);
+  assert.match(uTurnMarkup, /src="\.\/assets\/driving\/u-turn-photo-v1\.webp"/);
   assert.match(uTurnMarkup, /<svg viewBox="0 0 100 100" preserveAspectRatio="none"/);
   assert.doesNotMatch(uTurnMarkup, /class="manoeuvre-road"|class="manoeuvre-side-road"|class="road-marking"/);
 });

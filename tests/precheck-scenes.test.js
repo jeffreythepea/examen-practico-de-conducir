@@ -12,7 +12,7 @@ import { assertNonOverlappingTargets } from '../src/surface-geometry.js';
 test('engine prechecks share one immutable photo scene with precisely audited anchors', async () => {
   const scene = precheckSceneForCommand('c-pre-aceite');
   assert.equal(scene.id, 'generic-engine-bay');
-  assert.equal(scene.asset, 'assets/precheck/generic-engine-bay.png');
+  assert.equal(scene.asset, 'assets/precheck/generic-engine-bay.webp');
   assert.equal(PRECHECK_COMMAND_SCENES['c-pre-refrigerante'], scene.id);
   assert.equal(PRECHECK_COMMAND_SCENES['c-pre-bateria'], scene.id);
   assert.equal(PRECHECK_COMMAND_SCENES['c-pre-frenos'], scene.id);
@@ -53,12 +53,12 @@ test('precheck scene and icon lookups reject unsupported identifiers', () => {
 
 test('cabin prechecks map to three packaged scenes with described native-control targets', async () => {
   const expectedMappings = {
-    'c-pre-combustible': ['generic-instrument-cluster', 'assets/precheck/generic-instrument-cluster.png'],
-    'c-pre-temperatura': ['generic-instrument-cluster', 'assets/precheck/generic-instrument-cluster.png'],
-    'c-pre-bloquear-elevalunas': ['generic-driver-door', 'assets/precheck/generic-driver-door.png'],
-    'c-pre-desbloquear-elevalunas': ['generic-driver-door', 'assets/precheck/generic-driver-door.png'],
-    'c-pre-desempanar-delantera': ['generic-climate-panel', 'assets/precheck/generic-climate-panel.png'],
-    'c-pre-desempanar-trasera': ['generic-climate-panel', 'assets/precheck/generic-climate-panel.png']
+    'c-pre-combustible': ['generic-instrument-cluster', 'assets/precheck/generic-instrument-cluster.webp'],
+    'c-pre-temperatura': ['generic-instrument-cluster', 'assets/precheck/generic-instrument-cluster.webp'],
+    'c-pre-bloquear-elevalunas': ['generic-driver-door', 'assets/precheck/generic-driver-door.webp'],
+    'c-pre-desbloquear-elevalunas': ['generic-driver-door', 'assets/precheck/generic-driver-door.webp'],
+    'c-pre-desempanar-delantera': ['generic-climate-panel', 'assets/precheck/generic-climate-panel.webp'],
+    'c-pre-desempanar-trasera': ['generic-climate-panel', 'assets/precheck/generic-climate-panel.webp']
   };
 
   for (const [commandId, [sceneId, assetPath]] of Object.entries(expectedMappings)) {

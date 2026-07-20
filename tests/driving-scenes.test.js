@@ -8,13 +8,13 @@ import {
 } from '../src/driving-scenes.js';
 
 const EXPECTED = Object.freeze({
-  'u-turn-photo-v1': './assets/driving/u-turn-photo-v1.png',
-  'overtaking-photo-v1': './assets/driving/overtaking-photo-v1.png',
-  'four-way-intersection-photo-v1': './assets/driving/four-way-intersection-photo-v1.png',
-  'roundabout-four-photo-v1': './assets/driving/roundabout-four-photo-v1.png',
-  'roundabout-five-photo-v1': './assets/driving/roundabout-five-photo-v1.png',
-  'parallel-parking-gap-photo-v1': './assets/driving/parallel-parking-gap-photo-v1.png',
-  'urban-roadside-photo-v1': './assets/driving/urban-roadside-photo-v1.png'
+  'u-turn-photo-v1': './assets/driving/u-turn-photo-v1.webp',
+  'overtaking-photo-v1': './assets/driving/overtaking-photo-v1.webp',
+  'four-way-intersection-photo-v1': './assets/driving/four-way-intersection-photo-v1.webp',
+  'roundabout-four-photo-v1': './assets/driving/roundabout-four-photo-v1.webp',
+  'roundabout-five-photo-v1': './assets/driving/roundabout-five-photo-v1.webp',
+  'parallel-parking-gap-photo-v1': './assets/driving/parallel-parking-gap-photo-v1.webp',
+  'urban-roadside-photo-v1': './assets/driving/urban-roadside-photo-v1.webp'
 });
 
 test('driving photo registry exposes only the reviewed stable scene vocabulary', () => {
@@ -37,10 +37,13 @@ test('driving photo registry exposes only the reviewed stable scene vocabulary',
   assert.throws(() => drivingScene('future-scene'), /Unknown driving scene/);
 });
 
-test('every production driving scene is a nonempty local PNG', async () => {
+test('every production driving scene is a nonempty local WebP', async () => {
   for (const scene of Object.values(DRIVING_SCENES)) {
     const bytes = await readFile(new URL(`../${scene.asset.slice(2)}`, import.meta.url));
     assert.ok(bytes.length > 100_000, `${scene.id} must contain a real raster plate`);
-    assert.deepEqual([...bytes.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+    // Check for WebP RIFF header
+    assert.ok(bytes.length >= 12, `${scene.id} must have a WebP header`);
+    assert.deepEqual([...bytes.subarray(0, 4)], [0x52, 0x49, 0x46, 0x46], `${scene.id} must start with RIFF`);
+    assert.deepEqual([...bytes.subarray(8, 12)], [0x57, 0x45, 0x42, 0x50], `${scene.id} must contain WEBP`);
   }
 });

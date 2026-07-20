@@ -129,7 +129,7 @@ test('renderer draws unlabeled localized road targets and disables every target 
   assert.equal(model.geometry.sceneId, 'roundabout-four-photo-v1');
   assert.match(markup, /^<div class="surface-stage roundabout driving-photo-stage" data-surface="roundabout-v2">/);
   assert.match(markup, /class="driving-scene-image"[^>]+data-scene="roundabout-four-photo-v1"/);
-  assert.match(markup, /src="\.\/assets\/driving\/roundabout-four-photo-v1\.png"/);
+  assert.match(markup, /src="\.\/assets\/driving\/roundabout-four-photo-v1\.webp"/);
   assert.match(markup, /<svg viewBox="0 0 100 100" preserveAspectRatio="none"[^>]+aria-hidden="true"[^>]+focusable="false"/);
   assert.equal((markup.match(/class="road-target"/g) ?? []).length, 4);
   assert.equal((markup.match(/ disabled/g) ?? []).length, 4);
@@ -142,7 +142,7 @@ test('roundabout and junction photo plates replace their old synthetic roads', (
   assert.equal(five.geometry.sceneId, 'roundabout-five-photo-v1');
   const fiveMarkup = renderSpatialSurface(five, 'en');
   assert.match(fiveMarkup, /data-scene="roundabout-five-photo-v1"/);
-  assert.match(fiveMarkup, /src="\.\/assets\/driving\/roundabout-five-photo-v1\.png"/);
+  assert.match(fiveMarkup, /src="\.\/assets\/driving\/roundabout-five-photo-v1\.webp"/);
   assert.doesNotMatch(fiveMarkup, /class="roundabout-road"|class="roundabout-island"/);
 
   const junction = generateSpatialSurface(command('turn-left', 'junction-v2'), 42);
@@ -150,7 +150,7 @@ test('roundabout and junction photo plates replace their old synthetic roads', (
   const junctionMarkup = renderSpatialSurface(junction, 'en');
   assert.match(junctionMarkup, /class="surface-stage junction driving-photo-stage"/);
   assert.match(junctionMarkup, /data-scene="four-way-intersection-photo-v1"/);
-  assert.match(junctionMarkup, /src="\.\/assets\/driving\/four-way-intersection-photo-v1\.png"/);
+  assert.match(junctionMarkup, /src="\.\/assets\/driving\/four-way-intersection-photo-v1\.webp"/);
   assert.equal((junctionMarkup.match(/class="road-target"/g) ?? []).length, 3);
   assert.doesNotMatch(junctionMarkup, /class="spatial-road"|class="road-marking"/);
 });

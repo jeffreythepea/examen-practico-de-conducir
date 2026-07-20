@@ -194,7 +194,7 @@ test('the stable battery response now resolves to a generic under-bonnet photo t
   assert.equal(battery.meta.diagramId, 'yaris-body-v2');
   assert.equal(battery.meta.hotspotId, 'battery-under-rear-right-seat');
   assert.equal(battery.geometry.sceneId, 'generic-engine-bay');
-  assert.equal(battery.geometry.photoAsset, 'assets/precheck/generic-engine-bay.png');
+  assert.equal(battery.geometry.photoAsset, 'assets/precheck/generic-engine-bay.webp');
   assert.equal(battery.targets.find(target => target.id === 'battery-under-rear-right-seat').kind, 'under-bonnet-battery');
   assert.equal(battery.meta.provenance, 'generic-illustrative-photo');
 });
@@ -206,10 +206,10 @@ test('engine prechecks render a packaged photo with clear icons placed on the au
 
   assert.equal(model.geometry.diagramId, 'yaris-engine-bay-v2');
   assert.equal(model.geometry.sceneId, 'generic-engine-bay');
-  assert.equal(model.geometry.photoAsset, 'assets/precheck/generic-engine-bay.png');
+  assert.equal(model.geometry.photoAsset, 'assets/precheck/generic-engine-bay.webp');
   assert.equal(model.targets.length, 5);
   assert.match(hidden, /Illustrative vehicle image; the exact layout may differ\./);
-  assert.match(hidden, /<img class="precheck-photo"[^>]+src="assets\/precheck\/generic-engine-bay\.png"[^>]+alt="Generic engine compartment"/);
+  assert.match(hidden, /<img class="precheck-photo"[^>]+src="assets\/precheck\/generic-engine-bay\.webp"[^>]+alt="Generic engine compartment"/);
   assert.equal((hidden.match(/class="precheck-icon/g) ?? []).length, 5);
   assert.match(hidden, /data-target="engine-oil"[\s\S]*class="precheck-icon precheck-icon-oil"/);
   assert.doesNotMatch(hidden, /class="yaris-hotspot-label"/);
