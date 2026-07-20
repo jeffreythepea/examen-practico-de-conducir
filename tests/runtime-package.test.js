@@ -36,6 +36,7 @@ test('runtime package is integrity-addressed and copies only declared assets', a
     assert.equal(result.schemaVersion, 1);
     assert.match(result.version, /^[a-f0-9]{64}$/);
     assert.equal(result.recordedCorpusComplete, true);
+    assert.equal(result.totalAssets, result.assets.length);
     assert.equal(result.assets.filter(asset => asset.path.endsWith('.mp3')).length, 324);
     assert.deepEqual(result.assets, result.assets.toSorted((a, b) => a.path.localeCompare(b.path)));
     assert.equal((await stat(resolve(outDir, 'offline-package.json'))).isFile(), true);

@@ -137,6 +137,7 @@ export async function buildRuntimePackage({ root, outDir }) {
     const result = Object.freeze({
       schemaVersion: 1,
       version,
+      totalAssets: assets.length,
       totalBytes: assets.reduce((sum, asset) => sum + asset.bytes, 0),
       recordedCorpusComplete,
       assets: Object.freeze(assets)
