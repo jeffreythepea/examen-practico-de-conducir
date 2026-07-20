@@ -1,7 +1,7 @@
 # Examen Práctico de Conducir — Product Design
 
 **Date:** 2026-07-17
-**Status:** Approved design; Stage 2 implemented for review; release review pending
+**Status:** Approved design; Stage 2 implemented; Offline iPad Release A complete
 **Origin:** Extraction and redesign of the practical-exam drill in Piso Asturiano
 
 ## Purpose
@@ -269,6 +269,13 @@ to show the bilingual AI-voice disclosure.
 ## State and Data Flow
 
 ### Offline Release A architecture
+
+**Release status:** Offline iPad Release A is complete. On 2026-07-20 Jeffrey
+confirmed the full physical-iPad matrix, including installation, complete-package
+download, Airplane Mode practice with recorded media, resume, staged-update
+recovery, backup transfer, bilingual UI, touch targets, and feedback sounds. He
+also confirmed no Safari Web Inspector warnings or errors, then approved the
+intentional two-column landscape prompt and reveal layout.
 
 The public build is a deterministic runtime allowlist rather than a copy of the repository. It includes the shell, bilingual interface modules, command and audio manifests, optimized gameplay images, icons, recovery page, service worker, and all 324 recorded MP3s. Every packaged asset has an exact byte count and SHA-256 digest in `offline-package.json`; tests, plans, references, source images, recovery checkpoints, and credentials are excluded.
 

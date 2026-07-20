@@ -264,7 +264,7 @@ test('Stage 2 release documents the activated action surfaces and review limits'
   assert.doesNotMatch(readme, /securing the vehicle uses.*selector-P|current `c-inmov`.*selector-P/i);
   assert.match(readme, /browser.*automation.*export.*import.*manual.*smoke/i);
   assert.match(changelog, /Stage 2 action surfaces/i);
-  assert.match(design, /Stage 2 implemented for review/i);
+  assert.match(design, /Stage 2 implemented/i);
   assert.match(design, /photo-backed.*precise.*anchor/is);
   assert.match(design, /Article 92.*first.*uphill.*reverse.*downhill/is);
   assert.match(changelog, /photo-backed.*precheck/i);
@@ -294,6 +294,29 @@ test('Release A documentation explains hosted installation, verified offline lim
   assert.match(design, /interrupted command[\s\S]*unscored/i);
   assert.match(design, /staged update[\s\S]*setup/i);
   assert.doesNotMatch(readme, /offline storage is permanent|native iPad app/i);
+});
+
+test('Release A records completed physical iPad acceptance', async () => {
+  const [design, changelog] = await Promise.all([
+    readFile(resolve(ROOT, 'docs/design.md'), 'utf8'),
+    readFile(resolve(ROOT, 'CHANGELOG.md'), 'utf8')
+  ]);
+
+  for (const check of [
+    /installation/i,
+    /complete-package\s+download/i,
+    /Airplane\s+Mode\s+practice[\s\S]*recorded\s+media/i,
+    /resume/i,
+    /staged-update\s+recovery/i,
+    /backup\s+transfer/i,
+    /bilingual\s+UI/i,
+    /touch\s+targets/i,
+    /feedback\s+sounds/i,
+    /no\s+Safari\s+Web\s+Inspector\s+warnings\s+or\s+errors/i,
+    /two-column\s+landscape\s+prompt\s+and\s+reveal\s+layout/i
+  ]) assert.match(design, check);
+  assert.match(design, /Offline iPad Release A.*complete/i);
+  assert.match(changelog, /Offline iPad Release A — complete/i);
 });
 
 test('release documentation defines recorded-first browser Spanish speech fallback', async () => {

@@ -722,24 +722,31 @@ async function bootstrap() {
         <p class="progress">${progressText()}</p>
         ${state.settings.timed ? `<p class="timer" data-timer>${timerText()}</p>` : ''}
       </div>
-      <h2 id="prompt-title" data-screen-focus tabindex="-1">${translate(locale(), 'screen.prompt')}</h2>
-      <p>${translate(locale(), 'prompt.listen')}</p>
-      <p class="sr-status" role="status">${translate(locale(), 'status.audioReady')}</p>
-      <div class="prompt-actions">
-        <button type="button" data-action="replay" ${controlsDisabled ? 'disabled' : ''}>🔊 ${translate(locale(), 'action.replay')}</button>
-        ${state.settings.hintPolicy === 'available' && !model.textShown
-          ? `<button type="button" data-action="show-spanish" ${controlsDisabled ? 'disabled' : ''}>${translate(locale(), 'action.showSpanish')}</button>`
-          : ''}
+      <div class="gameplay-layout prompt-layout">
+        <div class="gameplay-copy">
+          <h2 id="prompt-title" data-screen-focus tabindex="-1">${translate(locale(), 'screen.prompt')}</h2>
+          <p>${translate(locale(), 'prompt.listen')}</p>
+          <p class="sr-status" role="status">${translate(locale(), 'status.audioReady')}</p>
+          <div class="prompt-actions">
+            <button type="button" data-action="replay" ${controlsDisabled ? 'disabled' : ''}>🔊 ${translate(locale(), 'action.replay')}</button>
+            ${state.settings.hintPolicy === 'available' && !model.textShown
+              ? `<button type="button" data-action="show-spanish" ${controlsDisabled ? 'disabled' : ''}>${translate(locale(), 'action.showSpanish')}</button>`
+              : ''}
+          </div>
+          ${model.textShown ? `<p class="spanish-hint" lang="es">${escapeHtml(phrasing.es)}</p>` : ''}
+          ${model.surfaceError
+            ? `<div class="surface-error" role="alert">
+                 <p>${translate(locale(), 'surface.error')}</p>
+                 <button class="primary" type="button" data-action="surface-retry">${translate(locale(), 'surface.retry')}</button>
+               </div>`
+            : ''}
+        </div>
+        ${model.surfaceError
+          ? ''
+          : `<div class="gameplay-surface">${renderSurfaceModel(model.activeSurfaceModel, model.surfaceResponse, locale(), {
+              disabled: controlsDisabled
+            })}</div>`}
       </div>
-      ${model.textShown ? `<p class="spanish-hint" lang="es">${escapeHtml(phrasing.es)}</p>` : ''}
-      ${model.surfaceError
-        ? `<div class="surface-error" role="alert">
-             <p>${translate(locale(), 'surface.error')}</p>
-             <button class="primary" type="button" data-action="surface-retry">${translate(locale(), 'surface.retry')}</button>
-           </div>`
-        : renderSurfaceModel(model.activeSurfaceModel, model.surfaceResponse, locale(), {
-            disabled: controlsDisabled
-          })}
     </section>`;
   }
 
@@ -749,19 +756,23 @@ async function bootstrap() {
     return `<section class="panel reveal" aria-labelledby="outcome-title">
       <p class="progress">${progressText()}</p>
       <h2 id="outcome-title" role="status" aria-live="polite" class="outcome ${model.outcome}" data-screen-focus tabindex="-1">${translate(locale(), `result.${model.outcome}`)}</h2>
-      ${renderSurfaceModel(model.activeSurfaceModel, model.surfaceResponse, locale(), {
-        disabled: true,
-        reveal: true,
-        selectedTargetId: model.selectedTargetId
-      })}
-      <dl class="answer-details">
-        <div><dt>${translate(locale(), 'reveal.spanish')}</dt><dd lang="es">${escapeHtml(phrasing.es)}</dd></div>
-        ${locale() === 'en' ? `<div><dt>${translate(locale(), 'reveal.meaning')}</dt><dd>${escapeHtml(phrasing.en)}</dd></div>` : ''}
-        <div><dt>${translate(locale(), 'reveal.expected')}</dt><dd>${escapeHtml(translate(locale(), `actionResult.${command.acceptedResult}`))}</dd></div>
-        ${command.vehicle ? `<div><dt>${translate(locale(), 'reveal.vehicle')}</dt><dd lang="${locale()}">${escapeHtml(localizedVehicleAnswer(command, locale()))}</dd></div>` : ''}
-      </dl>
-      ${model.outcome === 'incorrect' ? renderDiagnosis() : ''}
-      <button class="primary" type="button" data-action="continue">${translate(locale(), 'action.continue')}</button>
+      <div class="gameplay-layout reveal-layout">
+        <div class="gameplay-surface">${renderSurfaceModel(model.activeSurfaceModel, model.surfaceResponse, locale(), {
+          disabled: true,
+          reveal: true,
+          selectedTargetId: model.selectedTargetId
+        })}</div>
+        <div class="gameplay-feedback">
+          <dl class="answer-details">
+            <div><dt>${translate(locale(), 'reveal.spanish')}</dt><dd lang="es">${escapeHtml(phrasing.es)}</dd></div>
+            ${locale() === 'en' ? `<div><dt>${translate(locale(), 'reveal.meaning')}</dt><dd>${escapeHtml(phrasing.en)}</dd></div>` : ''}
+            <div><dt>${translate(locale(), 'reveal.expected')}</dt><dd>${escapeHtml(translate(locale(), `actionResult.${command.acceptedResult}`))}</dd></div>
+            ${command.vehicle ? `<div><dt>${translate(locale(), 'reveal.vehicle')}</dt><dd lang="${locale()}">${escapeHtml(localizedVehicleAnswer(command, locale()))}</dd></div>` : ''}
+          </dl>
+          ${model.outcome === 'incorrect' ? renderDiagnosis() : ''}
+          <button class="primary" type="button" data-action="continue">${translate(locale(), 'action.continue')}</button>
+        </div>
+      </div>
     </section>`;
   }
 

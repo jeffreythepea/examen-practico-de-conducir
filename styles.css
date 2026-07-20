@@ -1517,10 +1517,30 @@ dd {
   }
 
   #app {
+    width: min(100%, 1180px);
     padding-block: 1rem;
   }
 
-  .surface-stage {
-    width: min(60vh, 560px);
+  .gameplay-layout {
+    display: grid;
+    align-items: start;
+    gap: clamp(1.25rem, 3vw, 2.5rem);
+  }
+
+  .prompt-layout {
+    grid-template-columns: minmax(250px, 0.75fr) minmax(0, 1.25fr);
+  }
+
+  .reveal-layout {
+    grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  }
+
+  .gameplay-surface .surface-stage {
+    width: min(100%, 60vh);
+    margin-top: 0;
+  }
+
+  .gameplay-feedback .answer-details {
+    margin-top: 0;
   }
 }

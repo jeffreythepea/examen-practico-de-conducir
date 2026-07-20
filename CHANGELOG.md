@@ -1,13 +1,14 @@
 # Changelog
 
-## Offline iPad Release A — in progress
+## Offline iPad Release A — complete
 
+- Completed the physical iPad acceptance matrix for installation, verified offline download, Airplane Mode practice with recorded media, resume, staged-update recovery, backup transfer, bilingual UI, touch, and sound; added an intentional two-column landscape layout for prompt and reveal screens.
 - Added installable Home Screen metadata, landscape presentation, and dedicated iPad icons without claiming a native app.
 - Added a deterministic runtime-only distribution containing hashed static assets and the complete 324-record Spanish audio corpus.
 - Added resumable, integrity-verified offline downloads with active/staging cache isolation, exact byte progress, safe cancellation, and setup-only update application.
 - Migrated local storage to schema 2 and added Resume/Discard for interrupted sessions; an interrupted command restarts from the same phrasing, voice, and speed without being scored.
 - Added a constrained `serve:dist` preview and a GitHub Pages workflow that uploads only the verified `dist/` artifact.
-- Documented Safari installation, Safari-to-Home-Screen backup transfer, storage-eviction limits, and the physical iPad acceptance matrix still required before Release A is declared complete.
+- Documented Safari installation, Safari-to-Home-Screen backup transfer, storage-eviction limits, and the completed physical iPad acceptance matrix.
 
 ## Command and phrasing expansion — in progress
 

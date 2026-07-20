@@ -12,6 +12,32 @@ test('static shell exposes the localized application mount', async () => {
   assert.match(html, /This app needs JavaScript.*Esta aplicación necesita JavaScript/);
 });
 
+test('prompt and reveal expose one shared responsive gameplay layout', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /class="gameplay-layout prompt-layout"/);
+  assert.match(source, /class="gameplay-copy"/);
+  assert.match(source, /class="gameplay-layout reveal-layout"/);
+  assert.match(source, /class="gameplay-surface"/);
+  assert.match(source, /class="gameplay-feedback"/);
+});
+
+test('the shared gameplay layout becomes two columns only in wide landscape', async () => {
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  const mediaStart = css.indexOf('@media (orientation: landscape) and (min-width: 900px)');
+
+  assert.ok(mediaStart >= 0, 'wide-landscape media query must exist');
+  const globalCss = css.slice(0, mediaStart);
+  const landscapeCss = css.slice(mediaStart);
+
+  assert.doesNotMatch(globalCss, /\.gameplay-layout\s*\{[^}]*display:\s*grid;/s);
+  assert.match(landscapeCss, /#app\s*\{[^}]*width:\s*min\(100%,\s*1180px\);/s);
+  assert.match(landscapeCss, /\.gameplay-layout\s*\{[^}]*display:\s*grid;/s);
+  assert.match(landscapeCss, /\.prompt-layout\s*\{[^}]*grid-template-columns:\s*minmax\(250px,\s*0\.75fr\)\s*minmax\(0,\s*1\.25fr\);/s);
+  assert.match(landscapeCss, /\.reveal-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1\.25fr\)\s*minmax\(300px,\s*0\.75fr\);/s);
+  assert.match(landscapeCss, /\.gameplay-surface \.surface-stage\s*\{[^}]*width:\s*min\(100%,\s*60vh\);/s);
+});
+
 test('all setup controls receive a 44px-capable layout', async () => {
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(css, /button,\s*\na\s*\{[\s\S]*?min-height:\s*44px;/);
