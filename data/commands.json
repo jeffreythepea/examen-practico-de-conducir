@@ -27,6 +27,17 @@
         "sourcePage": "composite di_02/right",
         "sourceText": "Gire a la derecha en la próxima",
         "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-der-supplementary-2",
+        "es": "La próxima a la derecha",
+        "en": "The next one on the right",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "La próxima a la derecha",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ]
   },
@@ -58,6 +69,17 @@
         "sourcePage": "composite di_02/left",
         "sourceText": "Gire a la izquierda en la próxima",
         "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-izq-supplementary-2",
+        "es": "La próxima a la izquierda",
+        "en": "The next one on the left",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "La próxima a la izquierda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ]
   },
@@ -80,6 +102,28 @@
         "sourcePage": "composite rg_04",
         "sourceText": "Siga todo recto salvo que le diga",
         "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-recto-supplementary-1",
+        "es": "Siga recto",
+        "en": "Continue straight",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Siga recto",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      },
+      {
+        "id": "c-recto-supplementary-2",
+        "es": "Continúe recto",
+        "en": "Continue straight ahead",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Continúe recto",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ]
   },
@@ -111,6 +155,17 @@
         "sourcePage": "composite ft_02/general",
         "sourceText": "Cambie de sentido cuando pueda",
         "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-sentido-supplementary-2",
+        "es": "Dé la vuelta cuando pueda",
+        "en": "Turn around when you can",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Dé la vuelta cuando pueda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ]
   },
@@ -132,6 +187,17 @@
         "validation": "guide-only",
         "sourcePage": 6,
         "sourceText": "Volante recto"
+      },
+      {
+        "id": "c-volante-supplementary-1",
+        "es": "Enderece el volante",
+        "en": "Straighten the steering wheel",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Enderece el volante",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ]
   },
@@ -163,6 +229,17 @@
         "sourcePage": "composite di_01/first",
         "sourceText": "Primera salida, por favor",
         "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-rot1-supplementary-2",
+        "es": "Tome la primera salida en la rotonda",
+        "en": "Take the first exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Tome la primera salida en la rotonda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ]
   },
@@ -194,6 +271,17 @@
         "sourcePage": "composite di_01/second",
         "sourceText": "Segunda salida",
         "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-rot2-supplementary-2",
+        "es": "Tome la segunda salida en la rotonda",
+        "en": "Take the second exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Tome la segunda salida en la rotonda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ]
   },
@@ -225,6 +313,17 @@
         "sourcePage": "composite di_01/third",
         "sourceText": "Tercera salida",
         "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-rot3-supplementary-2",
+        "es": "Tome la tercera salida en la rotonda",
+        "en": "Take the third exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Tome la tercera salida en la rotonda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ]
   },
@@ -256,6 +355,17 @@
         "sourcePage": "composite ft_01",
         "sourceText": "Primera / Segunda / Tercera / Cuarta / Quinta salida",
         "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-rot4-supplementary-2",
+        "es": "Tome la cuarta salida en la rotonda",
+        "en": "Take the fourth exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Tome la cuarta salida en la rotonda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ]
   },
@@ -287,6 +397,17 @@
         "sourcePage": "composite ft_01",
         "sourceText": "Primera / Segunda / Tercera / Cuarta / Quinta salida",
         "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-rot5-supplementary-2",
+        "es": "Tome la quinta salida en la rotonda",
+        "en": "Take the fifth exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Tome la quinta salida en la rotonda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ]
   },
@@ -318,6 +439,17 @@
         "sourcePage": "composite di_03/stop",
         "sourceText": "Haga una parada",
         "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-parada-supplementary-2",
+        "es": "Pare donde esté permitido",
+        "en": "Stop where permitted",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Pare donde esté permitido",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ]
   },
@@ -413,6 +545,17 @@
         "sourcePage": "composite di_03/park",
         "sourceText": "Aparque",
         "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-est-supplementary-2",
+        "es": "Estacione donde esté permitido",
+        "en": "Park where permitted",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Estacione donde esté permitido",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ]
   },
@@ -471,6 +614,17 @@
         "validation": "guide-only",
         "sourcePage": 6,
         "sourceText": "Adelantamiento"
+      },
+      {
+        "id": "c-adel-supplementary-1",
+        "es": "Adelante cuando pueda",
+        "en": "Overtake when you can",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Adelante cuando pueda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ]
   },
@@ -632,6 +786,17 @@
         "validation": "manual-baseline",
         "sourcePage": 3,
         "sourceText": "Localizar: Batería, Liquido de frenos, Nivel de aceite y Nivel de líquido refrigerante"
+      },
+      {
+        "id": "c-pre-frenos-supplementary-1",
+        "es": "¿Dónde está el líquido de frenos?",
+        "en": "Where is the brake fluid?",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "¿Dónde está el líquido de frenos?",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ],
     "vehicle": {
@@ -659,6 +824,17 @@
         "validation": "manual-baseline",
         "sourcePage": 3,
         "sourceText": "Windscreen wiper fluid (B)"
+      },
+      {
+        "id": "c-pre-lavaparabrisas-supplementary-1",
+        "es": "¿Dónde se rellena el lavaparabrisas?",
+        "en": "Where do you refill the washer fluid?",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "¿Dónde se rellena el lavaparabrisas?",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ],
     "vehicle": {
@@ -794,6 +970,17 @@
         "validation": "manual-baseline",
         "sourcePage": 4,
         "sourceText": "Bloqueo o desbloqueo infantil de elevalunas traseros"
+      },
+      {
+        "id": "c-pre-bloquear-elevalunas-supplementary-1",
+        "es": "Bloquee los elevalunas traseros",
+        "en": "Lock the rear windows",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Bloquee los elevalunas traseros",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ],
     "vehicle": {
@@ -820,6 +1007,17 @@
         "validation": "manual-baseline",
         "sourcePage": 4,
         "sourceText": "Bloqueo o desbloqueo infantil de elevalunas traseros"
+      },
+      {
+        "id": "c-pre-desbloquear-elevalunas-supplementary-1",
+        "es": "Quite el bloqueo de los elevalunas",
+        "en": "Unlock the rear windows",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Quite el bloqueo de los elevalunas",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ],
     "vehicle": {
@@ -874,6 +1072,17 @@
         "sourcePage": "composite pc_06/general",
         "sourceText": "Encienda los cortos",
         "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-pre-cruce-supplementary-1",
+        "es": "Ponga las cortas",
+        "en": "Put on the low beams",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Ponga las cortas",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ],
     "vehicle": {
@@ -900,6 +1109,17 @@
         "validation": "manual-baseline",
         "sourcePage": 4,
         "sourceText": "Encender cualquier luz: largo alcance, niebla delantera o trasera"
+      },
+      {
+        "id": "c-pre-largo-alcance-supplementary-1",
+        "es": "Ponga las largas",
+        "en": "Put on the high beams",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Ponga las largas",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ],
     "vehicle": {
@@ -1004,6 +1224,17 @@
         "validation": "trim-dependent",
         "sourcePage": 4,
         "sourceText": "Cómo desempañar la luna delantera o trasera"
+      },
+      {
+        "id": "c-pre-desempanar-delantera-supplementary-1",
+        "es": "¿Cómo desempañaría la luna delantera?",
+        "en": "How would you demist the front window?",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "¿Cómo desempañaría la luna delantera?",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ],
     "vehicle": {
@@ -1030,6 +1261,17 @@
         "validation": "trim-dependent",
         "sourcePage": 4,
         "sourceText": "Cómo desempañar la luna delantera o trasera"
+      },
+      {
+        "id": "c-pre-desempanar-trasera-supplementary-1",
+        "es": "¿Cómo desempañaría la luna trasera?",
+        "en": "How would you demist the rear window?",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "¿Cómo desempañaría la luna trasera?",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
       }
     ],
     "vehicle": {

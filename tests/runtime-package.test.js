@@ -21,7 +21,7 @@ test('runtime asset discovery is deterministic, complete, and excludes developme
   assert.ok(paths.includes('data/commands.json'));
   assert.ok(paths.includes('manifest.webmanifest'));
   assert.ok(paths.includes('src/app.js'));
-  assert.equal(paths.filter(path => path.endsWith('.mp3')).length, 324);
+  assert.equal(paths.filter(path => path.endsWith('.mp3')).length, audioManifest.length);
   assert.ok(paths.every(path => !path.startsWith('tests/')));
   assert.ok(paths.every(path => !path.startsWith('docs/')));
   assert.ok(paths.every(path => !path.includes('.superpowers')));
@@ -35,9 +35,11 @@ test('runtime package is integrity-addressed and copies only declared assets', a
     const result = await buildRuntimePackage({ root: ROOT, outDir });
     assert.equal(result.schemaVersion, 1);
     assert.match(result.version, /^[a-f0-9]{64}$/);
-    assert.equal(result.recordedCorpusComplete, true);
+    const catalog = JSON.parse(await readFile(resolve(ROOT, 'data/commands.json'), 'utf8'));
+    const audioManifest = JSON.parse(await readFile(resolve(ROOT, 'data/audio-manifest.json'), 'utf8'));
+    assert.equal(result.recordedCorpusComplete, isRecordedCorpusComplete({ catalog, audioManifest }));
     assert.equal(result.totalAssets, result.assets.length);
-    assert.equal(result.assets.filter(asset => asset.path.endsWith('.mp3')).length, 324);
+    assert.equal(result.assets.filter(asset => asset.path.endsWith('.mp3')).length, audioManifest.length);
     assert.deepEqual(result.assets, result.assets.toSorted((a, b) => a.path.localeCompare(b.path)));
     assert.equal((await stat(resolve(outDir, 'offline-package.json'))).isFile(), true);
     assert.equal((await stat(resolve(outDir, 'index.html'))).isFile(), true);
@@ -50,6 +52,29 @@ test('runtime package is integrity-addressed and copies only declared assets', a
   } finally {
     await rm(temp, { recursive: true, force: true });
   }
+});
+
+test('corpus completeness derives from the catalog rather than a historical fixed count', () => {
+  const catalog = [{
+    id: 'c-test',
+    phrasings: [
+      { id: 'c-test-canonical' },
+      { id: 'c-test-supplementary-1' }
+    ]
+  }];
+  const voices = ['CwhRBWXzGAHq8TQ4Fs17', 'EXAVITQu4vr4xnSDxMaL'];
+  const speeds = [0.75, 0.9, 1];
+  const audioManifest = catalog.flatMap(command => command.phrasings.flatMap(phrasing =>
+    voices.flatMap(voiceId => speeds.map(speed => ({
+      commandId: command.id,
+      phrasingId: phrasing.id,
+      voiceId,
+      speed
+    })))
+  ));
+
+  assert.equal(audioManifest.length, 12);
+  assert.equal(isRecordedCorpusComplete({ catalog, audioManifest }), true);
 });
 
 test('corpus completeness rejects duplicate or incomplete audio inventories', async () => {

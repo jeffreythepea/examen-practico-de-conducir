@@ -18,7 +18,7 @@ Offline website storage is best-effort rather than permanent. iPadOS may evict c
 
 Stage 1 provides a standalone daily-practice baseline: driving, precheck, and mixed filters; three audio speeds; written-Spanish hint policies; optional timing; selectable 5-, 10-, and 15-command sessions; previously-missed and free-practice ordering; unaided, text-assisted, and incorrect scoring; diagnostics; and local backup/restore. Fresh saves start with Mixed practice and 10 commands; existing saves retain their chosen settings.
 
-The app has no runtime dependency on Piso Asturiano and no backend. The source remains a plain static browser application; public releases use a deterministic build step to select and verify only runtime assets. Stage 2 is implemented for release review with an action-matched response model. The current expansion contains 36 commands and 54 source-labeled Spanish phrasings; deeper phrasing/voice mastery reporting, road simulation, sequential exam simulation, and automatic difficulty progression remain deferred.
+The app has no runtime dependency on Piso Asturiano and no backend. The source remains a plain static browser application; public releases use a deterministic build step to select and verify only runtime assets. Stage 2 is implemented for release review with an action-matched response model. The current expansion contains 36 commands and 76 Spanish phrasings; deeper phrasing/voice mastery reporting, road simulation, sequential exam simulation, and automatic difficulty progression remain deferred.
 
 ## Stage 2 action surfaces
 
@@ -75,7 +75,7 @@ The Task 7 browser automation limitation means export downloads and confirm-plus
 
 ## Audio provenance and disclosure
 
-The expanded corpus contains 324 pre-generated ElevenLabs `eleven_multilingual_v2` MP3s: 54 Spanish phrasings, Roger and Sarah voices, and provider-native speeds of 0.75x, 0.9x, and 1x. Each trial randomly selects one playable phrasing/voice recording and retains it through replay, Show Spanish, reveal, and attempt logging. Integrity and provider/model provenance are recorded in `data/audio-manifest.json`; the audition decision is in `references/audio-audition.md`.
+The expanded catalog has a 456-variant target: 76 Spanish phrasings, Roger and Sarah voices, and provider-native speeds of 0.75x, 0.9x, and 1x. The complete published recorded corpus now contains all 456 integrity-checked ElevenLabs `eleven_multilingual_v2` MP3s; the resumable expansion run reused the previous 324 recordings and added 132. Each trial randomly selects one playable phrasing/voice recording and retains it through replay, Show Spanish, reveal, and attempt logging. Browser speech remains the online fallback if a recording fails. Integrity and provider/model provenance are recorded in `data/audio-manifest.json`; the audition decision is in `references/audio-audition.md`.
 
 Audio generation is resumable and fail-closed. It checksum-verifies reusable published and recovery assets, checkpoints every new clip outside the browser-delivered tree, and replaces the published audio tree and manifest only after the complete staged corpus validates. An interrupted generation therefore does not create a partially published static corpus.
 
@@ -116,7 +116,7 @@ When finished, remove the variable from the shell with `unset ELEVENLABS_API_KEY
 ## Release checklist
 
 - Run the release check and confirm every test passes with no whitespace errors.
-- Confirm `data/audio-manifest.json` resolves to all 324 nonempty, integrity-matching assets before treating the command expansion as release-ready.
+- Confirm `data/audio-manifest.json` resolves to all 456 nonempty, integrity-matching assets before treating the 76-phrasing command expansion as release-ready. The completed expansion run reused 324 published assets and added 132.
 - Exercise English and Spanish setup, playback, hint, response, reveal, results, export, and import in a supported browser.
 - Confirm the AI-generated-voice disclosure is visible in both locales.
 - Confirm no credentials or generated temporary files are included.

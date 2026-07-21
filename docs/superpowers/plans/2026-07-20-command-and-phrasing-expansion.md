@@ -142,6 +142,30 @@
 - [ ] If generation stops, preserve the recovery ledger, record the provider error and remaining variant count, and continue Task 8 without weakening release gates.
 - [ ] If generation completes, run the manifest integrity and orphan-asset tests.
 
+#### Review-derived 76-phrasing expansion run
+
+The approved 22-phrasing addition raises the target to 456 variants. The
+generator must checksum-reuse all 324 published variants and request only the
+132 missing variants. Do not fabricate audio-manifest entries or publish a
+partial manifest.
+
+Load the credential through the existing environment-variable workflow, then
+run the same resumable command:
+
+```sh
+export ELEVENLABS_API_KEY
+read -r ELEVENLABS_API_KEY < <(security find-generic-password -a "$USER" -s examen-practico-elevenlabs -w)
+node scripts/generate-audio.mjs \
+  --provider elevenlabs \
+  --voice CwhRBWXzGAHq8TQ4Fs17 \
+  --voice EXAVITQu4vr4xnSDxMaL
+unset ELEVENLABS_API_KEY
+```
+
+If the provider stops, retain the recovery directory and rerun the exact same
+command; verified recovery clips are reused. After generation, require all 456
+manifest records and files to pass integrity validation before release.
+
 ### Task 8: Integrated release and iPad-landscape review
 
 **Files:**

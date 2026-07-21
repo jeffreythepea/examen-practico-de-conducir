@@ -48,8 +48,7 @@ export function isRecordedCorpusComplete({ catalog, audioManifest }) {
   const voices = [...new Set(audioManifest.map(item => item.voiceId))].sort();
   const speeds = [...new Set(audioManifest.map(item => item.speed))].sort((a, b) => a - b);
 
-  return required.length === 324
-    && presentKeys.length === present.size
+  return presentKeys.length === present.size
     && present.size === required.length
     && required.every(key => present.has(key))
     && JSON.stringify(voices) === JSON.stringify([...EXPECTED_VOICE_IDS].sort())

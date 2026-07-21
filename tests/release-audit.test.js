@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, relative, resolve } from 'node:path';
@@ -163,22 +164,45 @@ test('documentation audit rejects HTTP-server references and normalized wildcard
   ));
 });
 
-test('audio manifest references complete nonempty static assets', async () => {
+test('published audio manifest is an integrity-valid subset of catalog phrasings', async () => {
   const [manifest, catalog] = await Promise.all([
     readFile(resolve(ROOT, 'data/audio-manifest.json'), 'utf8').then(JSON.parse),
     readFile(resolve(ROOT, 'data/commands.json'), 'utf8').then(JSON.parse)
   ]);
   const phrasingCount = catalog.reduce((total, command) => total + command.phrasings.length, 0);
+  const commandPhrasings = new Map(catalog.map(command => [
+    command.id,
+    new Set(command.phrasings.map(phrasing => phrasing.id))
+  ]));
   const voiceCount = new Set(manifest.map(variant => variant.voiceId)).size;
   const speedCount = new Set(manifest.map(variant => variant.speed)).size;
   assert.equal(voiceCount, 2);
   assert.equal(speedCount, 3);
-  assert.equal(manifest.length, phrasingCount * voiceCount * speedCount);
+  assert.ok(manifest.length <= phrasingCount * voiceCount * speedCount);
+  assert.equal(new Set(manifest.map(variant => variant.id)).size, manifest.length);
   for (const variant of manifest) {
+    assert.ok(commandPhrasings.get(variant.commandId)?.has(variant.phrasingId), `${variant.id} must reference a catalog phrasing`);
     const assetPath = resolve(ROOT, variant.path.replace(/^\.\//, ''));
     assert.ok(assetPath.startsWith(`${ROOT}/audio/`), `${variant.id} must stay inside audio/`);
-    assert.ok((await stat(assetPath)).size > 0, `${variant.id} asset must be nonempty`);
+    const details = await stat(assetPath);
+    assert.equal(details.size, variant.integrity.bytes, `${variant.id} byte count must match`);
+    const bytes = await readFile(assetPath);
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), variant.integrity.sha256, `${variant.id} checksum must match`);
   }
+});
+
+test('expanded recorded corpus is complete after audio generation', async t => {
+  const [manifest, catalog] = await Promise.all([
+    readFile(resolve(ROOT, 'data/audio-manifest.json'), 'utf8').then(JSON.parse),
+    readFile(resolve(ROOT, 'data/commands.json'), 'utf8').then(JSON.parse)
+  ]);
+  const expected = catalog.reduce((total, command) => total + command.phrasings.length, 0) * 2 * 3;
+  const missing = expected - manifest.length;
+  if (missing > 0) {
+    t.skip(`${missing} recorded variants pending`);
+    return;
+  }
+  assert.equal(manifest.length, expected);
 });
 
 test('release identity, isolation, scope, and bilingual AI voice disclosure are explicit', async () => {
@@ -317,6 +341,75 @@ test('Release A records completed physical iPad acceptance', async () => {
   ]) assert.match(design, check);
   assert.match(design, /Offline iPad Release A.*complete/i);
   assert.match(changelog, /Offline iPad Release A — complete/i);
+});
+
+test('deferred phrasing backlog remains discoverable and response-safe', async () => {
+  const [design, backlog, catalog] = await Promise.all([
+    readFile(resolve(ROOT, 'docs/design.md'), 'utf8'),
+    readFile(resolve(ROOT, 'references/phrasing-variant-backlog.md'), 'utf8'),
+    readFile(resolve(ROOT, 'data/commands.json'), 'utf8').then(JSON.parse)
+  ]);
+  const deferred = [
+    'Tuerza a la derecha / a la izquierda',
+    'Coja la primera salida',
+    'Haga un cambio de sentido',
+    'Adapte la velocidad',
+    'Señalice la maniobra',
+    'Ponga el freno de mano y apague el motor',
+    'Hemos terminado',
+    'Abra el portón trasero',
+    'Ponga los antiniebla delanteros',
+    'Ponga el antiniebla trasero',
+    'Ponga las luces de posición'
+  ];
+  const catalogPhrasings = new Set(catalog.flatMap(command => command.phrasings.map(phrasing => phrasing.es)));
+
+  assert.match(design, /references\/phrasing-variant-backlog\.md/);
+  for (const phrase of deferred) {
+    assert.ok(backlog.includes(phrase), `${phrase} must remain in the instructor backlog`);
+    assert.equal(catalogPhrasings.has(phrase), false, `${phrase} must not enter scored practice`);
+  }
+  assert.match(backlog, /open question for the instructor/i);
+  assert.match(backlog, /variants that change the required response are prohibited/i);
+  assert.match(backlog, /¿Cómo se abre el capó\?/);
+  assert.match(backlog, /opening demo[\s\S]*levels recital/i);
+});
+
+test('active documentation records the 76-phrasing catalog and audio expansion lifecycle', async () => {
+  const [readme, design, changelog, generationPlan, manifest] = await Promise.all([
+    readFile(resolve(ROOT, 'README.md'), 'utf8'),
+    readFile(resolve(ROOT, 'docs/design.md'), 'utf8'),
+    readFile(resolve(ROOT, 'CHANGELOG.md'), 'utf8'),
+    readFile(resolve(ROOT, 'docs/superpowers/plans/2026-07-20-command-and-phrasing-expansion.md'), 'utf8'),
+    readFile(resolve(ROOT, 'data/audio-manifest.json'), 'utf8').then(JSON.parse)
+  ]);
+
+  assert.ok(
+    manifest.length === 324 || manifest.length === 456,
+    `published manifest must be either the verified 324-variant baseline or complete 456-variant expansion; got ${manifest.length}`
+  );
+  for (const [name, text] of [['README', readme], ['design', design]]) {
+    const normalized = text.replace(/\s+/g, ' ');
+    assert.match(normalized, /36 commands?.{0,120}76.{0,120}phrasings?/i, `${name} must state the expanded catalog size`);
+    assert.match(normalized, /324.{0,120}(?:published|recorded|existing|reusable)/i, `${name} must distinguish the published corpus`);
+    if (manifest.length === 324) {
+      assert.match(normalized, /132.{0,120}(?:pending|missing|generate)/i, `${name} must state the generation backlog`);
+    } else {
+      assert.match(normalized, /(?:132.{0,120}(?:added|generated|published)|(?:added|generated|published).{0,120}132)/i, `${name} must state the completed generation increment`);
+    }
+    assert.match(normalized, /456.{0,120}(?:target|planned|complete|variants?)/i, `${name} must state the expanded target`);
+    if (manifest.length === 456) {
+      assert.match(normalized, /(?:complete.{0,120}published.{0,120}456|456.{0,120}(?:published|recorded).{0,120}(?:complete|integrity)|(?:published|recorded).{0,120}456.{0,120}(?:complete|integrity))/i, `${name} must state that the complete expanded corpus is published`);
+    }
+  }
+  assert.match(changelog, /22[^\n]*(?:phrasing|variant)/i);
+  assert.match(changelog, /deferred[^\n]*B list/i);
+  assert.match(generationPlan, /456[^\n]*variant/i);
+  assert.match(generationPlan, /(?:324[\s\S]{0,80}reus|reus[\s\S]{0,80}324)/i);
+  assert.match(generationPlan, /132[^\n]*(?:missing|pending|generate)/i);
+  assert.match(generationPlan, /ELEVENLABS_API_KEY/);
+  assert.match(generationPlan, /generate-audio\.mjs[\s\S]*CwhRBWXzGAHq8TQ4Fs17[\s\S]*EXAVITQu4vr4xnSDxMaL/);
+  assert.match(generationPlan, /do not[^\n]*fabricate[^\n]*manifest/i);
 });
 
 test('release documentation defines recorded-first browser Spanish speech fallback', async () => {

@@ -12,13 +12,15 @@
 
 ## Command and phrasing expansion — in progress
 
+- Added 22 review-derived, instructor-plausible wording variants for 76 total Spanish phrasings without changing any command, action, response surface, or existing phrasing ID/text; recorded the deferred B list and its instructor questions outside scored practice.
+- Generated and published the 132 review-derived clips through the resumable ElevenLabs workflow, reusing the prior 324 recordings and completing the integrity-checked 456-variant corpus.
 - Removed remaining user-visible Toyota Yaris Hybrid 2019 wording (reveal heading, setup warning, and the coolant-reservoir precheck answer) in favor of generic-manual-car language; the reveal screen no longer cites a bare, now-unnamed manual page number. Stable command, action, phrasing, and internal `yaris-*` surface/diagram IDs are unchanged pending a later migration decision.
 - Expanded the source-ledgered catalog from 30 to 36 commands, adding straight ahead, indicator, brake-fluid, washer-fluid, position-light, and dipped-headlight practice while keeping brake and washer fluid distinct.
-- Added 18 supplementary source-labeled alternatives for 54 total Spanish phrasings. A trial now retains the exact randomly selected playable phrasing through audio, Show Spanish, reveal, and attempt provenance.
+- Added 18 supplementary source-labeled alternatives in the earlier expansion. A trial retains the exact randomly selected playable phrasing through audio, Show Spanish, reveal, and attempt provenance.
 - Added action-matched surfaces for all six commands using the existing four-way junction, precisely anchored engine-bay components, native lighting-ring symbols, and the photographed indicator stalk.
 - Generalized audio generation to all catalog phrasings with checksum-verified production reuse, durable per-clip recovery, restart reuse, and all-or-nothing publication.
 - Added automatic browser `es-ES` speech when a static MP3 is missing or fails. Recorded audio remains preferred; a completed fallback is scored normally and retains exact phrasing/replay provenance, while total playback failure remains unscored.
-- Published and integrity-checked the complete 324-clip corpus. Browser Spanish fallback remains available for online playback failures without weakening the recorded offline guarantee or requiring a runtime credential/backend.
+- Published and integrity-checked the then-complete 324-clip corpus. Browser Spanish fallback remains available for online playback failures without requiring a runtime credential/backend; the later 76-phrasing expansion is now offline-complete with all 456 recordings.
 
 ## Stage 2 action surfaces — implemented for release review
 

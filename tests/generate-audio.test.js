@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import {
   AUDIO_DIRECTORY,
   AUDIO_SPEEDS,
@@ -56,6 +57,27 @@ test('plans every phrasing for an arbitrary catalog, selected voices, and provid
     path: 'audio/c-02/c-02-canonical/EXAVITQu4vr4xnSDxMaL/1.mp3'
   });
   assert.equal(plan.textsByVariantId['c-01--c-01-alt-1--CwhRBWXzGAHq8TQ4Fs17--0.75'], 'Otra instrucción española 1');
+});
+
+test('production expansion plans 456 variants and reflects the published corpus lifecycle', async () => {
+  const [productionCatalog, productionManifest] = await Promise.all([
+    readFile(new URL('../data/commands.json', import.meta.url), 'utf8').then(JSON.parse),
+    readFile(new URL('../data/audio-manifest.json', import.meta.url), 'utf8').then(JSON.parse)
+  ]);
+  const plan = buildGenerationPlan({ catalog: productionCatalog, provider: 'elevenlabs', voices });
+  const existingIds = new Set(productionManifest.map(variant => variant.id));
+  const reusable = plan.variants.filter(variant => existingIds.has(variant.id));
+  const missing = plan.variants.filter(variant => !existingIds.has(variant.id));
+
+  assert.equal(plan.variants.length, 456);
+  assert.equal(new Set(plan.variants.map(variant => variant.phrasingId)).size, 76);
+  assert.ok(productionManifest.length === 324 || productionManifest.length === 456);
+  assert.equal(reusable.length, productionManifest.length);
+  assert.equal(missing.length, 456 - productionManifest.length);
+  if (missing.length > 0) {
+    assert.equal(missing.length, 132);
+    assert.ok(missing.every(variant => variant.phrasingId.includes('-supplementary-')));
+  }
 });
 
 test('rejects configurations that cannot safely produce the complete selected corpus', () => {
