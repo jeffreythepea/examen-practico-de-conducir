@@ -763,10 +763,10 @@ test('playback selection prefers recordings and creates a stable browser-speech 
   };
 
   assert.strictEqual(
-    selectPlaybackVariant([recorded], command, 0.9, true, () => 0).id,
+    selectPlaybackVariant([recorded], command, 0.9, true, [], () => 0).id,
     recorded.id
   );
-  assert.deepEqual(selectPlaybackVariant([], command, 0.9, true, () => 0), {
+  assert.deepEqual(selectPlaybackVariant([], command, 0.9, true, [], () => 0), {
     id: 'browser-speech--c-pre-cruce--c-pre-cruce-canonical--0.9',
     commandId: 'c-pre-cruce',
     phrasingId: 'c-pre-cruce-canonical',
@@ -777,14 +777,36 @@ test('playback selection prefers recordings and creates a stable browser-speech 
     path: null
   });
   assert.equal(
-    selectPlaybackVariant([], command, 0.9, true, () => 0.999).phrasingId,
+    selectPlaybackVariant([], command, 0.9, true, [], () => 0.999).phrasingId,
     'c-pre-cruce-alt-1'
   );
   assert.throws(
-    () => selectPlaybackVariant([], command, 0.9, false, () => 0),
+    () => selectPlaybackVariant([], command, 0.9, false, [], () => 0),
     /Audio unavailable/
   );
-  assert.ok(Object.isFrozen(selectPlaybackVariant([], command, 0.9, true, () => 0)));
+  assert.ok(Object.isFrozen(selectPlaybackVariant([], command, 0.9, true, [], () => 0)));
+});
+
+test('playback selection prefers the least-exposed recorded phrasing and voice across speeds', () => {
+  const command = {
+    id: 'c-der',
+    phrasings: [
+      { id: 'c-der-canonical', es: 'Gire a la derecha' },
+      { id: 'c-der-alt-1', es: 'La próxima a la derecha' }
+    ]
+  };
+  const variants = [
+    { ...rightVariant, id: 'canonical-roger', phrasingId: 'c-der-canonical', voiceId: 'roger' },
+    { ...rightVariant, id: 'alternate-sarah', phrasingId: 'c-der-alt-1', voiceId: 'sarah' }
+  ];
+  const attempts = [{
+    commandId: 'c-der', phrasingId: 'c-der-canonical', voiceId: 'roger', speed: 0.75
+  }];
+
+  assert.equal(
+    selectPlaybackVariant(variants, command, 0.9, true, attempts, () => 0).id,
+    'alternate-sarah'
+  );
 });
 
 test('prompt and reveal phrasing resolves from the retained audio variant', () => {

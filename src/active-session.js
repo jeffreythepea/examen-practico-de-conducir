@@ -2,7 +2,10 @@ const PHASES = new Set(['driving', 'precheck', 'mixed']);
 const SPEEDS = new Set([0.75, 0.9, 1]);
 const HINT_POLICIES = new Set(['available', 'shown', 'unavailable']);
 const LENGTHS = new Set(['short', 'medium', 'all']);
-const MODES = new Set(['free', 'weakest-first']);
+const MODES = new Set(['free', 'recommended']);
+const TARGET_KINDS = new Set([
+  'recommended', 'needs-practice', 'not-tested', 'lesson-flags', 'not-ready', 'command', 'free'
+]);
 
 function clone(value) {
   try {
@@ -38,6 +41,16 @@ function validateSettings(settings) {
   if (!MODES.has(settings.mode)) throw new Error('Invalid activeSession.settings.mode');
 }
 
+function validateTarget(target) {
+  record(target, 'activeSession.target');
+  if (!TARGET_KINDS.has(target.kind)) throw new Error('Invalid activeSession.target.kind');
+  const allowedKeys = target.kind === 'command' ? ['commandId', 'kind'] : ['kind'];
+  if (Object.keys(target).some(key => !allowedKeys.includes(key))) {
+    throw new Error('Invalid activeSession.target');
+  }
+  if (target.kind === 'command') nonempty(target.commandId, 'activeSession.target.commandId');
+}
+
 export function validateStoredActiveSession(value) {
   const session = clone(value);
   record(session, 'activeSession');
@@ -68,11 +81,15 @@ export function validateStoredActiveSession(value) {
   });
   if (session.attemptIds.length !== session.nextIndex) throw new Error('Invalid activeSession.attemptIds length');
   validateSettings(session.settings);
+  if (session.target === undefined) delete session.target;
+  else validateTarget(session.target);
   return deepFreeze(session);
 }
 
-export function createActiveSession({ id, startedAt, items, nextIndex = 0, attemptIds = [], settings }) {
-  return validateStoredActiveSession({ version: 1, id, startedAt, items, nextIndex, attemptIds, settings });
+export function createActiveSession({ id, startedAt, items, nextIndex = 0, attemptIds = [], settings, target }) {
+  const session = { version: 1, id, startedAt, items, nextIndex, attemptIds, settings };
+  if (target !== undefined) session.target = target;
+  return validateStoredActiveSession(session);
 }
 
 export function advanceActiveSession(session, { nextIndex, attemptId }) {
@@ -106,12 +123,14 @@ export function resolveActiveSession(session, { commands, audioManifest }) {
     if (!variant) throw new Error(`Unsupported audio variant: ${item.commandId}`);
     return { ...clone(command), audioVariant: clone(variant) };
   });
-  return deepFreeze({
+  const resolved = {
     sessionItems,
     index: stored.nextIndex,
     attemptIds: [...stored.attemptIds],
     settings: clone(stored.settings)
-  });
+  };
+  if (stored.target !== undefined) resolved.target = clone(stored.target);
+  return deepFreeze(resolved);
 }
 
 export function discardActiveSession(state) {

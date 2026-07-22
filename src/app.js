@@ -8,7 +8,10 @@ import {
 import { commandsForPhase, validateCatalog } from './catalog.js';
 import { createFeedbackCuePlayer } from './feedback-audio.js';
 import { setDocumentLocale, translate } from './i18n.js';
+import { createLessonFlag, updateLessonFlag } from './lesson-flags.js';
 import { createOfflineClient } from './offline-client.js';
+import { readinessForCatalog } from './readiness.js';
+import { renderLessonFlagEditor, renderReadinessView } from './readiness-view.js';
 import {
   STORAGE_KEY,
   defaultState,
@@ -24,6 +27,7 @@ import {
   supportedCommands
 } from './surfaces.js';
 import { createAttemptId, createSession, recordAttempt, summarizeSession } from './training.js';
+import { selectCoverageAwareVariant } from './variant-coverage.js';
 
 export const MISS_REASONS = Object.freeze(['hearing', 'meaning', 'mapping', 'target', 'accidental', 'other']);
 export const TRIAL_TIME_MS = 8_000;
@@ -98,12 +102,35 @@ const FOCUS_IDENTITY_ATTRIBUTES = Object.freeze([
 export function captureFocusSnapshot(app, documentRef) {
   const activeElement = documentRef.activeElement;
   if (!activeElement || !app.contains(activeElement)) return null;
+  const action = activeElement.getAttribute?.('data-action');
+  const commandId = activeElement.getAttribute?.('data-command-id');
+  const flagId = activeElement.getAttribute?.('data-flag-id');
   const identity = FOCUS_IDENTITY_ATTRIBUTES
     .map(attribute => [attribute, activeElement.getAttribute?.(attribute)])
     .find(([, value]) => value !== null && value !== '');
   if (!identity) return null;
 
   const [attribute, value] = identity;
+  const selector = action
+    ? [
+        attributeSelector('data-action', action),
+        commandId ? attributeSelector('data-command-id', commandId) : '',
+        flagId ? attributeSelector('data-flag-id', flagId) : ''
+      ].join('')
+    : attributeSelector(attribute, value);
+  const fallbackSelectors = [];
+  if (action === 'show-spanish') fallbackSelectors.push('[data-action="replay"]');
+  if (['resolve-lesson-flag', 'reopen-lesson-flag'].includes(action) && commandId && flagId) {
+    const opposite = action === 'resolve-lesson-flag' ? 'reopen-lesson-flag' : 'resolve-lesson-flag';
+    fallbackSelectors.push(
+      `${attributeSelector('data-action', opposite)}${attributeSelector('data-command-id', commandId)}${attributeSelector('data-flag-id', flagId)}`
+    );
+  }
+  if (action === 'save-lesson-flag' && commandId) {
+    fallbackSelectors.push(
+      `${attributeSelector('data-action', 'open-lesson-flag')}${attributeSelector('data-command-id', commandId)}${flagId ? attributeSelector('data-flag-id', flagId) : ''}`
+    );
+  }
   const selection = Number.isInteger(activeElement.selectionStart)
     && Number.isInteger(activeElement.selectionEnd)
     ? {
@@ -113,12 +140,25 @@ export function captureFocusSnapshot(app, documentRef) {
       }
     : null;
   return {
-    selector: attributeSelector(attribute, value),
-    fallbackSelectors: attribute === 'data-action' && value === 'show-spanish'
-      ? ['[data-action="replay"]']
-      : [],
+    selector,
+    fallbackSelectors,
     selection
   };
+}
+
+export function lessonEditorDraftFromForm(form) {
+  if (!form) return null;
+  return {
+    commandId: form.querySelector('[name="commandId"]')?.value ?? '',
+    flagId: form.querySelector('[name="flagId"]')?.value ?? '',
+    category: form.querySelector('[name="category"]')?.value ?? '',
+    note: form.querySelector('[name="note"]')?.value ?? ''
+  };
+}
+
+export function persistedActiveSessionAfterAttempt(session, { nextIndex, attemptId }) {
+  const advanced = advanceActiveSession(session, { nextIndex, attemptId });
+  return advanced.nextIndex === advanced.items.length ? null : advanced;
 }
 
 export function restoreFocusSnapshot(app, snapshot) {
@@ -386,13 +426,20 @@ export function selectAudioVariant(manifest, selection, rng = Math.random) {
   return Object.freeze({ ...candidates[index] });
 }
 
-export function selectPlaybackVariant(manifest, command, speed, fallbackSupported, rng = Math.random) {
+export function selectPlaybackVariant(
+  manifest,
+  command,
+  speed,
+  fallbackSupported,
+  attempts = [],
+  rng = Math.random
+) {
   const recorded = manifest.filter(variant =>
     variant.commandId === command.id
     && variant.speed === speed
   );
   if (recorded.length > 0) {
-    return selectAudioVariant(manifest, { commandId: command.id, speed }, rng);
+    return selectCoverageAwareVariant(recorded, attempts, rng);
   }
   if (!fallbackSupported) throw new Error(`Audio unavailable for ${command.id}`);
   const phrasingIndex = Math.min(
@@ -495,6 +542,7 @@ async function bootstrap() {
   let audioOperation = 0;
   let lastRenderedScreen = null;
   let deferredFocusSnapshot = null;
+  let readinessFilters = { phase: 'mixed', state: 'all', flag: 'all', editor: null, noticeKey: '' };
 
   try {
     [commands, manifest] = await Promise.all([
@@ -511,6 +559,7 @@ async function bootstrap() {
       ...savedState,
       settings: { ...savedState.settings, mode: practiceMode(savedState.settings.mode) }
     };
+    readinessFilters = { ...readinessFilters, phase: state.settings.phase };
     if (state.activeSession) {
       try {
         resumableSession = resolveActiveSession(state.activeSession, { commands: selectableCommands, audioManifest: manifest });
@@ -558,6 +607,8 @@ async function bootstrap() {
     document.querySelector('#skip-link').textContent = translate(locale(), 'app.skip');
     const screen = model.screen === 'setup'
       ? renderSetup()
+      : model.screen === 'readiness'
+        ? renderReadiness()
       : model.screen === 'loading-audio'
         ? renderLoading()
         : model.screen === 'prompt'
@@ -568,6 +619,7 @@ async function bootstrap() {
     app.innerHTML = `${renderHeader()}${screen}`;
     bindCommonEvents();
     if (model.screen === 'setup') bindSetupEvents();
+    if (model.screen === 'readiness') bindReadinessEvents();
     if (model.screen === 'loading-audio') bindLoadingEvents();
     if (model.screen === 'prompt') bindPromptEvents();
     if (model.screen === 'reveal') bindRevealEvents();
@@ -624,9 +676,10 @@ async function bootstrap() {
         ${selectControl('length', 'setting.length', [
           ['short', 'length.short'], ['medium', 'length.medium'], ['all', 'length.all']
         ])}
-        ${selectControl('mode', 'setting.mode', [['weakest-first', 'mode.weak'], ['free', 'mode.free']])}
+        ${selectControl('mode', 'setting.mode', [['recommended', 'mode.recommended'], ['free', 'mode.free']])}
       </div>
       <p class="pool-count">${translate(locale(), 'summary.count', { count: pool.length })}</p>
+      <button type="button" data-action="open-readiness">${translate(locale(), 'screen.readiness')}</button>
       <button class="primary" type="button" data-action="start" ${canStart ? '' : 'disabled'}>${translate(locale(), 'action.start')}</button>
       ${canStart ? '' : `<p class="notice error" role="alert">${translate(locale(), 'error.audio')}</p>`}
       ${renderOfflineCard()}
@@ -641,6 +694,17 @@ async function bootstrap() {
       </details>
       ${importError ? `<p class="notice error" role="alert">${importError}</p>` : ''}
     </section>`;
+  }
+
+  function renderReadiness() {
+    return renderReadinessView({
+      locale: locale(),
+      t: (key, variables) => translate(locale(), key, variables),
+      commands: selectableCommands,
+      readiness: readinessForCatalog(selectableCommands, state.attempts, state.lessonFlags),
+      lessonFlags: state.lessonFlags,
+      filters: readinessFilters
+    });
   }
 
   function renderResumeCard() {
@@ -770,6 +834,11 @@ async function bootstrap() {
             ${command.vehicle ? `<div><dt>${translate(locale(), 'reveal.vehicle')}</dt><dd lang="${locale()}">${escapeHtml(localizedVehicleAnswer(command, locale()))}</dd></div>` : ''}
           </dl>
           ${model.outcome === 'incorrect' ? renderDiagnosis() : ''}
+          <button type="button" data-action="open-reveal-lesson-flag">${translate(locale(), 'readiness.action.openFlag')}</button>
+          ${renderLessonFlagEditor(
+            readinessFilters.editor?.commandId === command.id ? readinessFilters.editor : null,
+            (key, variables) => translate(locale(), key, variables)
+          )}
           <button class="primary" type="button" data-action="continue">${translate(locale(), 'action.continue')}</button>
         </div>
       </div>
@@ -811,6 +880,7 @@ async function bootstrap() {
             return `<li>${escapeHtml(locale() === 'es' ? phrasing.es : phrasing.en)} — ${Math.round(item.weightedScore * 100)}%</li>`;
           }).join('')}</ul>`}
       <button class="primary" type="button" data-action="setup">${translate(locale(), 'action.newSession')}</button>
+      <button type="button" data-action="open-readiness">${translate(locale(), 'screen.readiness')}</button>
     </section>`;
   }
 
@@ -828,6 +898,8 @@ async function bootstrap() {
 
   function bindCommonEvents() {
     app.querySelectorAll('[data-locale]').forEach(button => button.addEventListener('click', () => {
+      const editor = lessonEditorDraftFromForm(app.querySelector('.lesson-editor form'));
+      if (editor) readinessFilters = { ...readinessFilters, editor };
       updateSettings({ locale: button.dataset.locale });
     }));
   }
@@ -842,7 +914,8 @@ async function bootstrap() {
           : control.value;
       updateSettings({ [setting]: value });
     }));
-    app.querySelector('[data-action="start"]')?.addEventListener('click', startSession);
+    app.querySelector('[data-action="start"]')?.addEventListener('click', () => startSession());
+    app.querySelector('[data-action="open-readiness"]')?.addEventListener('click', openReadiness);
     app.querySelector('[data-action="resume-session"]')?.addEventListener('click', resumeSession);
     app.querySelector('[data-action="discard-session"]')?.addEventListener('click', discardSession);
     app.querySelector('[data-offline-action="download"]')?.addEventListener('click', () => void offlineClient.download());
@@ -856,6 +929,48 @@ async function bootstrap() {
       if (file) void importBackup(file);
       event.target.value = '';
     });
+  }
+
+  function bindReadinessEvents() {
+    app.querySelector('[data-action="close-readiness"]')?.addEventListener('click', () => {
+      readinessFilters = { ...readinessFilters, editor: null };
+      model = { screen: 'setup', settings: state.settings, session: [], index: 0 };
+      render();
+    });
+    for (const [action, key] of [
+      ['set-readiness-phase', 'phase'],
+      ['set-readiness-state', 'state'],
+      ['set-readiness-flag', 'flag']
+    ]) {
+      app.querySelector(`[data-action="${action}"]`)?.addEventListener('change', event => {
+        readinessFilters = { ...readinessFilters, [key]: event.target.value, editor: null, noticeKey: '' };
+        render();
+      });
+    }
+    app.querySelectorAll('[data-action="start-readiness-practice"]').forEach(button => {
+      button.addEventListener('click', () => startSession(
+        { kind: button.dataset.targetKind },
+        readinessFilters.phase
+      ));
+    });
+    app.querySelectorAll('[data-action="start-command-practice"]').forEach(button => {
+      button.addEventListener('click', () => {
+        const command = selectableCommands.find(candidate => candidate.id === button.dataset.commandId);
+        if (command) startSession({ kind: 'command', commandId: command.id }, command.phase);
+      });
+    });
+    app.querySelectorAll('[data-action="open-lesson-flag"]').forEach(button => {
+      button.addEventListener('click', () => openLessonFlagEditor(button.dataset.commandId, button.dataset.flagId));
+    });
+    app.querySelector('[data-action="save-lesson-flag"]')?.addEventListener('click', saveLessonFlag);
+    for (const [action, status] of [
+      ['resolve-lesson-flag', 'resolved'],
+      ['reopen-lesson-flag', 'open']
+    ]) {
+      app.querySelectorAll(`[data-action="${action}"]`).forEach(button => {
+        button.addEventListener('click', () => changeLessonFlagStatus(button.dataset.flagId, status));
+      });
+    }
   }
 
   function bindLoadingEvents() {
@@ -905,12 +1020,17 @@ async function bootstrap() {
   }
 
   function bindRevealEvents() {
+    app.querySelector('[data-action="open-reveal-lesson-flag"]')?.addEventListener('click', () => {
+      openLessonFlagEditor(currentCommand().id);
+    });
+    app.querySelector('[data-action="save-lesson-flag"]')?.addEventListener('click', saveLessonFlag);
     app.querySelectorAll('[data-miss-reason]').forEach(button => button.addEventListener('click', () => {
       model = reduceScreen(model, { type: 'SET_MISS_REASON', reason: button.dataset.missReason });
       persistMissReason(model.missReason);
       render();
     }));
     app.querySelector('[data-action="continue"]').addEventListener('click', () => {
+      readinessFilters = { ...readinessFilters, editor: null };
       currentAttemptId = null;
       model = reduceScreen(model, { type: 'CONTINUE' });
       render();
@@ -919,6 +1039,7 @@ async function bootstrap() {
   }
 
   function bindResultsEvents() {
+    app.querySelector('[data-action="open-readiness"]')?.addEventListener('click', openReadiness);
     app.querySelector('[data-action="setup"]').addEventListener('click', () => {
       model = reduceScreen(model, { type: 'GO_TO_SETUP' });
       sessionAttemptIds = [];
@@ -927,6 +1048,74 @@ async function bootstrap() {
       saveState(window.localStorage, state);
       render();
     });
+  }
+
+  function openReadiness() {
+    readinessFilters = { ...readinessFilters, phase: state.settings.phase, editor: null, noticeKey: '' };
+    model = { ...model, screen: 'readiness', settings: state.settings };
+    render();
+  }
+
+  function openLessonFlagEditor(commandId, flagId = '') {
+    if (!selectableCommands.some(command => command.id === commandId)) return;
+    const flag = flagId ? state.lessonFlags.find(candidate => candidate.id === flagId) : null;
+    if (flagId && !flag) return;
+    readinessFilters = {
+      ...readinessFilters,
+      editor: {
+        commandId,
+        flagId: flag?.id ?? '',
+        category: flag?.category ?? 'wording',
+        note: flag?.note ?? ''
+      }
+    };
+    render();
+  }
+
+  function saveLessonFlag() {
+    const form = app.querySelector('.lesson-editor form');
+    if (!form) return;
+    const editor = lessonEditorDraftFromForm(form);
+    const { commandId, flagId, category, note } = editor;
+    try {
+      if (!selectableCommands.some(command => command.id === commandId)) {
+        throw new Error('Invalid command');
+      }
+      const lessonFlags = flagId
+        ? updateLessonFlag(state.lessonFlags, flagId, { category, note })
+        : createLessonFlag(state.lessonFlags, { commandId, category, note });
+      state = { ...state, lessonFlags };
+      saveState(window.localStorage, state);
+      readinessFilters = { ...readinessFilters, editor: null };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const errorKey = message.includes('280')
+        ? 'readiness.flag.error.noteTooLong'
+        : message.toLowerCase().includes('note')
+          ? 'readiness.flag.error.noteEmpty'
+          : message.toLowerCase().includes('category')
+            ? 'readiness.flag.error.invalidCategory'
+            : message.toLowerCase().includes('not found')
+              ? 'readiness.flag.error.missingFlag'
+              : 'readiness.flag.error.invalidCommand';
+      readinessFilters = { ...readinessFilters, editor: { ...editor, errorKey } };
+    }
+    render();
+  }
+
+  function changeLessonFlagStatus(flagId, status) {
+    try {
+      state = { ...state, lessonFlags: updateLessonFlag(state.lessonFlags, flagId, { status }) };
+      saveState(window.localStorage, state);
+      readinessFilters = { ...readinessFilters, editor: null };
+      render();
+    } catch {
+      readinessFilters = {
+        ...readinessFilters,
+        editor: { commandId: '', flagId, category: 'wording', note: '', errorKey: 'readiness.flag.error.missingFlag' }
+      };
+      render();
+    }
   }
 
   function updateSettings(changes) {
@@ -938,17 +1127,29 @@ async function bootstrap() {
     render();
   }
 
-  function startSession() {
+  function startSession(target = null, selectionPhase = state.settings.phase) {
     sessionAttemptIds = [];
+    const practiceTarget = target ?? { kind: state.settings.mode === 'free' ? 'free' : 'recommended' };
+    const sessionSettings = { ...state.settings };
     const selectedCommands = createSession(selectableCommands, {
-      phase: state.settings.phase,
-      length: state.settings.length,
-      mode: state.settings.mode,
-      attempts: state.attempts
+      phase: selectionPhase,
+      length: sessionSettings.length,
+      mode: sessionSettings.mode,
+      target: practiceTarget,
+      attempts: state.attempts,
+      lessonFlags: state.lessonFlags
     });
+    if (selectedCommands.length === 0) {
+      if (model.screen === 'readiness') {
+        readinessFilters = { ...readinessFilters, noticeKey: 'readiness.empty.target' };
+        render();
+      }
+      return;
+    }
+    readinessFilters = { ...readinessFilters, noticeKey: '' };
     const session = selectedCommands.map(command => ({
       ...command,
-      audioVariant: selectPlaybackVariant(manifest, command, state.settings.speed, player.supportsFallback())
+      audioVariant: selectPlaybackVariant(manifest, command, sessionSettings.speed, player.supportsFallback(), state.attempts)
     }));
     const activeSession = createActiveSession({
       id: createAttemptId(),
@@ -959,11 +1160,12 @@ async function bootstrap() {
         voiceId: command.audioVariant.voiceId,
         speed: command.audioVariant.speed
       })),
-      settings: resumableSettings(state.settings)
+      settings: resumableSettings(sessionSettings),
+      target: practiceTarget
     });
     state = { ...state, activeSession };
     saveState(window.localStorage, state);
-    model = reduceScreen({ ...model, settings: state.settings }, { type: 'START_SESSION', session });
+    model = reduceScreen({ ...model, settings: sessionSettings }, { type: 'START_SESSION', session });
     render();
     void playCurrentCommand();
   }
@@ -998,7 +1200,7 @@ async function bootstrap() {
     let variant = model.variant ?? command.audioVariant;
     try {
       if (!variant) {
-        variant = selectPlaybackVariant(manifest, command, state.settings.speed, player.supportsFallback());
+        variant = selectPlaybackVariant(manifest, command, state.settings.speed, player.supportsFallback(), state.attempts);
       }
       const phrasing = resolvePhrasing(command, variant);
       const result = await player.play(variant, { text: phrasing.es, speed: variant.speed });
@@ -1078,7 +1280,7 @@ async function bootstrap() {
       timeout: model.timeout
     });
     if (result.scored) {
-      const activeSession = advanceActiveSession(state.activeSession, {
+      const activeSession = persistedActiveSessionAfterAttempt(state.activeSession, {
         nextIndex: before.index + 1,
         attemptId: result.attempt.id
       });
@@ -1192,7 +1394,6 @@ async function bootstrap() {
     feedbackPlayer.stop();
     window.localStorage.removeItem(STORAGE_KEY);
     state = defaultState();
-    state = { ...state, settings: { ...state.settings, mode: 'weakest-first' } };
     model = { screen: 'setup', settings: state.settings, session: [], index: 0 };
     sessionAttemptIds = [];
     currentAttemptId = null;
@@ -1222,7 +1423,7 @@ function escapeHtml(value = '') {
 }
 
 function practiceMode(value) {
-  return ['weakest-first', 'free'].includes(value) ? value : 'weakest-first';
+  return ['recommended', 'free'].includes(value) ? value : 'recommended';
 }
 
 function resumableSettings(settings) {

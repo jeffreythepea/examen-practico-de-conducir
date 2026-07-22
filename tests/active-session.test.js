@@ -25,7 +25,7 @@ const audioManifest = [{
 
 const settings = {
   phase: 'mixed', speed: 0.9, hintPolicy: 'available', timed: false,
-  feedbackSounds: true, length: 'medium', mode: 'weakest-first'
+  feedbackSounds: true, length: 'medium', mode: 'recommended'
 };
 
 function session(overrides = {}) {
@@ -39,13 +39,14 @@ function session(overrides = {}) {
     nextIndex: 0,
     attemptIds: [],
     settings,
+    target: { kind: 'recommended' },
     ...overrides
   });
 }
 
 test('active session serializes stable command and audio variant IDs but no live surface, timer, DOM, or audio objects', () => {
   const value = session();
-  assert.deepEqual(Object.keys(value).sort(), ['attemptIds', 'id', 'items', 'nextIndex', 'settings', 'startedAt', 'version']);
+  assert.deepEqual(Object.keys(value).sort(), ['attemptIds', 'id', 'items', 'nextIndex', 'settings', 'startedAt', 'target', 'version']);
   assert.deepEqual(Object.keys(value.items[0]).sort(), ['commandId', 'phrasingId', 'speed', 'voiceId']);
   assert.equal(JSON.stringify(value).includes('activeSurfaceModel'), false);
   assert.equal(Object.isFrozen(value), true);
@@ -76,6 +77,22 @@ test('resolution restores the exact selected phrasing, voice, and speed', () => 
   assert.deepEqual(resolved.sessionItems[0].audioVariant, audioManifest[0]);
   assert.deepEqual(resolved.sessionItems[1].audioVariant, audioManifest[1]);
   assert.deepEqual(resolved.settings, settings);
+  assert.deepEqual(resolved.target, { kind: 'recommended' });
+});
+
+test('active sessions validate supported targets while accepting version-1 sessions without one', () => {
+  const legacy = session({ target: undefined });
+  assert.equal(Object.hasOwn(legacy, 'target'), false);
+
+  for (const target of [
+    { kind: 'recommended' }, { kind: 'needs-practice' }, { kind: 'not-tested' },
+    { kind: 'lesson-flags' }, { kind: 'not-ready' }, { kind: 'free' },
+    { kind: 'command', commandId: 'c-der' }
+  ]) assert.deepEqual(session({ target }).target, target);
+
+  assert.throws(() => session({ target: { kind: 'missing' } }), /activeSession\.target/);
+  assert.throws(() => session({ target: { kind: 'command' } }), /commandId/);
+  assert.throws(() => session({ target: { kind: 'free', commandId: 'c-der' } }), /activeSession\.target/);
 });
 
 test('resolution accepts a completed session whose index equals command count', () => {

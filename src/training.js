@@ -1,5 +1,7 @@
+import { selectPracticeCommands, SESSION_LENGTHS } from './practice-selection.js';
+
 export const OUTCOME_WEIGHTS = Object.freeze({ unaided: 1, assisted: 0.5, incorrect: 0 });
-export const SESSION_LENGTHS = Object.freeze({ short: 5, medium: 10, all: 15 });
+export { SESSION_LENGTHS };
 export const UNAIDED_INTERVAL_DAYS = Object.freeze([1, 3, 7, 14, 30]);
 
 const DAY_MS = 86_400_000;
@@ -7,7 +9,7 @@ const DAY_MS = 86_400_000;
 /**
  * @typedef {'driving' | 'precheck' | 'mixed'} SessionPhase
  * @typedef {'short' | 'medium' | 'all'} SessionLength
- * @typedef {'free' | 'weakest-first'} SessionMode
+ * @typedef {'free' | 'recommended'} SessionMode
  * @typedef {'unaided' | 'assisted' | 'incorrect'} Outcome
  */
 
@@ -23,39 +25,28 @@ export function classifyOutcome({ correct, textShown, timeout }) {
 
 /**
  * @param {Array<{ phase: string }>} commands
- * @param {{ phase: SessionPhase, length: SessionLength, mode?: SessionMode, attempts?: Array<object>, now?: number, rng?: () => number }} settings
+ * @param {{ phase: SessionPhase, length: SessionLength, mode?: SessionMode, target?: object, attempts?: Array<object>, lessonFlags?: Array<object>, now?: number, rng?: () => number }} settings
  */
 export function createSession(commands, {
   phase,
   length,
-  mode = 'free',
+  mode = 'recommended',
+  target,
   attempts = [],
+  lessonFlags = [],
   now = Date.now(),
   rng = Math.random
 }) {
-  if (!['driving', 'precheck', 'mixed'].includes(phase)) throw new Error(`Unknown phase: ${phase}`);
-  if (!['short', 'medium', 'all'].includes(length)) throw new Error(`Unknown session length: ${length}`);
-  if (!['free', 'weakest-first'].includes(mode)) throw new Error(`Unknown session mode: ${mode}`);
-
-  const pool = commands.filter(command => phase === 'mixed' || command.phase === phase);
-  const ordered = mode === 'weakest-first'
-    ? nextWeakestFirst(pool, attempts, now)
-    : shuffle(pool, rng);
-  const targetLength = SESSION_LENGTHS[length];
-  return ordered.slice(0, targetLength);
-}
-
-/**
- * @param {Array<object>} items
- * @param {() => number} rng
- */
-function shuffle(items, rng) {
-  const result = [...items];
-  for (let index = result.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(rng() * (index + 1));
-    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
-  }
-  return result;
+  if (!['free', 'recommended'].includes(mode)) throw new Error(`Unknown session mode: ${mode}`);
+  return selectPracticeCommands(commands, {
+    phase,
+    length,
+    target: target ?? { kind: mode === 'free' ? 'free' : 'recommended' },
+    attempts,
+    lessonFlags,
+    now,
+    rng
+  });
 }
 
 /**
@@ -216,22 +207,6 @@ function scheduleForAttempts(attempts) {
  * @param {Array<object>} attempts
  * @param {number} now
  */
-export function nextWeakestFirst(commands, attempts, now = Date.now()) {
-  return commands
-    .map(command => ({ command, mastery: masteryForAction(attempts, command.actionId) }))
-    .sort((left, right) => {
-      const rankDifference = practiceRank(left.mastery, now) - practiceRank(right.mastery, now);
-      if (rankDifference !== 0) return rankDifference;
-      const scoreDifference = left.mastery.weightedScore - right.mastery.weightedScore;
-      if (scoreDifference !== 0) return scoreDifference;
-      const leftLast = left.mastery.lastPracticedAt ?? Number.NEGATIVE_INFINITY;
-      const rightLast = right.mastery.lastPracticedAt ?? Number.NEGATIVE_INFINITY;
-      if (leftLast !== rightLast) return leftLast - rightLast;
-      return left.command.id.localeCompare(right.command.id);
-    })
-    .map(({ command }) => command);
-}
-
 /**
  * Build the raw daily-practice report without hiding outcomes behind a score.
  */
@@ -261,9 +236,4 @@ export function summarizeSession(attempts, commands) {
     hintCount,
     weakActions
   };
-}
-
-function practiceRank(mastery, now) {
-  if (mastery.lastPracticedAt === null) return 0;
-  return mastery.nextDueAt <= now ? 1 : 2;
 }

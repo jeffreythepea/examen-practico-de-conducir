@@ -111,6 +111,23 @@ prioritizes previously missed, unseen, and review-priority actions, while free
 practice and manual difficulty selection remain available. The app does not
 automatically force a difficulty progression.
 
+Release B makes that evidence explicit. A command is **Ready** only after
+unaided successes on three distinct UTC dates and when its two most recent
+attempts are unaided. A latest incorrect or text-assisted attempt is **Needs
+practice**; other practiced commands are **In progress**; commands without a
+scored attempt are **Not tested**. Recommended practice ranks unseen work,
+needs-practice commands, due non-ready commands, and then other in-progress
+work. Targeted practice can select a readiness state, all non-ready commands,
+commands with open lesson flags, or one stable command ID.
+
+Recorded playback prefers less-exposed phrasing-and-voice combinations while
+action mastery remains action-level. Lesson flags are local correction notes,
+not catalog mutations: they can be created from a reveal and edited, resolved,
+reopened, filtered by open or resolved status, or practiced from Readiness. They round-trip through the
+versioned backup/export format and never change an accepted response without a
+separate reviewed content change. There is no composite readiness score or
+percentage, streak, badge, quota, or engagement mechanic.
+
 Sequential exam mode—realistic prechecks followed by driving—is deferred until
 practical lessons or an instructor establish credible counts and ordering.
 
@@ -294,7 +311,7 @@ The public build is a deterministic runtime allowlist rather than a copy of the 
 
 Offline storage uses an **active / staging / pointer** architecture. The service worker serves only the integrity-verified active cache. A new package downloads into a distinct staging cache, resumes missing files after interruption, and cannot replace the active pointer until every required file verifies. The prior active package remains available until the replacement is confirmed. A staged update is applied only from setup, never during a practice session. A navigation failure without a valid active package returns the small bilingual recovery page instead of pretending the full game is ready.
 
-Browser storage schema 2 adds an optional active-session value containing only stable command, phrasing, voice, speed, settings, and completed-attempt IDs. It never serializes audio objects, timers, generated surface state, or DOM references. After a scored response, the attempt and next unscored index are saved together. On relaunch, the interrupted command restarts with its exact immutable audio variant and remains unscored; completed attempts are not repeated. A catalog mismatch clears only the resumable session and preserves completed history.
+Browser storage schema 3 retains the optional active-session value introduced by schema 2 and adds local lesson flags plus recommended-practice settings. The active session contains only stable command, phrasing, voice, speed, settings, completed-attempt IDs, and an optional Release B target. It never serializes audio objects, timers, generated surface state, or DOM references. After a scored response, the attempt and next unscored index are saved together. On relaunch, the interrupted command restarts with its exact immutable audio variant and remains unscored; completed attempts are not repeated. A catalog mismatch clears only the resumable session and preserves completed history. Schema-1 and schema-2 saves migrate forward, including conversion of the legacy weakest-first mode to Recommended practice.
 
 The installed web app is local-first but is not a native iPad app, and iPadOS can evict website caches under storage pressure. **Ready offline** therefore means that the current package is complete and verified at that moment. Browser Spanish speech remains a playback fallback for online use and is not the offline guarantee.
 
@@ -305,6 +322,7 @@ The app is local-first. A separate, versioned storage schema records:
 - Unaided, text-assisted, and incorrect counts
 - Response-time history
 - Hint and replay dependence
+- Local lesson flags with category, note, status, and timestamps
 - Attempt log with action, phrasing, voice, speed, surface, selected result,
   outcome, timing, and diagnostic reason
 

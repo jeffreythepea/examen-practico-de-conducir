@@ -343,6 +343,41 @@ test('Release A records completed physical iPad acceptance', async () => {
   assert.match(changelog, /Offline iPad Release A — complete/i);
 });
 
+test('Release B documentation matches the generated catalog and records local readiness semantics', async () => {
+  const [readme, design, roadmap, changelog, storageSource, catalog, manifest] = await Promise.all([
+    readFile(resolve(ROOT, 'README.md'), 'utf8'),
+    readFile(resolve(ROOT, 'docs/design.md'), 'utf8'),
+    readFile(resolve(ROOT, 'docs/superpowers/specs/2026-07-20-offline-readiness-native-roadmap-design.md'), 'utf8'),
+    readFile(resolve(ROOT, 'CHANGELOG.md'), 'utf8'),
+    readFile(resolve(ROOT, 'src/storage.js'), 'utf8'),
+    readFile(resolve(ROOT, 'data/commands.json'), 'utf8').then(JSON.parse),
+    readFile(resolve(ROOT, 'data/audio-manifest.json'), 'utf8').then(JSON.parse)
+  ]);
+  const commandCount = catalog.length;
+  const phrasingCount = catalog.reduce((total, command) => total + command.phrasings.length, 0);
+  const variantCount = manifest.length;
+
+  for (const [name, text] of [['README', readme], ['design', design], ['roadmap', roadmap]]) {
+    const normalized = text.replace(/\s+/g, ' ');
+    assert.match(normalized, new RegExp(`${commandCount} commands?.{0,120}${phrasingCount}.{0,120}phrasings?`, 'i'), `${name} must use generated catalog counts`);
+    assert.match(normalized, new RegExp(`${variantCount}.{0,120}(?:recorded|audio|variants?|corpus)`, 'i'), `${name} must use the generated audio-manifest count`);
+  }
+
+  for (const [name, text] of [['README', readme], ['design', design]]) {
+    const normalized = text.replace(/\s+/g, ' ');
+    assert.match(normalized, /three distinct (?:UTC )?dates.{0,160}two most recent attempts (?:are )?unaided/i, `${name} must define Ready from evidence`);
+    assert.match(normalized, /targeted practice/i, `${name} must document targeted practice`);
+    assert.match(normalized, /lesson (?:flags|notes).{0,500}(?:local|device).{0,500}(?:backup|export)/i, `${name} must document local-only backup behavior`);
+    assert.match(normalized, /no composite (?:readiness )?(?:percentage|score)/i, `${name} must reject a composite score`);
+  }
+
+  assert.match(design, /schema 3/i);
+  assert.match(design, /less-exposed[\s\S]*(?:phrasing|voice)/i);
+  assert.match(changelog, /Release B — readiness and targeted practice/i);
+  assert.match(storageSource, /SCHEMA_VERSION\s*=\s*3/);
+  assert.match(storageSource, /mode:\s*state\.settings\?\.mode === 'free' \? 'free' : 'recommended'/);
+});
+
 test('deferred phrasing backlog remains discoverable and response-safe', async () => {
   const [design, backlog, catalog] = await Promise.all([
     readFile(resolve(ROOT, 'docs/design.md'), 'utf8'),

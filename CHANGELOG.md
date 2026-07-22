@@ -1,5 +1,15 @@
 # Changelog
 
+## Release B — readiness and targeted practice — in progress
+
+- Added evidence-based command states: Ready requires unaided successes on three distinct UTC dates and the two most recent attempts unaided; latest misses or text assistance remain Needs practice.
+- Replaced the legacy previously-missed scheduler with Recommended practice and added targeted sessions for readiness states, open lesson notes, all non-ready commands, or one command.
+- Prefer less-exposed recorded phrasing-and-voice combinations without splitting action-level mastery or changing scoring.
+- Added local lesson notes that can be created from a reveal and edited, resolved, reopened, filtered, practiced, exported, and imported without modifying accepted answers or catalog provenance.
+- Migrated browser storage to schema 3 while retaining schema-1/schema-2 migration and resumable-session compatibility.
+- Added a bilingual Readiness screen while deliberately omitting a composite score, streaks, badges, quotas, and other engagement mechanics.
+- Hardened Readiness interactions after independent review: empty focused-practice groups are disabled, completed sessions cannot reappear as resumable, repeated lesson-note controls retain distinct focus, unsaved note drafts survive locale changes, and notes can be filtered by open or resolved status.
+
 ## Offline iPad Release A — complete
 
 - Completed the physical iPad acceptance matrix for installation, verified offline download, Airplane Mode practice with recorded media, resume, staged-update recovery, backup transfer, bilingual UI, touch, and sound; added an intentional two-column landscape layout for prompt and reveal screens.

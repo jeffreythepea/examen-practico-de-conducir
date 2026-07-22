@@ -52,12 +52,12 @@ function completedAttempt(overrides = {}) {
   };
 }
 
-test('creates fresh version 2 defaults for English mixed practice with 10 commands', () => {
+test('creates fresh version 3 defaults with recommended practice and an empty lesson log', () => {
   const first = defaultState();
   const second = defaultState();
 
   assert.deepEqual(first, {
-    schemaVersion: 2,
+    schemaVersion: 3,
     settings: {
       locale: 'en',
       phase: 'mixed',
@@ -65,17 +65,19 @@ test('creates fresh version 2 defaults for English mixed practice with 10 comman
       hintPolicy: 'available',
       timed: false,
       feedbackSounds: true,
-      length: 'medium'
+      length: 'medium',
+      mode: 'recommended'
     },
     attempts: [],
     actionProgress: {},
+    lessonFlags: [],
     activeSession: null
   });
   assert.notEqual(first, second);
   assert.notEqual(first.settings, second.settings);
 });
 
-test('schema 1 save migrates to schema 2 with activeSession null', () => {
+test('schema 1 save migrates sequentially to schema 3 with activeSession null', () => {
   const legacy = {
     schemaVersion: 1,
     settings: { ...defaultState().settings },
@@ -84,15 +86,17 @@ test('schema 1 save migrates to schema 2 with activeSession null', () => {
     futureTopLevel: { keep: true }
   };
   const migrated = migrateState(legacy);
-  assert.equal(migrated.schemaVersion, 2);
+  assert.equal(migrated.schemaVersion, 3);
   assert.equal(migrated.activeSession, null);
+  assert.equal(migrated.settings.mode, 'recommended');
+  assert.deepEqual(migrated.lessonFlags, []);
   assert.deepEqual(migrated.attempts, legacy.attempts);
   assert.deepEqual(migrated.futureTopLevel, { keep: true });
   assert.equal(legacy.schemaVersion, 1);
   assert.equal(Object.hasOwn(legacy, 'activeSession'), false);
 });
 
-test('schema 2 round-trips a valid active session', () => {
+test('schema 2 migration normalizes legacy modes and preserves a valid active session', () => {
   const activeSession = {
     version: 1,
     id: 'session-1',
@@ -105,11 +109,20 @@ test('schema 2 round-trips a valid active session', () => {
       feedbackSounds: true, length: 'medium', mode: 'weakest-first'
     }
   };
-  const state = { ...defaultState(), activeSession };
-  assert.deepEqual(importState(exportState(state)).activeSession, activeSession);
+  const state = {
+    ...defaultState(), schemaVersion: 2,
+    settings: { ...defaultState().settings, mode: 'weakest-first' },
+    activeSession
+  };
+  delete state.lessonFlags;
+  const migrated = importState(JSON.stringify(state));
+  assert.equal(migrated.schemaVersion, 3);
+  assert.equal(migrated.settings.mode, 'recommended');
+  assert.equal(migrated.activeSession.settings.mode, 'recommended');
+  assert.deepEqual(migrated.lessonFlags, []);
 });
 
-test('schema 2 rejects active-session attempts that are absent from completed history', () => {
+test('schema 3 rejects active-session attempts that are absent from completed history', () => {
   const activeSession = {
     version: 1, id: 'session-1', startedAt: 123,
     items: [{ commandId: 'c-der', phrasingId: 'c-der-canonical', voiceId: 'voice-es', speed: 0.9 }],
@@ -117,7 +130,7 @@ test('schema 2 rejects active-session attempts that are absent from completed hi
     attemptIds: ['missing-attempt'],
     settings: {
       phase: 'mixed', speed: 0.9, hintPolicy: 'available', timed: false,
-      feedbackSounds: true, length: 'medium', mode: 'weakest-first'
+      feedbackSounds: true, length: 'medium', mode: 'recommended'
     }
   };
   assert.throws(
@@ -141,9 +154,9 @@ test('migration validates atomically and does not write an invalid candidate', (
 });
 
 test('future schema remains rejected without mutation', () => {
-  const future = { ...defaultState(), schemaVersion: 3 };
+  const future = { ...defaultState(), schemaVersion: 4 };
   const before = structuredClone(future);
-  assert.throws(() => migrateState(future), /Unsupported schema: 3/);
+  assert.throws(() => migrateState(future), /Unsupported schema: 4/);
   assert.deepEqual(future, before);
 });
 
@@ -211,7 +224,38 @@ test('rejects invalid imports before a caller replaces active state', () => {
     /Invalid settings.locale/
   );
   assert.deepEqual(activeState, before);
-  assert.throws(() => importState('{"schemaVersion":3}'), /Unsupported schema/);
+  assert.throws(() => importState('{"schemaVersion":4}'), /Unsupported schema/);
+});
+
+test('schema 3 round-trips validated lesson flags and rejects duplicate or malformed IDs', () => {
+  const flag = {
+    id: 'flag-1', commandId: 'c-der', category: 'wording', note: 'Ask the instructor.',
+    createdAt: 100, updatedAt: 200, status: 'open'
+  };
+  const state = { ...defaultState(), lessonFlags: [flag] };
+  assert.deepEqual(importState(exportState(state)).lessonFlags, [flag]);
+
+  assert.throws(
+    () => importState(JSON.stringify({ ...defaultState(), lessonFlags: [flag, { ...flag }] })),
+    /duplicate lesson flag/i
+  );
+  assert.throws(
+    () => importState(JSON.stringify({ ...defaultState(), lessonFlags: [{ ...flag, note: ' ' }] })),
+    /note/i
+  );
+});
+
+test('schema 3 accepts only recommended or free persisted practice modes', () => {
+  for (const mode of ['recommended', 'free']) {
+    const state = { ...defaultState(), settings: { ...defaultState().settings, mode } };
+    assert.equal(importState(exportState(state)).settings.mode, mode);
+  }
+  assert.throws(
+    () => importState(JSON.stringify({
+      ...defaultState(), settings: { ...defaultState().settings, mode: 'weakest-first' }
+    })),
+    /settings\.mode/
+  );
 });
 
 test('preserves compatible unknown additive fields through import and re-export', () => {

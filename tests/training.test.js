@@ -7,7 +7,6 @@ import {
   classifyOutcome,
   createSession,
   masteryForAction,
-  nextWeakestFirst,
   recordAttempt,
   scheduleAfterAttempt,
   summarizeSession
@@ -44,12 +43,14 @@ function rngFrom(values) {
 function completedAttempt({
   id = 'attempt',
   actionId = 'action-1',
+  commandId = 'd-1',
   outcome = 'unaided',
   timestamp = NOW,
   responseMs = 900
 } = {}) {
   return {
     id,
+    commandId,
     actionId,
     outcome,
     weight: OUTCOME_WEIGHTS[outcome],
@@ -291,33 +292,38 @@ test('recomputes mastery weights from outcomes instead of persisted attempt data
   assert.equal(masteryForAction(malformedWeights, 'action-1').weightedScore, 0.5);
 });
 
-test('weakest-first selection puts unseen and due actions ahead of weaker actions that are not yet due', () => {
+test('recommended sessions use readiness priorities and explicit targets', () => {
   const selectionCommands = [
     command('unseen', 'unseen'),
-    command('due', 'due'),
-    command('not-due', 'not-due')
+    command('missed', 'missed'),
+    command('learning', 'learning')
   ];
   const attempts = [
-    completedAttempt({ id: 'due-1', actionId: 'due', timestamp: NOW - 20 * DAY_MS }),
-    completedAttempt({ id: 'due-2', actionId: 'due', timestamp: NOW - 15 * DAY_MS }),
-    completedAttempt({ id: 'due-3', actionId: 'due', timestamp: NOW - 10 * DAY_MS }),
-    completedAttempt({ id: 'not-due-1', actionId: 'not-due', outcome: 'incorrect', timestamp: NOW - 2 * DAY_MS }),
-    completedAttempt({ id: 'not-due-2', actionId: 'not-due', timestamp: NOW })
+    completedAttempt({ id: 'missed-1', commandId: 'missed', actionId: 'missed', outcome: 'incorrect' }),
+    completedAttempt({ id: 'learning-1', commandId: 'learning', actionId: 'learning', outcome: 'unaided' })
   ];
   assert.deepEqual(
-    nextWeakestFirst(selectionCommands, attempts, NOW).map(item => item.id),
-    ['unseen', 'due', 'not-due']
+    createSession(selectionCommands, {
+      phase: 'driving', length: 'all', mode: 'recommended', attempts, now: NOW, rng: () => 0
+    }).map(item => item.id),
+    ['unseen', 'missed', 'learning']
+  );
+  assert.deepEqual(
+    createSession(selectionCommands, {
+      phase: 'driving', length: 'all', target: { kind: 'command', commandId: 'missed' }
+    }).map(item => item.id),
+    ['missed']
   );
 });
 
 test('free-practice session ignores due dates while retaining the same attempt scoring engine', () => {
   const selectionCommands = [command('due', 'due'), command('not-due', 'not-due')];
   const attempts = [
-    completedAttempt({ id: 'due-1', actionId: 'due', outcome: 'incorrect', timestamp: NOW - DAY_MS }),
-    completedAttempt({ id: 'not-due-1', actionId: 'not-due', outcome: 'unaided', timestamp: NOW })
+    completedAttempt({ id: 'due-1', commandId: 'due', actionId: 'due', outcome: 'incorrect', timestamp: NOW - DAY_MS }),
+    completedAttempt({ id: 'not-due-1', commandId: 'not-due', actionId: 'not-due', outcome: 'unaided', timestamp: NOW })
   ];
   const duePractice = createSession(selectionCommands, {
-    phase: 'driving', length: 'short', mode: 'weakest-first', attempts, now: NOW, rng: () => 0.5
+    phase: 'driving', length: 'short', mode: 'recommended', attempts, now: NOW, rng: () => 0.5
   });
   const freePractice = createSession(selectionCommands, {
     phase: 'driving', length: 'all', mode: 'free', attempts, now: NOW, rng: () => 0.5

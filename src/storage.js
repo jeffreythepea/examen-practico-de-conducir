@@ -1,13 +1,15 @@
 import { validateStoredActiveSession } from './active-session.js';
+import { validateLessonFlag } from './lesson-flags.js';
 
 export const STORAGE_KEY = 'examen-practico-de-conducir';
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 const LOCALES = new Set(['en', 'es']);
 const PHASES = new Set(['driving', 'precheck', 'mixed']);
 const SPEEDS = new Set([0.75, 0.9, 1]);
 const HINT_POLICIES = new Set(['available', 'shown', 'unavailable']);
 const LENGTHS = new Set(['short', 'medium', 'all']);
+const MODES = new Set(['recommended', 'free']);
 const OUTCOMES = new Set(['unaided', 'assisted', 'incorrect']);
 const OUTCOME_WEIGHTS = Object.freeze({ unaided: 1, assisted: 0.5, incorrect: 0 });
 
@@ -21,10 +23,12 @@ export function defaultState() {
       hintPolicy: 'available',
       timed: false,
       feedbackSounds: true,
-      length: 'medium'
+      length: 'medium',
+      mode: 'recommended'
     },
     attempts: [],
     actionProgress: {},
+    lessonFlags: [],
     activeSession: null
   };
 }
@@ -72,7 +76,17 @@ export function importState(text) {
 }
 
 const MIGRATIONS = new Map([
-  [1, state => ({ ...state, schemaVersion: 2, activeSession: null })]
+  [1, state => ({ ...state, schemaVersion: 2, activeSession: null })],
+  [2, state => ({
+    ...state,
+    schemaVersion: 3,
+    settings: {
+      ...state.settings,
+      mode: state.settings?.mode === 'free' ? 'free' : 'recommended'
+    },
+    lessonFlags: [],
+    activeSession: migrateActiveSessionMode(state.activeSession)
+  })]
 ]);
 
 export function migrateState(value) {
@@ -106,6 +120,7 @@ function validateState(value) {
   validateAttempts(state.attempts);
   if (!isRecord(state.actionProgress)) throw new Error('Invalid actionProgress');
   validateActionProgress(state.actionProgress);
+  validateLessonFlags(state.lessonFlags);
   if (state.activeSession !== null) {
     state.activeSession = validateStoredActiveSession(state.activeSession);
     const attemptIds = new Set(state.attempts.map(attempt => attempt.id));
@@ -125,6 +140,21 @@ function validateSettings(settings) {
   if (typeof settings.timed !== 'boolean') throw new Error('Invalid settings.timed');
   if (typeof settings.feedbackSounds !== 'boolean') throw new Error('Invalid settings.feedbackSounds');
   if (!LENGTHS.has(settings.length)) throw new Error('Invalid settings.length');
+  if (!MODES.has(settings.mode)) throw new Error('Invalid settings.mode');
+}
+
+function validateLessonFlags(flags) {
+  if (!Array.isArray(flags)) throw new Error('Invalid lessonFlags');
+  const ids = new Set();
+  flags.forEach((flag, index) => {
+    try {
+      validateLessonFlag(flag);
+    } catch (error) {
+      throw new Error(`Invalid lessonFlags[${index}]: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    if (ids.has(flag.id)) throw new Error(`Invalid duplicate lesson flag: ${flag.id}`);
+    ids.add(flag.id);
+  });
 }
 
 function validateAttempts(attempts) {
@@ -199,4 +229,15 @@ function clone(value) {
 
 function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function migrateActiveSessionMode(activeSession) {
+  if (!isRecord(activeSession) || !isRecord(activeSession.settings)) return activeSession;
+  return {
+    ...activeSession,
+    settings: {
+      ...activeSession.settings,
+      mode: activeSession.settings.mode === 'free' ? 'free' : 'recommended'
+    }
+  };
 }

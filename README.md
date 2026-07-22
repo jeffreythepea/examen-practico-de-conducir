@@ -16,9 +16,17 @@ Offline website storage is best-effort rather than permanent. iPadOS may evict c
 
 ## Scope
 
-Stage 1 provides a standalone daily-practice baseline: driving, precheck, and mixed filters; three audio speeds; written-Spanish hint policies; optional timing; selectable 5-, 10-, and 15-command sessions; previously-missed and free-practice ordering; unaided, text-assisted, and incorrect scoring; diagnostics; and local backup/restore. Fresh saves start with Mixed practice and 10 commands; existing saves retain their chosen settings.
+Stage 1 provides a standalone daily-practice baseline: driving, precheck, and mixed filters; three audio speeds; written-Spanish hint policies; optional timing; selectable 5-, 10-, and 15-command sessions; recommended and free-practice ordering; unaided, text-assisted, and incorrect scoring; diagnostics; and local backup/restore. Fresh saves start with Mixed practice and 10 commands; existing saves retain their chosen settings.
 
 The app has no runtime dependency on Piso Asturiano and no backend. The source remains a plain static browser application; public releases use a deterministic build step to select and verify only runtime assets. Stage 2 is implemented for release review with an action-matched response model. The current expansion contains 36 commands and 76 Spanish phrasings; deeper phrasing/voice mastery reporting, road simulation, sequential exam simulation, and automatic difficulty progression remain deferred.
+
+## Readiness and targeted practice
+
+Release B exposes command-level evidence without inventing a composite readiness score or percentage. A command is **Ready** only after unaided successes on three distinct UTC dates and when its two most recent attempts are unaided. A latest incorrect or text-assisted attempt marks it **Needs practice**; other practiced commands are **In progress**, and commands with no scored attempt are **Not tested**.
+
+**Recommended practice** prioritizes unseen commands, needs-practice commands, due non-ready commands, and then other in-progress work. The Readiness screen also starts targeted practice for a single command, all commands in a readiness state, all commands not ready, or commands with open lesson notes. Recorded playback prefers less-exposed phrasing-and-voice combinations while mastery remains attached to the underlying action, not to one recording.
+
+Lesson notes are local correction flags for wording, audio, visuals, accepted actions, vehicle controls, or other instructor feedback. They can be added from a reveal, then edited, resolved, reopened, filtered by open or resolved status, or practiced from Readiness. Lesson notes never change an accepted answer or the source catalog automatically. They stay on this device unless included in an exported versioned backup and restored through Import backup. The product deliberately has no composite score, streak, badge, daily quota, or other engagement mechanic.
 
 ## Stage 2 action surfaces
 
@@ -69,7 +77,7 @@ Enabling or changing the GitHub Pages source is an external repository action an
 
 ## Local data and backup
 
-Settings, mastery, schedules, attempt history, and stable interrupted-session identifiers remain in this app's browser-local storage. Use **Export backup** before clearing browser data or moving devices, and **Import backup** to restore a compatible versioned JSON file. Import validation is atomic: an invalid backup does not replace the active save. Backups contain learning history, so store them as personal data. Reloading during an unanswered command offers Resume; that interrupted command restarts from its exact Spanish recording and remains unscored.
+Settings, mastery, schedules, attempt history, local lesson notes, and stable interrupted-session identifiers remain in this app's browser-local storage. Use **Export backup** before clearing browser data or moving devices, and **Import backup** to restore a compatible versioned JSON file. Import validation is atomic: an invalid backup does not replace the active save. Backups contain learning history and lesson notes, so store them as personal data. Reloading during an unanswered command offers Resume; that interrupted command restarts from its exact Spanish recording and remains unscored.
 
 The Task 7 browser automation limitation means export downloads and confirm-plus-file-picker import cannot be completed reliably by automation; automated backup tests are green, but Jeffrey must perform a manual export/import smoke during release review.
 

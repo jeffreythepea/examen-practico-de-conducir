@@ -94,7 +94,7 @@ test('app enables incomplete static-audio sessions only through supported browse
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
   assert.match(source, /hasAudio\(command, state\.settings\.speed\)\s*\|\|\s*player\.supportsFallback\(\)/);
-  assert.match(source, /selectPlaybackVariant\(manifest, command, state\.settings\.speed, player\.supportsFallback\(\)\)/);
+  assert.match(source, /selectPlaybackVariant\(manifest, command, state\.settings\.speed, player\.supportsFallback\(\), state\.attempts\)/);
   assert.match(source, /player\.play\(variant, \{ text: phrasing\.es, speed: variant\.speed \}\)/);
 });
 
@@ -176,9 +176,54 @@ test('setup offers resumable sessions and scoring advances persisted progress be
   assert.match(source, /resolveActiveSession/);
   assert.match(source, /data-action="resume-session"/);
   assert.match(source, /data-action="discard-session"/);
-  assert.match(source, /advanceActiveSession\(state\.activeSession/);
+  assert.match(source, /persistedActiveSessionAfterAttempt\(state\.activeSession/);
   assert.match(source, /audioVariant/);
   assert.match(css, /\.resume-card/);
+});
+
+test('app integrates readiness navigation, targeted sessions, and lesson-note lifecycle', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  assert.match(source, /renderReadinessView/);
+  assert.match(source, /readinessForCatalog/);
+  assert.match(source, /createLessonFlag/);
+  assert.match(source, /updateLessonFlag/);
+  assert.match(source, /data-action="open-readiness"/);
+  assert.match(source, /model\.screen === 'readiness'/);
+  assert.match(source, /bindReadinessEvents\(\)/);
+  assert.match(source, /data-action="start-readiness-practice"/);
+  assert.match(source, /data-action="start-command-practice"/);
+  assert.match(source, /data-action="save-lesson-flag"/);
+  assert.match(source, /['"]resolve-lesson-flag['"]/);
+  assert.match(source, /['"]reopen-lesson-flag['"]/);
+  assert.match(source, /target:\s*practiceTarget/);
+  assert.match(source, /lessonFlags:\s*state\.lessonFlags/);
+  assert.match(source, /createActiveSession\(\{[\s\S]*?target:\s*practiceTarget/);
+});
+
+test('reveal offers the same persisted lesson-note editor used by Readiness', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /import \{ renderLessonFlagEditor, renderReadinessView \} from '\.\/readiness-view\.js'/);
+  assert.match(source, /renderLessonFlagEditor\([\s\S]*?readinessFilters\.editor/);
+  assert.match(source, /data-action="open-reveal-lesson-flag"/);
+  assert.match(source, /bindRevealEvents\(\)[\s\S]*?open-reveal-lesson-flag[\s\S]*?save-lesson-flag/);
+});
+
+test('setup exposes only recommended and free modes and playback receives prior attempts', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  assert.match(source, /\['recommended',\s*'mode\.recommended'\]/);
+  assert.match(source, /\['free',\s*'mode\.free'\]/);
+  assert.doesNotMatch(source, /\['weakest-first',\s*'mode\.weak'\]/);
+  assert.match(source, /selectPlaybackVariant\(manifest, command, state\.settings\.speed, player\.supportsFallback\(\), state\.attempts\)/);
+});
+
+test('targeted practice filters selection without rewriting saved setup preferences', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /function startSession\(target = null, selectionPhase = state\.settings\.phase\)/);
+  assert.match(source, /const sessionSettings = \{ \.\.\.state\.settings \};/);
+  assert.match(source, /createSession\(selectableCommands, \{[\s\S]*?phase: selectionPhase/);
+  assert.doesNotMatch(source, /state = \{ \.\.\.state, settings: sessionSettings, activeSession \}/);
 });
 
 test('settings disclosure summary receives a 44px-capable, keyboard-focusable layout', async () => {

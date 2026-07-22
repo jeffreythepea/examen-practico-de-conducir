@@ -10,7 +10,7 @@ const requiredKeys = [
   'setting.speed','setting.hint','hint.available','hint.shown','hint.unavailable','setting.timing',
   'timing.off','timing.on','setting.length','length.short','length.medium','length.all',
   'setting.feedbackSounds','feedbackSounds.on','feedbackSounds.off',
-  'setting.phase','setting.mode','mode.weak','mode.free','action.start','action.replay','action.showSpanish','action.continue','action.retry','action.newSession',
+  'setting.phase','setting.mode','mode.recommended','mode.free','action.start','action.replay','action.showSpanish','action.continue','action.retry','action.newSession',
   'screen.setup','screen.loading','screen.prompt','screen.results','prompt.listen','prompt.progress','prompt.timer',
   'reveal.spanish','reveal.meaning','reveal.expected','reveal.vehicle','result.unaided','result.assisted','result.incorrect',
   'miss.hearing','miss.meaning','miss.mapping','miss.target','miss.accidental','miss.other',
@@ -43,6 +43,21 @@ const requiredKeys = [
   'surface.yaris.state.closed','surface.yaris.state.locked','surface.yaris.state.unlocked',
   'surface.restricted.blockedAccess','surface.restricted.crosswalk','surface.restricted.markedRestriction',
   'surface.restricted.noParkingSign','surface.restricted.noStoppingSign'
+  ,'screen.readiness','screen.lesson','readiness.intro',
+  'readiness.state.ready','readiness.state.in-progress','readiness.state.needs-practice','readiness.state.not-tested',
+  'readiness.filter.phase','readiness.filter.state','readiness.filter.title','readiness.filter.allPhases','readiness.filter.allStates',
+  'readiness.group.driving','readiness.group.precheck',
+  'readiness.evidence.recent','readiness.evidence.lastPracticed','readiness.evidence.averageResponse',
+  'readiness.evidence.replays','readiness.evidence.hints','readiness.evidence.openFlags','readiness.evidence.nextDue',
+  'readiness.evidence.noData','readiness.evidence.milliseconds',
+  'readiness.outcome.unaided','readiness.outcome.assisted','readiness.outcome.incorrect',
+  'readiness.practice.title',
+  'readiness.action.startNeedsPractice','readiness.action.startNotTested','readiness.action.startLessonFlags',
+  'readiness.action.startNotReady','readiness.action.startCommandPractice','readiness.action.close',
+  'readiness.action.openFlag','readiness.action.editFlag','readiness.action.saveFlag','readiness.action.resolveFlag','readiness.action.reopenFlag',
+  'readiness.flag.editorTitle','readiness.flag.editTitle','readiness.flag.category','readiness.flag.note',
+  'readiness.flag.status.open','readiness.flag.status.resolved',
+  'readiness.empty.practice'
 ];
 
 test('English and Spanish dictionaries are complete and symmetric', () => {
@@ -75,6 +90,17 @@ test('translation validates locale, key, and interpolation variables', () => {
   assert.throws(() => translate('en', 'summary.count'), /Missing variable: count/);
 });
 
+test('readiness and lesson-note copy is complete and bilingual', () => {
+  assert.equal(translate('en', 'screen.readiness'), 'Readiness');
+  assert.equal(translate('es', 'screen.readiness'), 'Preparación');
+  assert.equal(translate('en', 'readiness.action.startCommandPractice'), 'Practice this command');
+  assert.equal(translate('es', 'readiness.action.startCommandPractice'), 'Practicar esta orden');
+  assert.equal(translate('en', 'readiness.filter.allStates'), 'All states');
+  assert.equal(translate('es', 'readiness.filter.allStates'), 'Todos los estados');
+  assert.equal(translate('en', 'readiness.outcome.incorrect'), 'Incorrect');
+  assert.equal(translate('es', 'readiness.outcome.incorrect'), 'Incorrecto');
+});
+
 test('written-Spanish policy labels state when text appears and how it scores', () => {
   assert.equal(translate('en', 'hint.available'), 'Hidden until you tap Show Spanish');
   assert.equal(translate('es', 'hint.available'), 'Oculto hasta pulsar Mostrar español');
@@ -85,8 +111,8 @@ test('written-Spanish policy labels state when text appears and how it scores', 
 });
 
 test('practice-order labels use plain language', () => {
-  assert.equal(translate('en', 'mode.weak'), 'Previously missed questions');
-  assert.equal(translate('es', 'mode.weak'), 'Preguntas falladas anteriormente');
+  assert.equal(translate('en', 'mode.recommended'), 'Recommended practice');
+  assert.equal(translate('es', 'mode.recommended'), 'Práctica recomendada');
 });
 
 test('session lengths state exact command counts in both locales', () => {

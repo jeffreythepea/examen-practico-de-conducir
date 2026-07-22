@@ -42,9 +42,10 @@ own reviewed specifications and plans when their entry criteria are met.
 ## Current Product Baseline
 
 The app is a static, local-first web application with no runtime backend and no
-required frontend build. It contains 36 commands, 54 source-labeled Spanish
+required frontend build. It contains 36 commands, 76 source-labeled Spanish
 phrasings, photo-backed action surfaces, local progress, versioned JSON
-backup/import, recorded ElevenLabs audio, and browser Spanish-speech fallback.
+backup/import, a complete 456-variant recorded ElevenLabs audio corpus, and
+browser Spanish-speech fallback.
 
 The current runtime media is dominated by roughly 40 MB of PNG photographs,
 plus the audio corpus. This is small relative to current iPad storage quotas but
@@ -57,13 +58,12 @@ secure origin outside localhost.
 
 ### Entry prerequisite
 
-Complete, validate, and atomically publish the 324-clip recorded corpus before
-claiming full offline readiness. The currently pending provider clips cannot be
-replaced by browser speech for this acceptance gate because offline availability
-of a browser voice is not under the app's control. Offline architecture and
-asset optimization may be implemented and tested before the corpus completes,
-but **Ready offline** remains unavailable until every recorded variant required
-by the production audio manifest is packaged.
+The full 456-variant recorded corpus is validated, atomically published, and
+included in the verified offline package. Browser speech cannot substitute for
+recorded media in this acceptance gate because offline availability of a browser
+voice is not under the app's control. **Ready offline** remains available only
+when every recorded variant required by the production audio manifest is
+packaged and integrity-verified.
 
 ### Outcome
 
