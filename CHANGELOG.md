@@ -1,6 +1,6 @@
 # Changelog
 
-## Release B — readiness and targeted practice — in progress
+## Release B — readiness and targeted practice — complete
 
 - Added evidence-based command states: Ready requires unaided successes on three distinct UTC dates and the two most recent attempts unaided; latest misses or text assistance remain Needs practice.
 - Replaced the legacy previously-missed scheduler with Recommended practice and added targeted sessions for readiness states, open lesson notes, all non-ready commands, or one command.
@@ -9,6 +9,7 @@
 - Migrated browser storage to schema 3 while retaining schema-1/schema-2 migration and resumable-session compatibility.
 - Added a bilingual Readiness screen while deliberately omitting a composite score, streaks, badges, quotas, and other engagement mechanics.
 - Hardened Readiness interactions after independent review: empty focused-practice groups are disabled, completed sessions cannot reappear as resumable, repeated lesson-note controls retain distinct focus, unsaved note drafts survive locale changes, and notes can be filtered by open or resolved status.
+- Passed physical iPad acceptance on 2026-07-22: the GitHub Pages offline update applied successfully, Readiness was accessible, targeted practice worked, and a lesson note saved and completed its resolve/reopen lifecycle.
 
 ## Offline iPad Release A — complete
 

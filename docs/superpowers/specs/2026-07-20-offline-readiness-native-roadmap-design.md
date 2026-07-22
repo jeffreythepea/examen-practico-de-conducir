@@ -259,6 +259,8 @@ new persisted fields. It must:
 
 ## Release B — Readiness and Targeted Practice
 
+**Status:** Complete and physically accepted on iPad on 2026-07-22.
+
 Release B begins only after Release A passes its iPad acceptance check.
 
 ### Readiness model
