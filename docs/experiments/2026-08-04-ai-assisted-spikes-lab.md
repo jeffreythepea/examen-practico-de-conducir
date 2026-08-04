@@ -3,10 +3,10 @@
 ## Recovery Snapshot
 
 - Checkout: `/Users/jeffreypease/Projects/examen-practico-de-conducir`
-- Current checkpoint: SwiftUI proof implemented and manually reviewed
-- Current commit: `8bb2523`
-- Working tree: intentionally dirty with the complete SwiftUI spike
-- Exact next task: run final gates, commit, and push the SwiftUI checkpoint
+- Current checkpoint: both spikes complete; comparison verified
+- Current commit: `540cf0e`
+- Working tree: intentionally dirty with comparison documentation only
+- Exact next task: commit and push the comparison
 - Blocker: none
 
 ## Shared Rubric
@@ -178,3 +178,86 @@ quality, model/account, delegated work, and visible token usage.
   coding inside Xcode, the capability shown in Jeffrey's lost screenshot.
 
 ## Comparison and Recommendation
+
+### What the familiar web stack made easy
+
+The moving-road proof reached a complete interactive loop in 37 minutes with
+no new developer toolchain. Existing catalog, audio, localization, test, and
+serving conventions transferred directly. The browser stack made iteration on
+timing, animation, and input states fast, and its production-package isolation
+was straightforward to prove.
+
+Its main friction was environmental rather than architectural: the in-app
+browser rejected local addresses, the static server required an explicit
+`index.html`, and reduced-motion review could not be performed without changing
+Jeffrey's system setting.
+
+### What native tooling made difficult
+
+The SwiftUI proof also fit comfortably inside the timebox, but only after
+installing an 8.52 GB simulator runtime and XcodeGen. Xcode project resource
+configuration, simulator permissions, derived-data paths, generated project
+inspection, Swift 6 actor isolation, and app installation added boundaries that
+do not exist in the web prototype.
+
+Those costs bought a genuine native result: the production catalog and
+recording were packaged into a SwiftUI app, XCTest exercised the decoder and
+resource contract, and the UI ran cleanly in both iPad orientations. The
+prototype is still far from a production-native port because signing,
+persistence, scoring, offline-state migration, and physical-device delivery
+were intentionally outside scope.
+
+### Where AI assistance was strongest
+
+AI assistance was strongest at turning stable repository contracts into
+executable tests, preserving exact bilingual catalog text, building small
+immutable boundaries, diagnosing the generated Xcode project, and maintaining
+a recovery ledger detailed enough to survive a system restart. The same agent
+could move between Node, browser UI, Swift, XCTest, XcodeGen, and Simulator
+without losing the product invariants.
+
+### Where human judgment remained essential
+
+Jeffrey's judgment established the experiment boundaries, selected both
+tracks, approved the evidence standard, and identified direct agentic coding
+inside Xcode as a valuable next comparison. Human review remains essential for
+whether motion resembles the real driving task, whether spoken Spanish sounds
+appropriate, and whether the additional native-tooling burden is justified by
+a future product need.
+
+### Reusable artifacts
+
+- Moving-road timing/scoring reducer, catalog/audio selector, bilingual UI,
+  local browser shell, tests, and interaction evidence.
+- Swift simulator selector, checksum-verified resource sync, production
+  catalog decoder, command view model, bilingual SwiftUI surface, bundled-audio
+  player, XcodeGen project, XCTest suite, and orientation evidence.
+- Shared experiment-isolation test, plans, exact recovery commands, restart
+  ledger, and descriptive comparison rubric.
+
+### Recommendation
+
+Keep both spikes as experiment fixtures, but continue production feature work
+in the web app unless in-car lessons reveal a native-only need. The web stack
+delivered the richer interaction with materially less setup and remains the
+lowest-risk path for Jeffrey and friends.
+
+Use the SwiftUI spike as the native test bed rather than beginning a port. The
+next bounded native experiment should compare the current repo-first workflow
+with direct agentic coding inside Xcode. That comparison should reuse this
+exact one-command proof and measure setup friction, diff quality, test
+discipline, recovery, and how clearly Xcode exposes agent-created changes. No
+production integration or Apple Developer enrollment is warranted yet.
+
+### Final Safety Verification
+
+- Moving-road focused suite: 14/14 passing.
+- Complete repository suite: 443/443 passing.
+- Production runtime package:
+  `26464113ddc8f19c34e05fcddb9497045ddaf8b33f347a63187a833cdafea25a`,
+  505 assets, 20,274,007 bytes, recorded corpus complete.
+- Runtime isolation: zero asset paths under `experiments/` or
+  `docs/experiments/`.
+- Production disclosure: the rendered `audio.disclosure` key remains present
+  in `src/app.js`, with English and Spanish values in `src/i18n.js`.
+- `git diff --check`: clean.
