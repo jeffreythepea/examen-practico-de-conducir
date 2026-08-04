@@ -1,7 +1,7 @@
 # AI-Assisted Coding Spikes Design
 
 **Date:** 2026-08-04
-**Status:** Approved in conversation; written-spec review pending
+**Status:** Approved in conversation and written-spec review
 **Product role:** Experimental test bed, not near-term exam preparation
 
 ## Goal
