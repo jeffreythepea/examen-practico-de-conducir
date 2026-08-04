@@ -1,0 +1,441 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		03856A3E6DE3A1652E5D023B /* AudioResourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E24364BEF22FA057D61334D8 /* AudioResourceTests.swift */; };
+		058080179F3F451601481791 /* c-recto-canonical-roger-0.9.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = D5EE8C88CCD5DF5C15567D44 /* c-recto-canonical-roger-0.9.mp3 */; };
+		155EF66EBCEA1C8E15570AF5 /* CatalogLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FF6D65118CACE0D6E045328 /* CatalogLoader.swift */; };
+		2D21A4BDBBC42BF829D3F0B8 /* AudioPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB78048844707F6DE062D6DE /* AudioPlayer.swift */; };
+		301A89A1C20A24D8312403B8 /* CatalogLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6682DB4B6C9CE11055B771 /* CatalogLoaderTests.swift */; };
+		446282A5DCE3F29B8C7624E8 /* CommandViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D9D6B75F29481CC664191E0 /* CommandViewModel.swift */; };
+		654B9E75E06D712AC5029A43 /* InterfaceCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = B39540855EE727F9EFCA5A58 /* InterfaceCopy.swift */; };
+		66CA288A592AE6DA1D3436E1 /* ExamenPracticoSpikeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4C87E6233861073CC877D90 /* ExamenPracticoSpikeApp.swift */; };
+		87F7406889F6CD16FFEC22A3 /* CatalogModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C651F9B4F0FEAFA923E3BAF4 /* CatalogModels.swift */; };
+		A631857C3C189871FA9CCCA0 /* commands.json in Resources */ = {isa = PBXBuildFile; fileRef = 965766FC55C79BDC0A2E7A40 /* commands.json */; };
+		BA7874DD6FFA8CC69161EAB5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D9E182D45BAD6917CAFC562 /* ContentView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		DB789C641B248124E1A10A75 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A9AC12DCBFCBC33AF7DAD1BC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 11ADC131D434F938ECAA7E6D;
+			remoteInfo = ExamenPracticoSpike;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		16455FF03B1465BE0B7CC2E0 /* ExamenPracticoSpikeTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ExamenPracticoSpikeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3D9D6B75F29481CC664191E0 /* CommandViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandViewModel.swift; sourceTree = "<group>"; };
+		4D9E182D45BAD6917CAFC562 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		965766FC55C79BDC0A2E7A40 /* commands.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = commands.json; sourceTree = "<group>"; };
+		9FF6D65118CACE0D6E045328 /* CatalogLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogLoader.swift; sourceTree = "<group>"; };
+		B39540855EE727F9EFCA5A58 /* InterfaceCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceCopy.swift; sourceTree = "<group>"; };
+		B9A0E6B6D8E3D23C5CB7354F /* ExamenPracticoSpike.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ExamenPracticoSpike.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD6682DB4B6C9CE11055B771 /* CatalogLoaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogLoaderTests.swift; sourceTree = "<group>"; };
+		C4C87E6233861073CC877D90 /* ExamenPracticoSpikeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExamenPracticoSpikeApp.swift; sourceTree = "<group>"; };
+		C651F9B4F0FEAFA923E3BAF4 /* CatalogModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogModels.swift; sourceTree = "<group>"; };
+		D5EE8C88CCD5DF5C15567D44 /* c-recto-canonical-roger-0.9.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "c-recto-canonical-roger-0.9.mp3"; sourceTree = "<group>"; };
+		E24364BEF22FA057D61334D8 /* AudioResourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioResourceTests.swift; sourceTree = "<group>"; };
+		FB78048844707F6DE062D6DE /* AudioPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayer.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		2AE87C2B3E809301D227FD0E = {
+			isa = PBXGroup;
+			children = (
+				CEFA4AE636C3DC6CEFAA4FCA /* ExamenPracticoSpike */,
+				31B560A07A66C8687D7370C8 /* ExamenPracticoSpikeTests */,
+				419EC931A3524F503D67E466 /* Resources */,
+				DD41F7683CEC2EA9B02B7940 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		31B560A07A66C8687D7370C8 /* ExamenPracticoSpikeTests */ = {
+			isa = PBXGroup;
+			children = (
+				E24364BEF22FA057D61334D8 /* AudioResourceTests.swift */,
+				BD6682DB4B6C9CE11055B771 /* CatalogLoaderTests.swift */,
+			);
+			path = ExamenPracticoSpikeTests;
+			sourceTree = "<group>";
+		};
+		419EC931A3524F503D67E466 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				D5EE8C88CCD5DF5C15567D44 /* c-recto-canonical-roger-0.9.mp3 */,
+				965766FC55C79BDC0A2E7A40 /* commands.json */,
+			);
+			name = Resources;
+			path = ExamenPracticoSpike/Resources;
+			sourceTree = "<group>";
+		};
+		CEFA4AE636C3DC6CEFAA4FCA /* ExamenPracticoSpike */ = {
+			isa = PBXGroup;
+			children = (
+				FB78048844707F6DE062D6DE /* AudioPlayer.swift */,
+				9FF6D65118CACE0D6E045328 /* CatalogLoader.swift */,
+				C651F9B4F0FEAFA923E3BAF4 /* CatalogModels.swift */,
+				3D9D6B75F29481CC664191E0 /* CommandViewModel.swift */,
+				4D9E182D45BAD6917CAFC562 /* ContentView.swift */,
+				C4C87E6233861073CC877D90 /* ExamenPracticoSpikeApp.swift */,
+				B39540855EE727F9EFCA5A58 /* InterfaceCopy.swift */,
+			);
+			path = ExamenPracticoSpike;
+			sourceTree = "<group>";
+		};
+		DD41F7683CEC2EA9B02B7940 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B9A0E6B6D8E3D23C5CB7354F /* ExamenPracticoSpike.app */,
+				16455FF03B1465BE0B7CC2E0 /* ExamenPracticoSpikeTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		11ADC131D434F938ECAA7E6D /* ExamenPracticoSpike */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BC2BADE7B18993FD152F0872 /* Build configuration list for PBXNativeTarget "ExamenPracticoSpike" */;
+			buildPhases = (
+				0D985E240B291EF389007356 /* Sources */,
+				47898FD22F05A6CBA3B1248F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ExamenPracticoSpike;
+			packageProductDependencies = (
+			);
+			productName = ExamenPracticoSpike;
+			productReference = B9A0E6B6D8E3D23C5CB7354F /* ExamenPracticoSpike.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9F1E6C9868880E0587A70CD0 /* ExamenPracticoSpikeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B7E5A7AD3F351C3881382FB9 /* Build configuration list for PBXNativeTarget "ExamenPracticoSpikeTests" */;
+			buildPhases = (
+				AB98401FA7BB504964343AB1 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2FEC08D359FF8C728434EE0A /* PBXTargetDependency */,
+			);
+			name = ExamenPracticoSpikeTests;
+			packageProductDependencies = (
+			);
+			productName = ExamenPracticoSpikeTests;
+			productReference = 16455FF03B1465BE0B7CC2E0 /* ExamenPracticoSpikeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A9AC12DCBFCBC33AF7DAD1BC /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 00D77A1E72BB0C0744E583C8 /* Build configuration list for PBXProject "ExamenPracticoSpike" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 2AE87C2B3E809301D227FD0E;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = DD41F7683CEC2EA9B02B7940 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				11ADC131D434F938ECAA7E6D /* ExamenPracticoSpike */,
+				9F1E6C9868880E0587A70CD0 /* ExamenPracticoSpikeTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		47898FD22F05A6CBA3B1248F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				058080179F3F451601481791 /* c-recto-canonical-roger-0.9.mp3 in Resources */,
+				A631857C3C189871FA9CCCA0 /* commands.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0D985E240B291EF389007356 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2D21A4BDBBC42BF829D3F0B8 /* AudioPlayer.swift in Sources */,
+				155EF66EBCEA1C8E15570AF5 /* CatalogLoader.swift in Sources */,
+				87F7406889F6CD16FFEC22A3 /* CatalogModels.swift in Sources */,
+				446282A5DCE3F29B8C7624E8 /* CommandViewModel.swift in Sources */,
+				BA7874DD6FFA8CC69161EAB5 /* ContentView.swift in Sources */,
+				66CA288A592AE6DA1D3436E1 /* ExamenPracticoSpikeApp.swift in Sources */,
+				654B9E75E06D712AC5029A43 /* InterfaceCopy.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB98401FA7BB504964343AB1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				03856A3E6DE3A1652E5D023B /* AudioResourceTests.swift in Sources */,
+				301A89A1C20A24D8312403B8 /* CatalogLoaderTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2FEC08D359FF8C728434EE0A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 11ADC131D434F938ECAA7E6D /* ExamenPracticoSpike */;
+			targetProxy = DB789C641B248124E1A10A75 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		058EA33F50A9902E0BD9C4C1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		1DE28D8432F820C42015D85B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.jeffreypease.ExamenPracticoSpikeTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ExamenPracticoSpike.app/ExamenPracticoSpike";
+			};
+			name = Debug;
+		};
+		2D0BBC645B2CF022BB900D02 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.jeffreypease.ExamenPracticoSpike;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B8A3BFE45EAAD764C19A0A2A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.jeffreypease.ExamenPracticoSpike;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		D9B0F0A1D821B947B3F923A4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.jeffreypease.ExamenPracticoSpikeTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ExamenPracticoSpike.app/ExamenPracticoSpike";
+			};
+			name = Release;
+		};
+		DFF82D2FF342038295244DBD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		00D77A1E72BB0C0744E583C8 /* Build configuration list for PBXProject "ExamenPracticoSpike" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				058EA33F50A9902E0BD9C4C1 /* Debug */,
+				DFF82D2FF342038295244DBD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B7E5A7AD3F351C3881382FB9 /* Build configuration list for PBXNativeTarget "ExamenPracticoSpikeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DE28D8432F820C42015D85B /* Debug */,
+				D9B0F0A1D821B947B3F923A4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BC2BADE7B18993FD152F0872 /* Build configuration list for PBXNativeTarget "ExamenPracticoSpike" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2D0BBC645B2CF022BB900D02 /* Debug */,
+				B8A3BFE45EAAD764C19A0A2A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A9AC12DCBFCBC33AF7DAD1BC /* Project object */;
+}

@@ -1,0 +1,1283 @@
+[
+  {
+    "id": "c-der",
+    "actionId": "turn-right",
+    "category": "dir",
+    "phase": "driving",
+    "responseType": "spoken-direction",
+    "surfaceId": "junction-v2",
+    "icon": "➡️",
+    "acceptedResult": "turn-right",
+    "phrasings": [
+      {
+        "id": "c-der-canonical",
+        "es": "Gire a la derecha cuando pueda",
+        "en": "turn right when you can",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Gire a la derecha (o izquierda) cuando pueda"
+      },
+      {
+        "id": "c-der-supplementary-1",
+        "es": "Gire a la derecha en la próxima",
+        "en": "turn right at the next one",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_02/right",
+        "sourceText": "Gire a la derecha en la próxima",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-der-supplementary-2",
+        "es": "La próxima a la derecha",
+        "en": "The next one on the right",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "La próxima a la derecha",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ]
+  },
+  {
+    "id": "c-izq",
+    "actionId": "turn-left",
+    "category": "dir",
+    "phase": "driving",
+    "responseType": "spoken-direction",
+    "surfaceId": "junction-v2",
+    "icon": "⬅️",
+    "acceptedResult": "turn-left",
+    "phrasings": [
+      {
+        "id": "c-izq-canonical",
+        "es": "Gire a la izquierda cuando pueda",
+        "en": "turn left when you can",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Gire a la derecha (o izquierda) cuando pueda"
+      },
+      {
+        "id": "c-izq-supplementary-1",
+        "es": "Gire a la izquierda en la próxima",
+        "en": "turn left at the next one",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_02/left",
+        "sourceText": "Gire a la izquierda en la próxima",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-izq-supplementary-2",
+        "es": "La próxima a la izquierda",
+        "en": "The next one on the left",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "La próxima a la izquierda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ]
+  },
+  {
+    "id": "c-recto",
+    "actionId": "continue-forward",
+    "category": "dir",
+    "phase": "driving",
+    "responseType": "spoken-direction",
+    "surfaceId": "junction-v2",
+    "icon": "⬆️",
+    "acceptedResult": "continue-forward",
+    "phrasings": [
+      {
+        "id": "c-recto-canonical",
+        "es": "Siga todo recto",
+        "en": "continue straight ahead",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite rg_04",
+        "sourceText": "Siga todo recto salvo que le diga",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-recto-supplementary-1",
+        "es": "Siga recto",
+        "en": "Continue straight",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Siga recto",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      },
+      {
+        "id": "c-recto-supplementary-2",
+        "es": "Continúe recto",
+        "en": "Continue straight ahead",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Continúe recto",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ]
+  },
+  {
+    "id": "c-sentido",
+    "actionId": "change-direction",
+    "category": "dir",
+    "phase": "driving",
+    "responseType": "terminology-maneuver",
+    "surfaceId": "u-turn-v1",
+    "icon": "🔄",
+    "acceptedResult": "change-direction",
+    "phrasings": [
+      {
+        "id": "c-sentido-canonical",
+        "es": "Cambio de sentido",
+        "en": "change of direction",
+        "wording": "verbatim",
+        "validation": "guide-only",
+        "sourcePage": 6,
+        "sourceText": "Cambio de sentido"
+      },
+      {
+        "id": "c-sentido-supplementary-1",
+        "es": "Cambie de sentido cuando pueda",
+        "en": "change direction when you can",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite ft_02/general",
+        "sourceText": "Cambie de sentido cuando pueda",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-sentido-supplementary-2",
+        "es": "Dé la vuelta cuando pueda",
+        "en": "Turn around when you can",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Dé la vuelta cuando pueda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ]
+  },
+  {
+    "id": "c-volante",
+    "actionId": "steering-straight",
+    "category": "dir",
+    "phase": "driving",
+    "responseType": "control-instruction",
+    "surfaceId": "wheel-center-v1",
+    "icon": "⬆️",
+    "acceptedResult": "steering-straight",
+    "phrasings": [
+      {
+        "id": "c-volante-canonical",
+        "es": "Volante recto",
+        "en": "steering wheel straight",
+        "wording": "verbatim",
+        "validation": "guide-only",
+        "sourcePage": 6,
+        "sourceText": "Volante recto"
+      },
+      {
+        "id": "c-volante-supplementary-1",
+        "es": "Enderece el volante",
+        "en": "Straighten the steering wheel",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Enderece el volante",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ]
+  },
+  {
+    "id": "c-rot1",
+    "actionId": "roundabout-exit-1",
+    "category": "rot",
+    "phase": "driving",
+    "responseType": "spoken-direction",
+    "surfaceId": "roundabout-v2",
+    "icon": "1️⃣",
+    "acceptedResult": "roundabout-exit-1",
+    "phrasings": [
+      {
+        "id": "c-rot1-canonical",
+        "es": "Tome la primera salida en la glorieta",
+        "en": "take the first exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Tome la primera (segunda, tercera) salida en la glorieta"
+      },
+      {
+        "id": "c-rot1-supplementary-1",
+        "es": "Primera salida, por favor",
+        "en": "first exit, please",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_01/first",
+        "sourceText": "Primera salida, por favor",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-rot1-supplementary-2",
+        "es": "Tome la primera salida en la rotonda",
+        "en": "Take the first exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Tome la primera salida en la rotonda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ]
+  },
+  {
+    "id": "c-rot2",
+    "actionId": "roundabout-exit-2",
+    "category": "rot",
+    "phase": "driving",
+    "responseType": "spoken-direction",
+    "surfaceId": "roundabout-v2",
+    "icon": "2️⃣",
+    "acceptedResult": "roundabout-exit-2",
+    "phrasings": [
+      {
+        "id": "c-rot2-canonical",
+        "es": "Tome la segunda salida en la glorieta",
+        "en": "take the second exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Tome la primera (segunda, tercera) salida en la glorieta"
+      },
+      {
+        "id": "c-rot2-supplementary-1",
+        "es": "Segunda salida",
+        "en": "second exit",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_01/second",
+        "sourceText": "Segunda salida",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-rot2-supplementary-2",
+        "es": "Tome la segunda salida en la rotonda",
+        "en": "Take the second exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Tome la segunda salida en la rotonda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ]
+  },
+  {
+    "id": "c-rot3",
+    "actionId": "roundabout-exit-3",
+    "category": "rot",
+    "phase": "driving",
+    "responseType": "spoken-direction",
+    "surfaceId": "roundabout-v2",
+    "icon": "3️⃣",
+    "acceptedResult": "roundabout-exit-3",
+    "phrasings": [
+      {
+        "id": "c-rot3-canonical",
+        "es": "Tome la tercera salida en la glorieta",
+        "en": "take the third exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Tome la primera (segunda, tercera) salida en la glorieta"
+      },
+      {
+        "id": "c-rot3-supplementary-1",
+        "es": "Tercera salida",
+        "en": "third exit",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_01/third",
+        "sourceText": "Tercera salida",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-rot3-supplementary-2",
+        "es": "Tome la tercera salida en la rotonda",
+        "en": "Take the third exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Tome la tercera salida en la rotonda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ]
+  },
+  {
+    "id": "c-rot4",
+    "actionId": "roundabout-exit-4",
+    "category": "rot",
+    "phase": "driving",
+    "responseType": "terminology-direction",
+    "surfaceId": "roundabout-v2",
+    "icon": "4️⃣",
+    "acceptedResult": "roundabout-exit-4",
+    "phrasings": [
+      {
+        "id": "c-rot4-canonical",
+        "es": "Cuarta salida",
+        "en": "fourth exit",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 6,
+        "sourceText": "Primera (segunda, tercera, cuarta, quinta) salida"
+      },
+      {
+        "id": "c-rot4-supplementary-1",
+        "es": "Tome la cuarta salida",
+        "en": "take the fourth exit",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite ft_01",
+        "sourceText": "Primera / Segunda / Tercera / Cuarta / Quinta salida",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-rot4-supplementary-2",
+        "es": "Tome la cuarta salida en la rotonda",
+        "en": "Take the fourth exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Tome la cuarta salida en la rotonda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ]
+  },
+  {
+    "id": "c-rot5",
+    "actionId": "roundabout-exit-5",
+    "category": "rot",
+    "phase": "driving",
+    "responseType": "terminology-direction",
+    "surfaceId": "roundabout-v2",
+    "icon": "5️⃣",
+    "acceptedResult": "roundabout-exit-5",
+    "phrasings": [
+      {
+        "id": "c-rot5-canonical",
+        "es": "Quinta salida",
+        "en": "fifth exit",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 6,
+        "sourceText": "Primera (segunda, tercera, cuarta, quinta) salida"
+      },
+      {
+        "id": "c-rot5-supplementary-1",
+        "es": "Tome la quinta salida",
+        "en": "take the fifth exit",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite ft_01",
+        "sourceText": "Primera / Segunda / Tercera / Cuarta / Quinta salida",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-rot5-supplementary-2",
+        "es": "Tome la quinta salida en la rotonda",
+        "en": "Take the fifth exit at the roundabout",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Tome la quinta salida en la rotonda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ]
+  },
+  {
+    "id": "c-parada",
+    "actionId": "voluntary-stop",
+    "category": "spd",
+    "phase": "driving",
+    "responseType": "spoken-maneuver",
+    "surfaceId": "stopping-v1",
+    "icon": "🛑",
+    "acceptedResult": "voluntary-stop",
+    "phrasings": [
+      {
+        "id": "c-parada-canonical",
+        "es": "Realice una parada",
+        "en": "make a voluntary stop",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Realice una parada (o estacionamiento)"
+      },
+      {
+        "id": "c-parada-supplementary-1",
+        "es": "Haga una parada",
+        "en": "make a stop",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_03/stop",
+        "sourceText": "Haga una parada",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-parada-supplementary-2",
+        "es": "Pare donde esté permitido",
+        "en": "Stop where permitted",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Pare donde esté permitido",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ]
+  },
+  {
+    "id": "c-detencion",
+    "actionId": "involuntary-stop",
+    "category": "spd",
+    "phase": "driving",
+    "responseType": "terminology",
+    "surfaceId": "option-grid-v1",
+    "icon": "🚧",
+    "acceptedResult": "involuntary-stop",
+    "phrasings": [
+      {
+        "id": "c-detencion-canonical",
+        "es": "Detención",
+        "en": "involuntary stop",
+        "wording": "verbatim",
+        "validation": "guide-only",
+        "sourcePage": 6,
+        "sourceText": "Detención"
+      }
+    ]
+  },
+  {
+    "id": "c-adapte",
+    "actionId": "adapt-speed",
+    "category": "spd",
+    "phase": "driving",
+    "responseType": "spoken-speed",
+    "surfaceId": "option-grid-v1",
+    "icon": "⏬",
+    "acceptedResult": "adapt-speed",
+    "phrasings": [
+      {
+        "id": "c-adapte-canonical",
+        "es": "Adapte la velocidad a la vía",
+        "en": "adapt your speed to the road",
+        "wording": "verbatim",
+        "validation": "guide-only",
+        "sourcePage": 6,
+        "sourceText": "Adapte la velocidad a la vía"
+      }
+    ]
+  },
+  {
+    "id": "c-intermitente",
+    "actionId": "operate-indicator",
+    "category": "spd",
+    "phase": "driving",
+    "responseType": "safety-correction-control",
+    "surfaceId": "yaris-dashboard-v2",
+    "icon": "↔️",
+    "acceptedResult": "operate-indicator",
+    "phrasings": [
+      {
+        "id": "c-intermitente-canonical",
+        "es": "Ponga el intermitente",
+        "en": "use the indicator",
+        "wording": "verbatim",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite safety_corrections",
+        "sourceText": "Intermitente / Ponga el intermitente",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      }
+    ]
+  },
+  {
+    "id": "c-est",
+    "actionId": "park",
+    "category": "man",
+    "phase": "driving",
+    "responseType": "spoken-maneuver",
+    "surfaceId": "parking-v1",
+    "icon": "🅿️",
+    "acceptedResult": "park",
+    "phrasings": [
+      {
+        "id": "c-est-canonical",
+        "es": "Realice un estacionamiento",
+        "en": "park the vehicle",
+        "wording": "source-derived",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Realice una parada (o estacionamiento)"
+      },
+      {
+        "id": "c-est-supplementary-1",
+        "es": "Aparque",
+        "en": "park",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_03/park",
+        "sourceText": "Aparque",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-est-supplementary-2",
+        "es": "Estacione donde esté permitido",
+        "en": "Park where permitted",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Estacione donde esté permitido",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ]
+  },
+  {
+    "id": "c-inmov",
+    "actionId": "secure-vehicle",
+    "category": "man",
+    "phase": "driving",
+    "responseType": "spoken-multi-step",
+    "surfaceId": "secure-yaris-v1",
+    "icon": "✋",
+    "acceptedResult": "secure-vehicle",
+    "phrasings": [
+      {
+        "id": "c-inmov-canonical",
+        "es": "Inmovilice el vehículo",
+        "en": "secure the vehicle",
+        "wording": "verbatim",
+        "validation": "guide-only",
+        "sourcePage": 5,
+        "sourceText": "Inmovilice el vehículo"
+      },
+      {
+        "id": "c-inmov-supplementary-1",
+        "es": "Deje el coche inmovilizado",
+        "en": "leave the car secured",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_04/general",
+        "sourceText": "Deje el coche inmovilizado",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      }
+    ],
+    "procedure": {
+      "reference": "RGC Article 92",
+      "status": "generic-manual-test-car-confirmation-required",
+      "answer": "Detener el motor, accionar el freno de estacionamiento y seleccionar primera cuesta arriba o marcha atrás cuesta abajo.",
+      "answerEn": "Stop the engine, apply the parking brake, and select first gear uphill or reverse downhill."
+    }
+  },
+  {
+    "id": "c-adel",
+    "actionId": "overtake",
+    "category": "man",
+    "phase": "driving",
+    "responseType": "terminology-maneuver",
+    "surfaceId": "overtake-v1",
+    "icon": "⏩",
+    "acceptedResult": "overtake",
+    "phrasings": [
+      {
+        "id": "c-adel-canonical",
+        "es": "Adelantamiento",
+        "en": "overtaking",
+        "wording": "verbatim",
+        "validation": "guide-only",
+        "sourcePage": 6,
+        "sourceText": "Adelantamiento"
+      },
+      {
+        "id": "c-adel-supplementary-1",
+        "es": "Adelante cuando pueda",
+        "en": "Overtake when you can",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Adelante cuando pueda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ]
+  },
+  {
+    "id": "c-final",
+    "actionId": "exam-finish",
+    "category": "man",
+    "phase": "driving",
+    "responseType": "exam-state",
+    "surfaceId": "option-grid-v1",
+    "icon": "🏁",
+    "acceptedResult": "exam-finish",
+    "phrasings": [
+      {
+        "id": "c-final-canonical",
+        "es": "Finalización del examen",
+        "en": "end of the test",
+        "wording": "verbatim",
+        "validation": "spoken-use-unverified",
+        "sourcePage": 5,
+        "sourceText": "Finalización del examen"
+      },
+      {
+        "id": "c-final-supplementary-1",
+        "es": "Ha terminado",
+        "en": "you have finished",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite di_05/general",
+        "sourceText": "Ha terminado",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      }
+    ]
+  },
+  {
+    "id": "c-pre-bateria",
+    "actionId": "locate-battery",
+    "category": "pre-eng",
+    "phase": "precheck",
+    "responseType": "component-location",
+    "surfaceId": "yaris-body-v2",
+    "icon": "🔋",
+    "acceptedResult": "locate-battery",
+    "phrasings": [
+      {
+        "id": "c-pre-bateria-canonical",
+        "es": "Localice la batería",
+        "en": "locate the battery",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 3,
+        "sourceText": "Localizar: Batería, Liquido de frenos, Nivel de aceite y Nivel de líquido refrigerante"
+      },
+      {
+        "id": "c-pre-bateria-supplementary-1",
+        "es": "¿Dónde está la batería?",
+        "en": "where is the battery?",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite pc_01/general",
+        "sourceText": "¿Dónde está la batería?",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      }
+    ],
+    "vehicle": {
+      "page": 493,
+      "reference": "generic-conventional",
+      "answer": "En este vehículo convencional ilustrativo, la batería de 12 V está bajo el capó.",
+      "answerEn": "In this illustrative conventional vehicle, the 12 V battery is under the bonnet."
+    }
+  },
+  {
+    "id": "c-pre-aceite",
+    "actionId": "locate-oil-check",
+    "category": "pre-eng",
+    "phase": "precheck",
+    "responseType": "component-location",
+    "surfaceId": "yaris-engine-bay-v2",
+    "icon": "🛢️",
+    "acceptedResult": "locate-oil-check",
+    "phrasings": [
+      {
+        "id": "c-pre-aceite-canonical",
+        "es": "Localice dónde se comprueba el nivel de aceite",
+        "en": "locate where the oil level is checked",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 3,
+        "sourceText": "Localizar: Batería, Liquido de frenos, Nivel de aceite y Nivel de líquido refrigerante"
+      },
+      {
+        "id": "c-pre-aceite-supplementary-1",
+        "es": "¿Dónde se mira el aceite?",
+        "en": "where do you check the oil?",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite pc_01/general",
+        "sourceText": "¿Dónde se mira el aceite?",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      }
+    ],
+    "vehicle": {
+      "page": 483,
+      "answer": "El nivel se comprueba con la varilla de aceite del compartimento del motor.",
+      "answerEn": "Check the level with the engine-oil dipstick in the engine compartment."
+    }
+  },
+  {
+    "id": "c-pre-refrigerante",
+    "actionId": "locate-coolant-check",
+    "category": "pre-eng",
+    "phase": "precheck",
+    "responseType": "component-location",
+    "surfaceId": "yaris-engine-bay-v2",
+    "icon": "💧",
+    "acceptedResult": "locate-coolant-check",
+    "phrasings": [
+      {
+        "id": "c-pre-refrigerante-canonical",
+        "es": "Localice dónde se comprueba el nivel de líquido refrigerante",
+        "en": "locate where the coolant level is checked",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 3,
+        "sourceText": "Localizar: Batería, Liquido de frenos, Nivel de aceite y Nivel de líquido refrigerante"
+      },
+      {
+        "id": "c-pre-refrigerante-supplementary-1",
+        "es": "Líquido refrigerante, ¿dónde está?",
+        "en": "where is the coolant?",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite pc_01/general",
+        "sourceText": "Líquido refrigerante, ¿dónde está?",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      }
+    ],
+    "vehicle": {
+      "page": 483,
+      "answer": "El depósito de refrigerante del motor está bajo el capó.",
+      "answerEn": "The engine-coolant reservoir is under the bonnet."
+    }
+  },
+  {
+    "id": "c-pre-frenos",
+    "actionId": "locate-brake-fluid",
+    "category": "pre-eng",
+    "phase": "precheck",
+    "responseType": "component-location",
+    "surfaceId": "yaris-engine-bay-v2",
+    "icon": "🛑",
+    "acceptedResult": "locate-brake-fluid",
+    "phrasings": [
+      {
+        "id": "c-pre-frenos-canonical",
+        "es": "Localice el líquido de frenos",
+        "en": "locate the brake fluid",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 3,
+        "sourceText": "Localizar: Batería, Liquido de frenos, Nivel de aceite y Nivel de líquido refrigerante"
+      },
+      {
+        "id": "c-pre-frenos-supplementary-1",
+        "es": "¿Dónde está el líquido de frenos?",
+        "en": "Where is the brake fluid?",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "¿Dónde está el líquido de frenos?",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ],
+    "vehicle": {
+      "page": "Fermín 3",
+      "reference": "fermin-spanish-authoritative-generic",
+      "answer": "En este compartimento ilustrativo, el depósito del líquido de frenos es el depósito pequeño junto al cortafuegos. Confirme la ubicación en el coche del examen.",
+      "answerEn": "In this illustrative engine bay, the brake-fluid reservoir is the small reservoir beside the firewall. Confirm its position in the test car."
+    }
+  },
+  {
+    "id": "c-pre-lavaparabrisas",
+    "actionId": "locate-washer-fluid",
+    "category": "pre-eng",
+    "phase": "precheck",
+    "responseType": "component-location",
+    "surfaceId": "yaris-engine-bay-v2",
+    "icon": "💦",
+    "acceptedResult": "locate-washer-fluid",
+    "phrasings": [
+      {
+        "id": "c-pre-lavaparabrisas-canonical",
+        "es": "Localice el líquido lavaparabrisas",
+        "en": "locate the windscreen-washer fluid",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 3,
+        "sourceText": "Windscreen wiper fluid (B)"
+      },
+      {
+        "id": "c-pre-lavaparabrisas-supplementary-1",
+        "es": "¿Dónde se rellena el lavaparabrisas?",
+        "en": "Where do you refill the washer fluid?",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "¿Dónde se rellena el lavaparabrisas?",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ],
+    "vehicle": {
+      "page": 491,
+      "reference": "generic-conventional",
+      "answer": "El depósito del líquido lavaparabrisas se identifica por el tapón azul con el símbolo del parabrisas.",
+      "answerEn": "The windscreen-washer reservoir is identified by the blue cap with the windscreen symbol."
+    }
+  },
+  {
+    "id": "c-pre-capo",
+    "actionId": "open-bonnet-check-levels",
+    "category": "pre-eng",
+    "phase": "precheck",
+    "responseType": "multi-step-demonstration",
+    "surfaceId": "yaris-body-v2",
+    "icon": "🚘",
+    "acceptedResult": "open-bonnet-check-levels",
+    "phrasings": [
+      {
+        "id": "c-pre-capo-canonical",
+        "es": "Abra el capó y diga qué niveles se deben revisar",
+        "en": "open the bonnet and say which levels should be checked",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 4,
+        "sourceText": "Abrir el capo y decir qué niveles se deben revisar"
+      },
+      {
+        "id": "c-pre-capo-supplementary-1",
+        "es": "Abra el capó y diga los niveles",
+        "en": "open the bonnet and state the fluid levels",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite pc_02/general",
+        "sourceText": "Abra el capó y diga los niveles",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      }
+    ],
+    "vehicle": {
+      "page": 479,
+      "answer": "Tire de la palanca interior, libere el cierre auxiliar y coloque la varilla de apoyo. Bajo el capó: aceite, dos depósitos de refrigerante y líquido lavaparabrisas.",
+      "answerEn": "Pull the interior release, release the secondary catch, and fit the support rod. Under the bonnet, check the engine oil, two coolant reservoirs, and windscreen-washer fluid."
+    }
+  },
+  {
+    "id": "c-pre-combustible",
+    "actionId": "locate-fuel-level",
+    "category": "pre-dash",
+    "phase": "precheck",
+    "responseType": "dashboard-location",
+    "surfaceId": "yaris-dashboard-v2",
+    "icon": "⛽",
+    "acceptedResult": "locate-fuel-level",
+    "phrasings": [
+      {
+        "id": "c-pre-combustible-canonical",
+        "es": "Indique dónde se comprueba el nivel de combustible",
+        "en": "show where the fuel level is checked",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 4,
+        "sourceText": "Dónde comprobar nivel combustible o temperatura motor"
+      },
+      {
+        "id": "c-pre-combustible-supplementary-1",
+        "es": "¿Dónde ve el nivel de gasolina?",
+        "en": "where do you see the fuel level?",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite pc_03/general",
+        "sourceText": "¿Dónde ve el nivel de gasolina?",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      }
+    ],
+    "vehicle": {
+      "page": 130,
+      "answer": "El indicador de combustible está en el cuadro de instrumentos; su forma cambia entre la pantalla monocroma y la de color.",
+      "answerEn": "The fuel gauge is in the instrument cluster; its layout differs between the monochrome and colour displays."
+    }
+  },
+  {
+    "id": "c-pre-temperatura",
+    "actionId": "locate-engine-temperature",
+    "category": "pre-dash",
+    "phase": "precheck",
+    "responseType": "dashboard-location",
+    "surfaceId": "yaris-dashboard-v2",
+    "icon": "🌡️",
+    "acceptedResult": "locate-engine-temperature",
+    "phrasings": [
+      {
+        "id": "c-pre-temperatura-canonical",
+        "es": "Indique dónde se comprueba la temperatura del motor",
+        "en": "show where the engine temperature is checked",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 4,
+        "sourceText": "Dónde comprobar nivel combustible o temperatura motor"
+      },
+      {
+        "id": "c-pre-temperatura-supplementary-1",
+        "es": "Muestre el indicador de temperatura",
+        "en": "show the temperature gauge",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite pc_03/general",
+        "sourceText": "Muestre el indicador de temperatura",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      }
+    ],
+    "vehicle": {
+      "page": 134,
+      "answer": "La pantalla de color tiene un indicador de temperatura del refrigerante. En otras versiones, una luz de advertencia avisa del sobrecalentamiento.",
+      "answerEn": "The colour display has a coolant-temperature gauge. On other versions, a warning light indicates overheating."
+    }
+  },
+  {
+    "id": "c-pre-bloquear-elevalunas",
+    "actionId": "lock-rear-windows",
+    "category": "pre-dash",
+    "phase": "precheck",
+    "responseType": "control-operation",
+    "surfaceId": "yaris-door-v2",
+    "icon": "🔒",
+    "acceptedResult": "lock-rear-windows",
+    "phrasings": [
+      {
+        "id": "c-pre-bloquear-elevalunas-canonical",
+        "es": "Active el bloqueo infantil de los elevalunas traseros",
+        "en": "activate the rear-window child lock",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 4,
+        "sourceText": "Bloqueo o desbloqueo infantil de elevalunas traseros"
+      },
+      {
+        "id": "c-pre-bloquear-elevalunas-supplementary-1",
+        "es": "Bloquee los elevalunas traseros",
+        "en": "Lock the rear windows",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Bloquee los elevalunas traseros",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ],
+    "vehicle": {
+      "page": 230,
+      "answer": "Pulse el interruptor de bloqueo de las ventanillas en la puerta del conductor. Bloquea los mandos de los pasajeros.",
+      "answerEn": "Press the window-lock switch on the driver's door. This disables the passenger window controls."
+    }
+  },
+  {
+    "id": "c-pre-desbloquear-elevalunas",
+    "actionId": "unlock-rear-windows",
+    "category": "pre-dash",
+    "phase": "precheck",
+    "responseType": "control-operation",
+    "surfaceId": "yaris-door-v2",
+    "icon": "🔓",
+    "acceptedResult": "unlock-rear-windows",
+    "phrasings": [
+      {
+        "id": "c-pre-desbloquear-elevalunas-canonical",
+        "es": "Desactive el bloqueo infantil de los elevalunas traseros",
+        "en": "deactivate the rear-window child lock",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 4,
+        "sourceText": "Bloqueo o desbloqueo infantil de elevalunas traseros"
+      },
+      {
+        "id": "c-pre-desbloquear-elevalunas-supplementary-1",
+        "es": "Quite el bloqueo de los elevalunas",
+        "en": "Unlock the rear windows",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Quite el bloqueo de los elevalunas",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ],
+    "vehicle": {
+      "page": 230,
+      "answer": "Vuelva a pulsar el interruptor de bloqueo en la puerta del conductor para devolver el control a los pasajeros.",
+      "answerEn": "Press the window-lock switch on the driver's door again to return window control to the passengers."
+    }
+  },
+  {
+    "id": "c-pre-posicion",
+    "actionId": "position-lights",
+    "category": "pre-light",
+    "phase": "precheck",
+    "responseType": "control-operation",
+    "surfaceId": "yaris-dashboard-v2",
+    "icon": "💡",
+    "acceptedResult": "position-lights",
+    "phrasings": [
+      {
+        "id": "c-pre-posicion-canonical",
+        "es": "Encienda las luces de posición",
+        "en": "turn on the position lights",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": "composite pc_06/general",
+        "sourceText": "Luces de posición",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      }
+    ],
+    "vehicle": {
+      "page": 270,
+      "answer": "Gire el mando de luces hasta el símbolo de las luces de posición.",
+      "answerEn": "Turn the lighting control to the position-light symbol."
+    }
+  },
+  {
+    "id": "c-pre-cruce",
+    "actionId": "dipped-headlights",
+    "category": "pre-light",
+    "phase": "precheck",
+    "responseType": "control-operation",
+    "surfaceId": "yaris-dashboard-v2",
+    "icon": "🔅",
+    "acceptedResult": "dipped-headlights",
+    "phrasings": [
+      {
+        "id": "c-pre-cruce-canonical",
+        "es": "Encienda las luces de cruce",
+        "en": "turn on the dipped headlights",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": "composite pc_06/general",
+        "sourceText": "Encienda los cortos",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-pre-cruce-supplementary-1",
+        "es": "Ponga las cortas",
+        "en": "Put on the low beams",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Ponga las cortas",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ],
+    "vehicle": {
+      "page": 270,
+      "answer": "Gire el mando de luces hasta el símbolo de las luces de cruce.",
+      "answerEn": "Turn the lighting control to the dipped-headlight symbol."
+    }
+  },
+  {
+    "id": "c-pre-largo-alcance",
+    "actionId": "high-beams",
+    "category": "pre-light",
+    "phase": "precheck",
+    "responseType": "control-operation",
+    "surfaceId": "yaris-dashboard-v2",
+    "icon": "🔦",
+    "acceptedResult": "high-beams",
+    "phrasings": [
+      {
+        "id": "c-pre-largo-alcance-canonical",
+        "es": "Encienda las luces de largo alcance",
+        "en": "turn on the high beams",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 4,
+        "sourceText": "Encender cualquier luz: largo alcance, niebla delantera o trasera"
+      },
+      {
+        "id": "c-pre-largo-alcance-supplementary-1",
+        "es": "Ponga las largas",
+        "en": "Put on the high beams",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Ponga las largas",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ],
+    "vehicle": {
+      "page": 271,
+      "answer": "Con los faros encendidos, empuje la palanca izquierda hacia delante para encender las luces largas.",
+      "answerEn": "With the headlights on, push the left-hand stalk forwards to turn on the high beams."
+    }
+  },
+  {
+    "id": "c-pre-niebla-delantera",
+    "actionId": "front-fog-lights",
+    "category": "pre-light",
+    "phase": "precheck",
+    "responseType": "control-operation",
+    "surfaceId": "yaris-dashboard-v2",
+    "icon": "🌁",
+    "acceptedResult": "front-fog-lights",
+    "phrasings": [
+      {
+        "id": "c-pre-niebla-delantera-canonical",
+        "es": "Encienda las luces antiniebla delanteras",
+        "en": "turn on the front fog lights",
+        "wording": "source-derived",
+        "validation": "trim-dependent",
+        "sourcePage": 4,
+        "sourceText": "Encender cualquier luz: largo alcance, niebla delantera o trasera"
+      }
+    ],
+    "vehicle": {
+      "page": 277,
+      "answer": "Si el coche las equipa, gire el aro de antiniebla a la primera posición con los faros o las luces de posición encendidos.",
+      "answerEn": "If fitted, turn the fog-light ring to its first position while the headlights or position lights are on."
+    }
+  },
+  {
+    "id": "c-pre-niebla-trasera",
+    "actionId": "rear-fog-light",
+    "category": "pre-light",
+    "phase": "precheck",
+    "responseType": "control-operation",
+    "surfaceId": "yaris-dashboard-v2",
+    "icon": "🌫️",
+    "acceptedResult": "rear-fog-light",
+    "phrasings": [
+      {
+        "id": "c-pre-niebla-trasera-canonical",
+        "es": "Encienda la luz antiniebla trasera",
+        "en": "turn on the rear fog light",
+        "wording": "source-derived",
+        "validation": "trim-dependent",
+        "sourcePage": 4,
+        "sourceText": "Encender cualquier luz: largo alcance, niebla delantera o trasera"
+      }
+    ],
+    "vehicle": {
+      "page": 276,
+      "answer": "Gire el aro de antiniebla a la posición trasera. El manual muestra una versión trasera sola y otra combinada con antinieblas delanteros.",
+      "answerEn": "Turn the fog-light ring to the rear-fog position. The manual shows both a rear-only version and one combined with front fog lights."
+    }
+  },
+  {
+    "id": "c-pre-maletero",
+    "actionId": "open-boot",
+    "category": "pre-body",
+    "phase": "precheck",
+    "responseType": "physical-demonstration",
+    "surfaceId": "yaris-body-v2",
+    "icon": "🧳",
+    "acceptedResult": "open-boot",
+    "phrasings": [
+      {
+        "id": "c-pre-maletero-canonical",
+        "es": "Abra el maletero",
+        "en": "open the boot",
+        "wording": "source-derived",
+        "validation": "manual-baseline",
+        "sourcePage": 4,
+        "sourceText": "Abrir el maletero"
+      }
+    ],
+    "vehicle": {
+      "page": 178,
+      "answer": "Pulse hacia arriba el abridor situado bajo el borde de la puerta trasera y levante el portón.",
+      "answerEn": "Press the opener upwards beneath the edge of the rear door, then lift the tailgate."
+    }
+  },
+  {
+    "id": "c-pre-desempanar-delantera",
+    "actionId": "front-demist",
+    "category": "pre-body",
+    "phase": "precheck",
+    "responseType": "control-explanation",
+    "surfaceId": "yaris-climate-v2",
+    "icon": "🪟",
+    "acceptedResult": "front-demist",
+    "phrasings": [
+      {
+        "id": "c-pre-desempanar-delantera-canonical",
+        "es": "Indique cómo desempañar la luna delantera",
+        "en": "show how to demist the front windscreen",
+        "wording": "source-derived",
+        "validation": "trim-dependent",
+        "sourcePage": 4,
+        "sourceText": "Cómo desempañar la luna delantera o trasera"
+      },
+      {
+        "id": "c-pre-desempanar-delantera-supplementary-1",
+        "es": "¿Cómo desempañaría la luna delantera?",
+        "en": "How would you demist the front window?",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "¿Cómo desempañaría la luna delantera?",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ],
+    "vehicle": {
+      "page": 435,
+      "answer": "Use el botón del desempañador del parabrisas. La disposición exacta depende del sistema de climatización.",
+      "answerEn": "Use the windscreen-demister button. Its exact position depends on the climate-control system."
+    }
+  },
+  {
+    "id": "c-pre-desempanar-trasera",
+    "actionId": "rear-demist",
+    "category": "pre-body",
+    "phase": "precheck",
+    "responseType": "control-explanation",
+    "surfaceId": "yaris-climate-v2",
+    "icon": "♨️",
+    "acceptedResult": "rear-demist",
+    "phrasings": [
+      {
+        "id": "c-pre-desempanar-trasera-canonical",
+        "es": "Indique cómo desempañar la luna trasera",
+        "en": "show how to demist the rear window",
+        "wording": "source-derived",
+        "validation": "trim-dependent",
+        "sourcePage": 4,
+        "sourceText": "Cómo desempañar la luna delantera o trasera"
+      },
+      {
+        "id": "c-pre-desempanar-trasera-supplementary-1",
+        "es": "¿Cómo desempañaría la luna trasera?",
+        "en": "How would you demist the rear window?",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "¿Cómo desempañaría la luna trasera?",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ],
+    "vehicle": {
+      "page": 435,
+      "answer": "Pulse el interruptor del desempañador de la luneta trasera; algunas versiones también desempañan los retrovisores.",
+      "answerEn": "Press the rear-window demister switch; on some versions it also demists the door mirrors."
+    }
+  }
+]
