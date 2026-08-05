@@ -189,6 +189,24 @@ test('every active catalog surface generates, reduces, and renders in both local
   }
 });
 
+test('surface renderer forwards a junction motion view to the spatial scene', () => {
+  const command = commands.find(candidate => candidate.id === 'c-der');
+  const model = generateSurface(command, 42);
+  const motion = Object.freeze({
+    phase: 'waiting',
+    progress: 0.5,
+    scale: 1.17,
+    locked: false,
+    moving: false,
+    elapsedMs: 3_000,
+    remainingMs: 3_000
+  });
+
+  const markup = renderSurfaceModel(model, {}, 'en', { motion });
+  assert.match(markup, /data-junction-motion="waiting"/);
+  assert.match(markup, /--junction-motion-scale:1\.17/);
+});
+
 function completionEvents(model, correctTarget) {
   if (model.family === 'wheel') return [{ type: 'set-wheel', degrees: 0 }];
   if (model.family === 'secure-manual') {

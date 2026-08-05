@@ -65,6 +65,7 @@ test('creates fresh version 3 defaults with recommended practice and an empty le
       hintPolicy: 'available',
       timed: false,
       feedbackSounds: true,
+      roadMovement: true,
       length: 'medium',
       mode: 'recommended'
     },
@@ -177,6 +178,26 @@ test('feedback-sound preference persists, validates, and safely defaults for old
       settings: { ...defaultState().settings, feedbackSounds: 'on' }
     })),
     /Invalid settings\.feedbackSounds/
+  );
+});
+
+test('road movement defaults on, round-trips false, and rejects invalid values', () => {
+  const disabled = {
+    ...defaultState(),
+    settings: { ...defaultState().settings, roadMovement: false }
+  };
+  assert.equal(importState(exportState(disabled)).settings.roadMovement, false);
+
+  const older = defaultState();
+  delete older.settings.roadMovement;
+  assert.equal(importState(JSON.stringify(older)).settings.roadMovement, true);
+
+  assert.throws(
+    () => importState(JSON.stringify({
+      ...defaultState(),
+      settings: { ...defaultState().settings, roadMovement: 'on' }
+    })),
+    /Invalid settings\.roadMovement/
   );
 });
 

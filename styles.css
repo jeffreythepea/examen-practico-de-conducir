@@ -316,6 +316,10 @@ hr {
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation: none; }
   .steering-wheel-graphic { transition: none; }
+  .junction-motion-scene {
+    animation: none !important;
+    transform: none !important;
+  }
 }
 
 .prompt-meta {
@@ -406,6 +410,38 @@ hr {
   aspect-ratio: 3 / 2;
 }
 
+.surface-stage.junction-motion-stage {
+  overflow: visible;
+  border-radius: 1.25rem;
+}
+
+.junction-motion-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.junction-motion-scene {
+  position: absolute;
+  inset: 0;
+  transform: scale(var(--junction-motion-scale, 1));
+  transform-origin: 50% 76%;
+}
+
+.junction-motion-scene[data-junction-motion-running="true"] {
+  animation-name: junction-camera-push;
+  animation-duration: 6000ms;
+  animation-delay: calc(-1 * var(--junction-motion-elapsed, 0ms));
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes junction-camera-push {
+  from { transform: scale(1); }
+  to { transform: scale(1.34); }
+}
+
 .driving-scene-image {
   position: absolute;
   z-index: 0;
@@ -417,7 +453,9 @@ hr {
   object-fit: cover;
 }
 
-.surface-stage.driving-photo-stage > svg {
+.surface-stage.driving-photo-stage > svg,
+.surface-stage.driving-photo-stage > .junction-motion-scene > svg,
+.junction-motion-viewport > .junction-motion-scene > svg {
   position: absolute;
   z-index: 1;
   inset: 0;

@@ -103,6 +103,171 @@ test('a trial creates one immutable surface model and preserves its reference th
   assert.strictEqual(model.activeSurfaceModel, activeSurfaceModel, 'same-trial retry must not regenerate');
 });
 
+test('moving junction starts during initial audio, locks choices, then unlocks the same surface', () => {
+  const loading = reduceScreen(setupModel(), { type: 'START_SESSION', session });
+  let model = reduceScreen(loading, {
+    type: 'AUDIO_STARTED',
+    variant: rightVariant,
+    startedAt: 1_000,
+    seed: 123,
+    motionEnabled: true
+  });
+
+  assert.equal(model.screen, 'prompt');
+  assert.equal(model.initialAudioPending, true);
+  assert.equal(model.promptStartedAt, null);
+  assert.equal(model.activeSurfaceModel.family, 'junction');
+  assert.equal(model.junctionMotion.phase, 'approaching-locked');
+  assert.equal(promptControlsDisabled(model), true);
+  assert.strictEqual(
+    reduceScreen(model, {
+      type: 'SURFACE_EVENT',
+      surfaceEvent: { type: 'select-target', targetId: 'right' },
+      completedAt: 1_500
+    }),
+    model
+  );
+
+  const surface = model.activeSurfaceModel;
+  model = reduceScreen(model, {
+    type: 'AUDIO_COMPLETED',
+    variant: rightVariant,
+    completedAt: 2_000
+  });
+  assert.equal(model.screen, 'prompt');
+  assert.equal(model.initialAudioPending, false);
+  assert.equal(model.promptStartedAt, 2_000);
+  assert.equal(model.junctionMotion.phase, 'approaching-interactive');
+  assert.equal(promptControlsDisabled(model), false);
+  assert.strictEqual(model.activeSurfaceModel, surface);
+});
+
+test('moving junction eligibility and generation failure preserve the existing static audio path', () => {
+  const junctionLoading = reduceScreen(setupModel(), { type: 'START_SESSION', session });
+  assert.strictEqual(reduceScreen(junctionLoading, {
+    type: 'AUDIO_STARTED',
+    variant: rightVariant,
+    startedAt: 1_000,
+    seed: 123,
+    motionEnabled: false
+  }), junctionLoading);
+
+  const controlLoading = reduceScreen(setupModel(), {
+    type: 'START_SESSION',
+    session: [wheelCommand]
+  });
+  assert.strictEqual(reduceScreen(controlLoading, {
+    type: 'AUDIO_STARTED',
+    variant: rightVariant,
+    startedAt: 1_000,
+    seed: 123,
+    motionEnabled: true
+  }), controlLoading);
+
+  const failed = reduceScreen(junctionLoading, {
+    type: 'AUDIO_STARTED',
+    variant: rightVariant,
+    startedAt: 1_000,
+    seed: 123,
+    motionEnabled: true
+  }, {
+    surfaceGenerator() {
+      throw new Error('invalid geometry');
+    }
+  });
+  assert.strictEqual(failed, junctionLoading);
+});
+
+test('moving junction waits at approach end and freezes on answers and timeouts', () => {
+  const loading = reduceScreen(setupModel(), { type: 'START_SESSION', session });
+  let model = reduceScreen(loading, {
+    type: 'AUDIO_STARTED',
+    variant: rightVariant,
+    startedAt: 1_000,
+    seed: 123,
+    motionEnabled: true
+  });
+  model = reduceScreen(model, {
+    type: 'AUDIO_COMPLETED',
+    variant: rightVariant,
+    completedAt: 2_000
+  });
+
+  const replayMotion = model.junctionMotion;
+  const replaying = reduceScreen(model, { type: 'REPLAY_STARTED', operationId: 9 });
+  assert.strictEqual(replaying.junctionMotion, replayMotion);
+  const replayed = reduceScreen(replaying, {
+    type: 'REPLAY_COMPLETED',
+    operationId: 9,
+    completedAt: 2_500
+  });
+  assert.strictEqual(replayed.junctionMotion, replayMotion);
+
+  const waiting = reduceScreen(replayed, {
+    type: 'JUNCTION_APPROACH_ENDED',
+    completedAt: 7_000
+  });
+  assert.equal(waiting.junctionMotion.phase, 'waiting');
+
+  const correctTarget = model.activeSurfaceModel.targets.find(target =>
+    target.resultId === model.activeSurfaceModel.expectedResult
+  );
+  const revealed = reduceScreen(model, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: { type: 'select-target', targetId: correctTarget.id },
+    completedAt: 4_000
+  });
+  assert.equal(revealed.screen, 'reveal');
+  assert.equal(revealed.junctionMotion.phase, 'waiting');
+  assert.equal(revealed.junctionMotion.frozenProgress, 0.5);
+
+  const timed = reduceScreen(model, { type: 'TIMEOUT', completedAt: 5_500 });
+  assert.equal(timed.screen, 'reveal');
+  assert.equal(timed.junctionMotion.phase, 'waiting');
+  assert.equal(timed.junctionMotion.frozenProgress, 0.75);
+});
+
+test('initial moving audio failure is unscored and all trial resets clear motion fields', () => {
+  const loading = reduceScreen(setupModel(), { type: 'START_SESSION', session });
+  const started = reduceScreen(loading, {
+    type: 'AUDIO_STARTED',
+    variant: rightVariant,
+    startedAt: 1_000,
+    seed: 123,
+    motionEnabled: true
+  });
+
+  for (const event of [
+    { type: 'AUDIO_FAILED', reason: 'error' },
+    { type: 'AUDIO_INTERRUPTED', reason: 'visibilitychange' }
+  ]) {
+    const failed = reduceScreen(started, event);
+    assert.equal(failed.screen, 'loading-audio');
+    assert.equal(failed.outcome, null);
+    assert.equal(failed.initialAudioPending, false);
+    assert.equal(failed.junctionMotion, null);
+    assert.equal(failed.activeSurfaceModel, null);
+  }
+
+  const prompted = reduceScreen(started, {
+    type: 'AUDIO_COMPLETED',
+    variant: rightVariant,
+    completedAt: 2_000
+  });
+  const target = prompted.activeSurfaceModel.targets.find(candidate =>
+    candidate.resultId === prompted.activeSurfaceModel.expectedResult
+  );
+  const reveal = reduceScreen(prompted, {
+    type: 'SURFACE_EVENT',
+    surfaceEvent: { type: 'select-target', targetId: target.id },
+    completedAt: 3_000
+  });
+  const next = reduceScreen(reveal, { type: 'CONTINUE' });
+  assert.equal(next.initialAudioPending, false);
+  assert.equal(next.junctionMotion, null);
+  assert.equal(reduceScreen(next, { type: 'GO_TO_SETUP' }).junctionMotion, null);
+});
+
 test('resuming starts at the next unscored index or opens completed results', () => {
   const resumed = reduceScreen(setupModel(), { type: 'RESUME_SESSION', session, index: 1 });
   assert.equal(resumed.screen, 'loading-audio');

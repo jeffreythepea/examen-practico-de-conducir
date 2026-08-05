@@ -1,5 +1,11 @@
 # Changelog
 
+## Moving junction experiment — in progress
+
+- Added an optional, default-on camera push-in to realistic four-way-junction
+  questions while retaining static reduced-motion behavior, existing scoring,
+  and the explicit Timing setting.
+
 ## Release B — readiness and targeted practice — complete
 
 - Added evidence-based command states: Ready requires unaided successes on three distinct UTC dates and the two most recent attempts unaided; latest misses or text assistance remain Needs practice.

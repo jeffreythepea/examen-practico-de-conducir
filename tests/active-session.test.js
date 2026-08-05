@@ -25,7 +25,7 @@ const audioManifest = [{
 
 const settings = {
   phase: 'mixed', speed: 0.9, hintPolicy: 'available', timed: false,
-  feedbackSounds: true, length: 'medium', mode: 'recommended'
+  feedbackSounds: true, roadMovement: true, length: 'medium', mode: 'recommended'
 };
 
 function session(overrides = {}) {
@@ -93,6 +93,17 @@ test('active sessions validate supported targets while accepting version-1 sessi
   assert.throws(() => session({ target: { kind: 'missing' } }), /activeSession\.target/);
   assert.throws(() => session({ target: { kind: 'command' } }), /commandId/);
   assert.throws(() => session({ target: { kind: 'free', commandId: 'c-der' } }), /activeSession\.target/);
+});
+
+test('version-1 active sessions default missing road movement on and retain explicit false', () => {
+  const legacySettings = { ...settings };
+  delete legacySettings.roadMovement;
+  assert.equal(session({ settings: legacySettings }).settings.roadMovement, true);
+  assert.equal(session({ settings: { ...settings, roadMovement: false } }).settings.roadMovement, false);
+  assert.throws(
+    () => session({ settings: { ...settings, roadMovement: 'on' } }),
+    /activeSession\.settings\.roadMovement/
+  );
 });
 
 test('resolution accepts a completed session whose index equals command count', () => {

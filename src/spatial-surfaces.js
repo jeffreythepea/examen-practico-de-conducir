@@ -153,14 +153,23 @@ export function renderSpatialSurface(model, locale, state = {}) {
   const sceneImage = scene
     ? `<img class="driving-scene-image" data-scene="${escapeAttribute(scene.id)}" data-provenance="${escapeAttribute(scene.provenance)}" src="${escapeAttribute(scene.asset)}" alt="${escapeAttribute(locale === 'es' ? scene.alt.es : scene.alt.en)}">`
     : '';
-
-  return `<div class="surface-stage ${model.family}${scene ? ' driving-photo-stage' : ''}" data-surface="${surfaceId}">
-    ${sceneImage}
+  const sceneContents = `${sceneImage}
     <svg viewBox="0 0 100 100"${scene ? ' preserveAspectRatio="none"' : ''} aria-hidden="true" focusable="false">
       ${roadDrawing(model)}
       ${route}
     </svg>
-    ${targets}
+    ${targets}`;
+  const movingJunction = model.family === 'junction' && state.motion;
+  const renderedScene = movingJunction
+    ? `<div class="junction-motion-viewport">
+    <div class="junction-motion-scene" data-junction-motion="${escapeAttribute(state.motion.phase)}" data-junction-motion-running="${state.motion.moving === true}" style="--junction-motion-scale:${Number(state.motion.scale)};--junction-motion-elapsed:${Number(state.motion.elapsedMs)}ms">
+      ${sceneContents}
+    </div>
+  </div>`
+    : sceneContents;
+
+  return `<div class="surface-stage ${model.family}${scene ? ' driving-photo-stage' : ''}${movingJunction ? ' junction-motion-stage' : ''}" data-surface="${surfaceId}">
+    ${renderedScene}
     ${resultLabel}
   </div>`;
 }

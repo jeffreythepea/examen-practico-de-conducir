@@ -175,6 +175,40 @@ test('roundabout and junction photo plates replace their old synthetic roads', (
   assert.doesNotMatch(junctionMarkup, /class="spatial-road"|class="road-marking"/);
 });
 
+test('moving junction keeps photograph, route, and targets in one transformable scene', () => {
+  const junction = generateSpatialSurface(command('turn-left', 'junction-v2'), 42);
+  const motion = Object.freeze({
+    phase: 'approaching-interactive',
+    progress: 0.25,
+    scale: 1.085,
+    locked: false,
+    moving: true,
+    elapsedMs: 1_500,
+    remainingMs: 4_500
+  });
+  const markup = renderSpatialSurface(junction, 'en', { motion, reveal: true });
+
+  assert.match(markup, /class="surface-stage junction driving-photo-stage junction-motion-stage"/);
+  assert.match(markup, /class="junction-motion-viewport"/);
+  assert.match(markup, /class="junction-motion-scene"/);
+  assert.match(markup, /data-junction-motion="approaching-interactive"/);
+  assert.match(markup, /data-junction-motion-running="true"/);
+  assert.match(markup, /--junction-motion-scale:1\.085/);
+  assert.match(markup, /--junction-motion-elapsed:1500ms/);
+
+  const scene = markup.match(/<div class="junction-motion-scene"[\s\S]*?<\/div>/)?.[0];
+  assert.ok(scene);
+  assert.match(scene, /class="driving-scene-image"/);
+  assert.match(scene, /<svg[\s\S]*data-correct-route/);
+  assert.equal((scene.match(/class="road-target"/g) ?? []).length, 3);
+  assert.doesNotMatch(scene, /surface-result-label/);
+  assert.match(markup, /<\/div>\s*<p class="surface-result-label"/);
+
+  assert.doesNotMatch(renderSpatialSurface(junction, 'en'), /junction-motion-scene/);
+  const roundabout = generateSpatialSurface(command('roundabout-exit-2'), 17, { exitCount: 4 });
+  assert.doesNotMatch(renderSpatialSurface(roundabout, 'en', { motion }), /junction-motion-scene/);
+});
+
 test('reveal marks the correct target, draws its route, and shows a localized result label', () => {
   const model = generateSpatialSurface(command('roundabout-exit-3'), 17, { exitCount: 4 });
   const markup = renderSpatialSurface(model, 'en', { reveal: true });
@@ -206,4 +240,14 @@ test('road target styles preserve a normalized 44px minimum and reveal route tre
   assert.match(styles, /\.surface-result-label\s*\{/);
   assert.match(styles, /\.surface-stage:has\(\.surface-result-label\)\s*\{[^}]*margin-bottom:/s);
   assert.match(styles, /\.surface-result-label\s*\{[^}]*top:\s*calc\(100% \+ 0\.75rem\)/s);
+});
+
+test('junction motion CSS resumes one eased six-second transform and respects reduced motion', async () => {
+  const styles = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  assert.match(styles, /\.surface-stage\.junction-motion-stage\s*\{[^}]*overflow:\s*visible/s);
+  assert.match(styles, /\.junction-motion-viewport\s*\{[^}]*position:\s*absolute[^}]*inset:\s*0[^}]*overflow:\s*hidden/s);
+  assert.match(styles, /\.junction-motion-scene\s*\{[^}]*position:\s*absolute[^}]*inset:\s*0[^}]*transform-origin:\s*50% 76%/s);
+  assert.match(styles, /\.junction-motion-scene\[data-junction-motion-running="true"\]\s*\{[^}]*animation-duration:\s*6000ms[^}]*animation-delay:\s*calc\(-1 \* var\(--junction-motion-elapsed,\s*0ms\)\)[^}]*animation-timing-function:\s*ease-in-out/s);
+  assert.match(styles, /@keyframes junction-camera-push/);
+  assert.match(styles, /@media \(prefers-reduced-motion:\s*reduce\)[\s\S]*?\.junction-motion-scene\s*\{[^}]*animation:\s*none !important[^}]*transform:\s*none !important/s);
 });

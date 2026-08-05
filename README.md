@@ -2,6 +2,10 @@
 
 An iPad-first static web app for daily practice of Spanish practical-driving-exam commands. It trains the connection between a spoken Spanish examiner command and the corresponding action. Command content and audio remain Spanish; interface chrome is available in English and Spanish.
 
+Four-way-junction questions can use a six-second moving-road approach. Road
+movement defaults on and can be disabled in Practice setup; browsers requesting
+reduced motion automatically receive the existing static junction.
+
 ## Use on iPad
 
 The public HTTPS release URL is:

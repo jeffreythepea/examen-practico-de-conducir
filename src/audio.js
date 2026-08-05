@@ -61,25 +61,35 @@ export function createAudioPlayer(options = {}) {
   let lastPlayback = null;
   let replayCount = 0;
 
-  function play(variant, speechRequest) {
+  function play(variant, speechRequest, lifecycle = {}) {
     lastPlayback = null;
     replayCount = 0;
-    return start(variant, speechRequest, false);
+    return start(variant, speechRequest, false, null, lifecycle);
   }
 
   function replay() {
     if (!lastPlayback) return Promise.resolve({ scored: false, reason: 'no-audio' });
-    return start(lastPlayback.variant, lastPlayback.speechRequest, true, lastPlayback.mode);
+    return start(lastPlayback.variant, lastPlayback.speechRequest, true, lastPlayback.mode, {});
   }
 
   function cancel(reason = 'cancelled') {
     active?.cancel(reason);
   }
 
-  function start(variant, speechRequest, isReplay, retainedMode = null) {
+  function start(variant, speechRequest, isReplay, retainedMode = null, lifecycle = {}) {
     cancel('replaced');
     return new Promise(resolve => {
       let settled = false;
+      let startNotified = false;
+      const notifyStarted = () => {
+        if (startNotified) return;
+        startNotified = true;
+        try {
+          lifecycle.onStarted?.();
+        } catch {
+          // UI lifecycle observers must never alter audio scoring or fallback.
+        }
+      };
       const finish = (result, mode = null) => {
         if (settled) return;
         settled = true;
@@ -110,6 +120,7 @@ export function createAudioPlayer(options = {}) {
             finish({ scored: false, reason });
           }
         };
+        notifyStarted();
         Promise.resolve(fallbackPlayer.play(speechRequest))
           .then(result => finish(result, 'speech'))
           .catch(() => finish({ scored: false, reason: 'error' }));
@@ -169,7 +180,7 @@ export function createAudioPlayer(options = {}) {
       document?.addEventListener?.('visibilitychange', onVisibilityChange);
 
       Promise.resolve(audio.play())
-        .then(() => {})
+        .then(notifyStarted)
         .catch(onError);
     });
   }

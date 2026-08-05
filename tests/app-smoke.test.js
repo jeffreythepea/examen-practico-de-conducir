@@ -72,7 +72,9 @@ test('app shell persists setup settings and exposes atomic backup controls', asy
   assert.match(source, /from '\.\/catalog\.js'/);
   assert.match(source, /from '\.\/audio\.js'/);
   assert.match(source, /selectControl\('feedbackSounds', 'setting\.feedbackSounds'/);
-  assert.match(source, /setting === 'timed' \|\| setting === 'feedbackSounds'/);
+  assert.match(source, /selectControl\('roadMovement', 'setting\.roadMovement'/);
+  assert.match(source, /\['timed', 'feedbackSounds', 'roadMovement'\]\.includes\(setting\)/);
+  assert.match(source, /roadMovement/);
   assert.match(source, /from '\.\/surfaces\.js'/);
   assert.match(source, /data\/commands\.json/);
   assert.match(source, /data\/audio-manifest\.json/);
@@ -95,7 +97,22 @@ test('app enables incomplete static-audio sessions only through supported browse
 
   assert.match(source, /hasAudio\(command, state\.settings\.speed\)\s*\|\|\s*player\.supportsFallback\(\)/);
   assert.match(source, /selectPlaybackVariant\(manifest, command, state\.settings\.speed, player\.supportsFallback\(\), state\.attempts\)/);
-  assert.match(source, /player\.play\(variant, \{ text: phrasing\.es, speed: variant\.speed \}\)/);
+  assert.match(source, /player\.play\([\s\S]*?variant,[\s\S]*?\{ text: phrasing\.es, speed: variant\.speed \}/);
+});
+
+test('browser controller coordinates moving junction audio, rendering, animation end, and timer lock', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /junctionMotionView\(model\.junctionMotion, Date\.now\(\)\)/);
+  assert.match(source, /matchMedia\?\.\('\(prefers-reduced-motion: reduce\)'\)/);
+  assert.match(source, /onStarted/);
+  assert.match(source, /type:\s*'AUDIO_STARTED'/);
+  assert.match(source, /type:\s*'JUNCTION_APPROACH_ENDED'/);
+  assert.match(source, /initialAudioPending/);
+  assert.match(source, /status\.audioPlaying/);
+  assert.match(source, /if \(model\.initialAudioPending\) return;/);
+  assert.match(source, /renderSurfaceModel\([\s\S]*?motion[\s\S]*?renderSurfaceModel\([\s\S]*?motion/);
+  assert.match(source, /junction-camera-push/);
 });
 
 test('daily-practice controls and SVG response targets preserve 44px touch minimums', async () => {

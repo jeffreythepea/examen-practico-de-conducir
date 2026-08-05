@@ -91,6 +91,33 @@ test('resolves playback only after ended', async () => {
   assert.deepEqual(await result, { scored: true, replays: 0 });
 });
 
+test('initial recorded playback announces one successful start before ending', async () => {
+  const fixture = audioFixture();
+  const player = createAudioPlayer(fixture.dependencies);
+  let starts = 0;
+  const result = player.play(variant, undefined, { onStarted: () => { starts += 1; } });
+
+  await fixture.instances[0].started;
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(starts, 1);
+
+  fixture.instances[0].emit('ended');
+  assert.deepEqual(await result, { scored: true, replays: 0 });
+  assert.equal(starts, 1);
+});
+
+test('audio-start observer failures never alter recorded playback scoring', async () => {
+  const fixture = audioFixture();
+  const player = createAudioPlayer(fixture.dependencies);
+  const result = player.play(variant, undefined, {
+    onStarted: () => { throw new Error('observer failed'); }
+  });
+
+  await fixture.instances[0].started;
+  fixture.instances[0].emit('ended');
+  assert.deepEqual(await result, { scored: true, replays: 0 });
+});
+
 test('returns an unscored result when playback errors, aborts, or the document becomes hidden', async () => {
   for (const trigger of ['error', 'abort', 'visibilitychange']) {
     const fixture = audioFixture();
@@ -193,6 +220,49 @@ test('a browser-speech descriptor bypasses HTML audio entirely', async () => {
   );
   assert.equal(audio.instances.length, 0);
   assert.equal(fallback.calls.length, 1);
+});
+
+test('fallback announces one start and replay never repeats the initial lifecycle callback', async () => {
+  const audio = audioFixture();
+  const fallback = fallbackFixture();
+  const player = createAudioPlayer({ ...audio.dependencies, fallbackPlayer: fallback.player });
+  let starts = 0;
+
+  const speechVariant = {
+    ...variant,
+    provider: 'browser-speech',
+    model: 'web-speech-api',
+    voiceId: 'browser-speech',
+    path: null
+  };
+  assert.deepEqual(
+    await player.play(
+      speechVariant,
+      { text: 'Gire a la derecha', speed: 0.9 },
+      { onStarted: () => { starts += 1; } }
+    ),
+    { scored: true, replays: 0 }
+  );
+  assert.equal(starts, 1);
+
+  assert.deepEqual(await player.replay(), { scored: true, replays: 1 });
+  assert.equal(starts, 1);
+});
+
+test('playback that cannot begin never announces an audio start', async () => {
+  const audio = audioFixture({ rejectStarts: [true] });
+  const player = createAudioPlayer({ ...audio.dependencies, fallbackSupported: false });
+  let starts = 0;
+
+  assert.deepEqual(
+    await player.play(
+      variant,
+      { text: 'Gire a la derecha', speed: 0.9 },
+      { onStarted: () => { starts += 1; } }
+    ),
+    { scored: false, reason: 'error' }
+  );
+  assert.equal(starts, 0);
 });
 
 test('replay retains successful fallback mode, exact text, and speed without retrying a broken MP3', async () => {

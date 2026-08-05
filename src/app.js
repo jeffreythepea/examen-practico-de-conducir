@@ -9,6 +9,11 @@ import { commandsForPhase, validateCatalog } from './catalog.js';
 import { createFeedbackCuePlayer } from './feedback-audio.js';
 import { setDocumentLocale, translate } from './i18n.js';
 import { createLessonFlag, updateLessonFlag } from './lesson-flags.js';
+import {
+  createJunctionMotion,
+  junctionMotionView,
+  reduceJunctionMotion
+} from './junction-motion.js';
 import { createOfflineClient } from './offline-client.js';
 import { readinessForCatalog } from './readiness.js';
 import { renderLessonFlagEditor, renderReadinessView } from './readiness-view.js';
@@ -43,7 +48,10 @@ const RESULT_ONLY_SURFACE_FAMILIES = Object.freeze([
 ]);
 
 export function promptControlsDisabled(model) {
-  return model.screen !== 'prompt' || Boolean(model.replayPending) || !model.activeSurfaceModel;
+  return model.screen !== 'prompt'
+    || Boolean(model.initialAudioPending)
+    || Boolean(model.replayPending)
+    || !model.activeSurfaceModel;
 }
 
 export function feedbackCueForTransition(before, after, event) {
@@ -216,6 +224,63 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
     const screen = event.index === event.session.length ? 'results' : 'loading-audio';
     return resetTrial({ ...model, screen, session: [...event.session] }, event.index);
   }
+  if (event.type === 'AUDIO_STARTED'
+      && event.motionEnabled === true
+      && model.screen === 'loading-audio'
+      && model.session[model.index]?.surfaceId === 'junction-v2') {
+    let generated;
+    try {
+      generated = generateSurfaceWithRetries(
+        model.session[model.index],
+        event.seed ?? nextSurfaceSeed(),
+        surfaceGenerator
+      );
+    } catch {
+      return model;
+    }
+    if (!generated.model) return model;
+    return {
+      ...model,
+      screen: 'prompt',
+      variant: event.variant ? Object.freeze({ ...event.variant }) : model.variant,
+      audioError: null,
+      activeSurfaceModel: generated.model,
+      surfaceResponse: {},
+      surfaceError: null,
+      textShown: model.settings.hintPolicy === 'shown',
+      replays: 0,
+      promptStartedAt: null,
+      initialAudioPending: true,
+      junctionMotion: createJunctionMotion({
+        enabled: true,
+        startedAt: event.startedAt
+      }),
+      outcome: null,
+      selectedResult: null,
+      responseMs: null,
+      timeout: false,
+      missReason: null,
+      allowedMissReasons: [],
+      replayPending: false,
+      replayOperationId: null
+    };
+  }
+  if (event.type === 'AUDIO_COMPLETED'
+      && model.screen === 'prompt'
+      && model.initialAudioPending
+      && model.junctionMotion) {
+    return {
+      ...model,
+      variant: event.variant ? Object.freeze({ ...event.variant }) : model.variant,
+      audioError: null,
+      promptStartedAt: event.completedAt,
+      initialAudioPending: false,
+      junctionMotion: reduceJunctionMotion(model.junctionMotion, {
+        type: 'AUDIO_COMPLETED',
+        at: event.completedAt
+      })
+    };
+  }
   if (['AUDIO_COMPLETED', 'TRIAL_AUDIO_ENDED'].includes(event.type) && model.screen === 'loading-audio') {
     const continuingTrial = Boolean(model.activeSurfaceModel);
     const generated = continuingTrial
@@ -236,6 +301,8 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       textShown: continuingTrial ? model.textShown : model.settings.hintPolicy === 'shown',
       replays: continuingTrial ? model.replays : 0,
       promptStartedAt: event.completedAt,
+      initialAudioPending: false,
+      junctionMotion: continuingTrial ? model.junctionMotion : null,
       outcome: null,
       selectedResult: null,
       responseMs: null,
@@ -246,11 +313,19 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       replayOperationId: null
     };
   }
-  if (event.type === 'AUDIO_FAILED' && model.screen === 'loading-audio') {
+  if (event.type === 'AUDIO_FAILED'
+      && (model.screen === 'loading-audio' || (model.screen === 'prompt' && model.initialAudioPending))) {
+    const initialMotionFailed = model.screen === 'prompt' && model.initialAudioPending;
     return {
       ...model,
       screen: 'loading-audio',
       audioError: event.reason ?? 'error',
+      variant: initialMotionFailed ? null : model.variant,
+      activeSurfaceModel: initialMotionFailed ? null : model.activeSurfaceModel,
+      surfaceResponse: initialMotionFailed ? {} : model.surfaceResponse,
+      surfaceError: initialMotionFailed ? null : model.surfaceError,
+      initialAudioPending: false,
+      junctionMotion: initialMotionFailed ? null : model.junctionMotion,
       outcome: null,
       selectedResult: null,
       responseMs: null,
@@ -262,10 +337,17 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
     };
   }
   if (event.type === 'AUDIO_INTERRUPTED' && ['prompt', 'loading-audio'].includes(model.screen)) {
+    const initialMotionFailed = model.screen === 'prompt' && model.initialAudioPending;
     return {
       ...model,
       screen: 'loading-audio',
       audioError: event.reason ?? 'interrupted',
+      variant: initialMotionFailed ? null : model.variant,
+      activeSurfaceModel: initialMotionFailed ? null : model.activeSurfaceModel,
+      surfaceResponse: initialMotionFailed ? {} : model.surfaceResponse,
+      surfaceError: initialMotionFailed ? null : model.surfaceError,
+      initialAudioPending: false,
+      junctionMotion: initialMotionFailed ? null : model.junctionMotion,
       outcome: null,
       selectedResult: null,
       responseMs: null,
@@ -336,6 +418,7 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       && model.screen === 'prompt'
       && model.activeSurfaceModel
       && RESULT_ONLY_SURFACE_FAMILIES.includes(model.activeSurfaceModel.family)
+      && !model.initialAudioPending
       && !model.replayPending) {
     const selectedTarget = model.activeSurfaceModel.targets
       .find(target => target.resultId === event.selectedResult);
@@ -355,6 +438,7 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
   if (event.type === 'SURFACE_EVENT'
       && model.screen === 'prompt'
       && model.activeSurfaceModel
+      && !model.initialAudioPending
       && !model.replayPending) {
     let response;
     try {
@@ -388,6 +472,7 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
   if (event.type === 'TIMEOUT'
       && model.screen === 'prompt'
       && model.activeSurfaceModel
+      && !model.initialAudioPending
       && !model.replayPending) {
     return reveal(model, {
       selectedResult: null,
@@ -402,6 +487,15 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       timeout: true,
       completedAt: event.completedAt
     });
+  }
+  if (event.type === 'JUNCTION_APPROACH_ENDED'
+      && model.screen === 'prompt'
+      && model.junctionMotion) {
+    const junctionMotion = reduceJunctionMotion(model.junctionMotion, {
+      type: 'APPROACH_ENDED',
+      at: event.completedAt
+    });
+    return junctionMotion === model.junctionMotion ? model : { ...model, junctionMotion };
   }
   if (event.type === 'SET_MISS_REASON' && model.screen === 'reveal' && model.outcome === 'incorrect') {
     if (!MISS_REASONS.includes(event.reason)) return model;
@@ -478,6 +572,8 @@ function resetTrial(model, index) {
     textShown: false,
     replays: 0,
     promptStartedAt: null,
+    initialAudioPending: false,
+    junctionMotion: null,
     outcome: null,
     selectedResult: null,
     selectedTargetId: null,
@@ -496,6 +592,9 @@ function reveal(model, { selectedResult, selectedTargetId, surfaceResponse, corr
     ? Math.max(0, completedAt - model.promptStartedAt)
     : null;
   const outcome = correct ? (model.textShown ? 'assisted' : 'unaided') : 'incorrect';
+  const junctionMotion = model.junctionMotion && Number.isFinite(completedAt)
+    ? reduceJunctionMotion(model.junctionMotion, { type: 'ANSWERED', at: completedAt })
+    : model.junctionMotion;
   return {
     ...model,
     screen: 'reveal',
@@ -504,6 +603,7 @@ function reveal(model, { selectedResult, selectedTargetId, surfaceResponse, corr
     surfaceResponse,
     correct,
     timeout,
+    junctionMotion,
     responseMs,
     outcome,
     missReason: null,
@@ -597,6 +697,13 @@ async function bootstrap() {
     return model.settings.locale;
   }
 
+  function movingJunctionEnabled(command) {
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+    return command?.surfaceId === 'junction-v2'
+      && state.settings.roadMovement
+      && !reducedMotion;
+  }
+
   function render() {
     const previousScreen = lastRenderedScreen;
     const focusSnapshot = previousScreen === model.screen
@@ -672,6 +779,9 @@ async function bootstrap() {
         ${selectControl('timed', 'setting.timing', [[false, 'timing.off'], [true, 'timing.on']])}
         ${selectControl('feedbackSounds', 'setting.feedbackSounds', [
           [true, 'feedbackSounds.on'], [false, 'feedbackSounds.off']
+        ])}
+        ${selectControl('roadMovement', 'setting.roadMovement', [
+          [true, 'roadMovement.on'], [false, 'roadMovement.off']
         ])}
         ${selectControl('length', 'setting.length', [
           ['short', 'length.short'], ['medium', 'length.medium'], ['all', 'length.all']
@@ -781,6 +891,9 @@ async function bootstrap() {
     const command = currentCommand();
     const phrasing = resolvePhrasing(command, model.variant);
     const controlsDisabled = promptControlsDisabled(model);
+    const motion = model.junctionMotion
+      ? junctionMotionView(model.junctionMotion, Date.now())
+      : null;
     return `<section class="panel prompt" aria-labelledby="prompt-title">
       <div class="prompt-meta">
         <p class="progress">${progressText()}</p>
@@ -790,7 +903,7 @@ async function bootstrap() {
         <div class="gameplay-copy">
           <h2 id="prompt-title" data-screen-focus tabindex="-1">${translate(locale(), 'screen.prompt')}</h2>
           <p>${translate(locale(), 'prompt.listen')}</p>
-          <p class="sr-status" role="status">${translate(locale(), 'status.audioReady')}</p>
+          <p class="sr-status" role="status">${translate(locale(), model.initialAudioPending ? 'status.audioPlaying' : 'status.audioReady')}</p>
           <div class="prompt-actions">
             <button type="button" data-action="replay" ${controlsDisabled ? 'disabled' : ''}>🔊 ${translate(locale(), 'action.replay')}</button>
             ${state.settings.hintPolicy === 'available' && !model.textShown
@@ -808,7 +921,8 @@ async function bootstrap() {
         ${model.surfaceError
           ? ''
           : `<div class="gameplay-surface">${renderSurfaceModel(model.activeSurfaceModel, model.surfaceResponse, locale(), {
-              disabled: controlsDisabled
+              disabled: controlsDisabled,
+              motion
             })}</div>`}
       </div>
     </section>`;
@@ -817,6 +931,9 @@ async function bootstrap() {
   function renderReveal() {
     const command = currentCommand();
     const phrasing = resolvePhrasing(command, model.variant);
+    const motion = model.junctionMotion
+      ? junctionMotionView(model.junctionMotion, Date.now())
+      : null;
     return `<section class="panel reveal" aria-labelledby="outcome-title">
       <p class="progress">${progressText()}</p>
       <h2 id="outcome-title" role="status" aria-live="polite" class="outcome ${model.outcome}" data-screen-focus tabindex="-1">${translate(locale(), `result.${model.outcome}`)}</h2>
@@ -824,7 +941,8 @@ async function bootstrap() {
         <div class="gameplay-surface">${renderSurfaceModel(model.activeSurfaceModel, model.surfaceResponse, locale(), {
           disabled: true,
           reveal: true,
-          selectedTargetId: model.selectedTargetId
+          selectedTargetId: model.selectedTargetId,
+          motion
         })}</div>
         <div class="gameplay-feedback">
           <dl class="answer-details">
@@ -909,7 +1027,7 @@ async function bootstrap() {
       const setting = control.dataset.setting;
       const value = setting === 'speed'
         ? Number(control.value)
-        : setting === 'timed' || setting === 'feedbackSounds'
+        : ['timed', 'feedbackSounds', 'roadMovement'].includes(setting)
           ? control.value === 'true'
           : control.value;
       updateSettings({ [setting]: value });
@@ -1012,6 +1130,16 @@ async function bootstrap() {
     app.querySelectorAll('[data-control-event="set-wheel"]').forEach(control => control.addEventListener('input', () => {
       dispatchSurfaceEvent({ type: 'set-wheel', degrees: Number(control.value) });
     }));
+    app.querySelector('.junction-motion-scene[data-junction-motion-running="true"]')
+      ?.addEventListener('animationend', event => {
+        if (event.animationName !== 'junction-camera-push') return;
+        const before = model;
+        model = reduceScreen(model, {
+          type: 'JUNCTION_APPROACH_ENDED',
+          completedAt: Date.now()
+        });
+        if (model !== before) render();
+      }, { once: true });
   }
 
   function dispatchSurfaceEvent(surfaceEvent) {
@@ -1203,7 +1331,28 @@ async function bootstrap() {
         variant = selectPlaybackVariant(manifest, command, state.settings.speed, player.supportsFallback(), state.attempts);
       }
       const phrasing = resolvePhrasing(command, variant);
-      const result = await player.play(variant, { text: phrasing.es, speed: variant.speed });
+      const result = await player.play(
+        variant,
+        { text: phrasing.es, speed: variant.speed },
+        {
+          onStarted: () => {
+            if (operation !== audioOperation || !movingJunctionEnabled(command)) return;
+            const before = model;
+            try {
+              model = reduceScreen(model, {
+                type: 'AUDIO_STARTED',
+                variant,
+                startedAt: Date.now(),
+                seed: nextSurfaceSeed(),
+                motionEnabled: true
+              });
+            } catch {
+              model = before;
+            }
+            if (model !== before) render();
+          }
+        }
+      );
       if (operation !== audioOperation) return;
       if (!result.scored) {
         model = reduceScreen(model, { type: 'AUDIO_FAILED', reason: result.reason });
@@ -1312,6 +1461,7 @@ async function bootstrap() {
 
   function startTimer() {
     stopTimer();
+    if (model.initialAudioPending) return;
     if (!state.settings.timed || model.screen !== 'prompt' || !model.activeSurfaceModel) return;
     timerDeadline = Date.now() + TRIAL_TIME_MS;
     timerTickId = window.setInterval(refreshTimerText, 200);
@@ -1427,8 +1577,17 @@ function practiceMode(value) {
 }
 
 function resumableSettings(settings) {
-  const { phase, speed, hintPolicy, timed, feedbackSounds, length } = settings;
-  return { phase, speed, hintPolicy, timed, feedbackSounds, length, mode: practiceMode(settings.mode) };
+  const { phase, speed, hintPolicy, timed, feedbackSounds, roadMovement, length } = settings;
+  return {
+    phase,
+    speed,
+    hintPolicy,
+    timed,
+    feedbackSounds,
+    roadMovement,
+    length,
+    mode: practiceMode(settings.mode)
+  };
 }
 
 function formatBytes(value) {

@@ -21,6 +21,7 @@ test('runtime asset discovery is deterministic, complete, and excludes developme
   assert.ok(paths.includes('data/commands.json'));
   assert.ok(paths.includes('manifest.webmanifest'));
   assert.ok(paths.includes('src/app.js'));
+  assert.ok(paths.includes('src/junction-motion.js'));
   assert.equal(paths.filter(path => path.endsWith('.mp3')).length, audioManifest.length);
   assert.ok(paths.every(path => !path.startsWith('tests/')));
   assert.ok(paths.every(path => !path.startsWith('docs/')));

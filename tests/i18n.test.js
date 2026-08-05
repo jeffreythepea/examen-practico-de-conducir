@@ -10,6 +10,7 @@ const requiredKeys = [
   'setting.speed','setting.hint','hint.available','hint.shown','hint.unavailable','setting.timing',
   'timing.off','timing.on','setting.length','length.short','length.medium','length.all',
   'setting.feedbackSounds','feedbackSounds.on','feedbackSounds.off',
+  'setting.roadMovement','roadMovement.on','roadMovement.off',
   'setting.phase','setting.mode','mode.recommended','mode.free','action.start','action.replay','action.showSpanish','action.continue','action.retry','action.newSession',
   'screen.setup','screen.loading','screen.prompt','screen.results','prompt.listen','prompt.progress','prompt.timer',
   'reveal.spanish','reveal.meaning','reveal.expected','reveal.vehicle','result.unaided','result.assisted','result.incorrect',
@@ -21,7 +22,7 @@ const requiredKeys = [
   'offline.failedRetained','offline.installTitle','offline.installSafari','offline.transferProgress',
   'offline.cancel','offline.bytes',
   'resume.title','resume.progress','resume.action','resume.discard','resume.recovery',
-  'summary.replays','summary.hints','summary.weak','summary.noWeak','summary.milliseconds','status.audioReady',
+  'summary.replays','summary.hints','summary.weak','summary.noWeak','summary.milliseconds','status.audioReady','status.audioPlaying',
   'surface.selectRoad','surface.selectSpace','surface.correctRoute','surface.correctControl','surface.correctSpace',
   'surface.targetSpace',
   'surface.selectionCorrect','surface.selectionWrong',
@@ -133,6 +134,17 @@ test('feedback-sound setting is explicit and bilingual', () => {
   assert.equal(translate('es', 'setting.feedbackSounds'), 'Sonidos de respuesta');
   assert.equal(translate('es', 'feedbackSounds.on'), 'Activados');
   assert.equal(translate('es', 'feedbackSounds.off'), 'Desactivados');
+});
+
+test('road-movement setting and initial-audio status are explicit and bilingual', () => {
+  assert.equal(translate('en', 'setting.roadMovement'), 'Road movement');
+  assert.equal(translate('es', 'setting.roadMovement'), 'Movimiento de la carretera');
+  assert.equal(translate('en', 'roadMovement.on'), 'On');
+  assert.equal(translate('es', 'roadMovement.on'), 'Activado');
+  assert.equal(translate('en', 'roadMovement.off'), 'Off');
+  assert.equal(translate('es', 'roadMovement.off'), 'Desactivado');
+  assert.equal(translate('en', 'status.audioPlaying'), 'Listen to the Spanish command.');
+  assert.equal(translate('es', 'status.audioPlaying'), 'Escuche la orden en español.');
 });
 
 test('headlight labels name the controls without redundant symbol wording', () => {

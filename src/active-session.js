@@ -32,11 +32,13 @@ function nonempty(value, path) {
 
 function validateSettings(settings) {
   record(settings, 'activeSession.settings');
+  if (settings.roadMovement === undefined) settings.roadMovement = true;
   if (!PHASES.has(settings.phase)) throw new Error('Invalid activeSession.settings.phase');
   if (!SPEEDS.has(settings.speed)) throw new Error('Invalid activeSession.settings.speed');
   if (!HINT_POLICIES.has(settings.hintPolicy)) throw new Error('Invalid activeSession.settings.hintPolicy');
   if (typeof settings.timed !== 'boolean') throw new Error('Invalid activeSession.settings.timed');
   if (typeof settings.feedbackSounds !== 'boolean') throw new Error('Invalid activeSession.settings.feedbackSounds');
+  if (typeof settings.roadMovement !== 'boolean') throw new Error('Invalid activeSession.settings.roadMovement');
   if (!LENGTHS.has(settings.length)) throw new Error('Invalid activeSession.settings.length');
   if (!MODES.has(settings.mode)) throw new Error('Invalid activeSession.settings.mode');
 }

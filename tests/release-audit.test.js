@@ -464,3 +464,17 @@ test('release documentation defines recorded-first browser Spanish speech fallba
   assert.match(readme, /no (?:runtime )?(?:credential|API key).*no backend|no backend.*no (?:runtime )?(?:credential|API key)/is);
   assert.match(design, /both.*(?:recorded|MP3).*browser.*fail.*unscored|unscored.*both.*(?:recorded|MP3).*browser.*fail/is);
 });
+
+test('release documentation describes optional moving junctions without claiming device acceptance', async () => {
+  const [readme, changelog] = await Promise.all([
+    readFile(resolve(ROOT, 'README.md'), 'utf8'),
+    readFile(resolve(ROOT, 'CHANGELOG.md'), 'utf8')
+  ]);
+  const normalizedReadme = readme.replace(/\s+/g, ' ');
+
+  assert.match(normalizedReadme, /four-way-junction.*six-second moving-road approach/i);
+  assert.match(normalizedReadme, /Road movement defaults on.*Practice setup/i);
+  assert.match(normalizedReadme, /reduced motion.*static junction/i);
+  assert.match(changelog, /Moving junction experiment — in progress/);
+  assert.doesNotMatch(changelog, /moving junction[\s\S]{0,500}physical iPad acceptance/i);
+});

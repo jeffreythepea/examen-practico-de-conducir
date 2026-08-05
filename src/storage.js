@@ -23,6 +23,7 @@ export function defaultState() {
       hintPolicy: 'available',
       timed: false,
       feedbackSounds: true,
+      roadMovement: true,
       length: 'medium',
       mode: 'recommended'
     },
@@ -133,12 +134,14 @@ function validateState(value) {
 
 function validateSettings(settings) {
   if (settings.feedbackSounds === undefined) settings.feedbackSounds = true;
+  if (settings.roadMovement === undefined) settings.roadMovement = true;
   if (!LOCALES.has(settings.locale)) throw new Error('Invalid settings.locale');
   if (!PHASES.has(settings.phase)) throw new Error('Invalid settings.phase');
   if (!SPEEDS.has(settings.speed)) throw new Error('Invalid settings.speed');
   if (!HINT_POLICIES.has(settings.hintPolicy)) throw new Error('Invalid settings.hintPolicy');
   if (typeof settings.timed !== 'boolean') throw new Error('Invalid settings.timed');
   if (typeof settings.feedbackSounds !== 'boolean') throw new Error('Invalid settings.feedbackSounds');
+  if (typeof settings.roadMovement !== 'boolean') throw new Error('Invalid settings.roadMovement');
   if (!LENGTHS.has(settings.length)) throw new Error('Invalid settings.length');
   if (!MODES.has(settings.mode)) throw new Error('Invalid settings.mode');
 }
