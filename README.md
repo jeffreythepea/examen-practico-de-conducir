@@ -2,9 +2,10 @@
 
 An iPad-first static web app for daily practice of Spanish practical-driving-exam commands. It trains the connection between a spoken Spanish examiner command and the corresponding action. Command content and audio remain Spanish; interface chrome is available in English and Spanish.
 
-Four-way-junction questions can use a six-second moving-road approach. Road
-movement defaults on and can be disabled in Practice setup; browsers requesting
-reduced motion automatically receive the existing static junction.
+Photo-backed junction, roundabout, U-turn, overtaking, parking, and voluntary-
+stopping questions can use a six-second moving-road approach. Road movement
+defaults on and can be disabled in Practice setup; browsers requesting reduced
+motion automatically receive the existing static exercise.
 
 ## Use on iPad
 
@@ -22,7 +23,17 @@ Offline website storage is best-effort rather than permanent. iPadOS may evict c
 
 Stage 1 provides a standalone daily-practice baseline: driving, precheck, and mixed filters; three audio speeds; written-Spanish hint policies; optional timing; selectable 5-, 10-, and 15-command sessions; recommended and free-practice ordering; unaided, text-assisted, and incorrect scoring; diagnostics; and local backup/restore. Fresh saves start with Mixed practice and 10 commands; existing saves retain their chosen settings.
 
-The app has no runtime dependency on Piso Asturiano and no backend. The source remains a plain static browser application; public releases use a deterministic build step to select and verify only runtime assets. Stage 2 is implemented for release review with an action-matched response model. The current expansion contains 36 commands and 76 Spanish phrasings; deeper phrasing/voice mastery reporting, road simulation, sequential exam simulation, and automatic difficulty progression remain deferred.
+The current release candidate adds three experience modes. **Learn** supplies
+written Spanish at 0.9× without a timer; **Practice** keeps the advanced setup
+controls; and **Mock** is a clearly labeled simulation at 1× with no replay or
+written hint, withholding correctness until the session ends. Mock results are
+not an official DGT result and survive reload until reviewed or dismissed.
+Learners may choose one of five neutral examiner characters, rotate with
+**Today**, or use **Mixed examiners**. They may also keep **Adaptive practice**
+or select First drive, City circuit, Roundabout circuit, Manoeuvres, Precheck
+inspection, or Full mock themed drives.
+
+The app has no runtime dependency on Piso Asturiano and no backend. The source remains a plain static browser application; public releases use a deterministic build step to select and verify only runtime assets. Stage 2 is implemented with an action-matched response model and optional moving-road approaches on suitable realistic scenes. The current expansion contains 36 commands and 76 Spanish phrasings; deeper phrasing/voice mastery reporting, an instructor-validated sequential examination, and automatic difficulty progression remain deferred.
 
 ## Readiness and targeted practice
 
@@ -87,7 +98,7 @@ The Task 7 browser automation limitation means export downloads and confirm-plus
 
 ## Audio provenance and disclosure
 
-The expanded catalog has a 456-variant target: 76 Spanish phrasings, Roger and Sarah voices, and provider-native speeds of 0.75x, 0.9x, and 1x. The complete published recorded corpus now contains all 456 integrity-checked ElevenLabs `eleven_multilingual_v2` MP3s; the resumable expansion run reused the previous 324 recordings and added 132. Each trial randomly selects one playable phrasing/voice recording and retains it through replay, Show Spanish, reveal, and attempt logging. Browser speech remains the online fallback if a recording fails. Integrity and provider/model provenance are recorded in `data/audio-manifest.json`; the audition decision is in `references/audio-audition.md`.
+The expanded catalog has 1,140 variants: 36 commands, 76 Spanish phrasings, five voices (Roger, Sarah, George, Matilda, and Eric), and provider-native speeds of 0.75x, 0.9x, and 1x. The complete published recorded corpus contains all 1,140 integrity-checked ElevenLabs `eleven_multilingual_v2` MP3s; the five-voice expansion reused the previous 456 recordings and added 684. Each trial randomly selects one playable phrasing/voice recording and retains it through replay, Show Spanish, reveal, and attempt logging. Browser speech remains the online fallback if a recording fails. Integrity and provider/model provenance are recorded in `data/audio-manifest.json`; the audition decision is in `references/audio-audition.md`.
 
 Audio generation is resumable and fail-closed. It checksum-verifies reusable published and recovery assets, checkpoints every new clip outside the browser-delivered tree, and replaces the published audio tree and manifest only after the complete staged corpus validates. An interrupted generation therefore does not create a partially published static corpus.
 
@@ -120,7 +131,10 @@ Regenerate the selected corpus atomically and verify it before replacing publish
 node /Users/jeffreypease/Projects/examen-practico-de-conducir/scripts/generate-audio.mjs \
   --provider elevenlabs \
   --voice CwhRBWXzGAHq8TQ4Fs17 \
-  --voice EXAVITQu4vr4xnSDxMaL
+  --voice EXAVITQu4vr4xnSDxMaL \
+  --voice JBFqnCBsd6RMkjVDRZzb \
+  --voice XrExE9yKIg1WjnnlVkGX \
+  --voice cjVigY5qzO86Huf0OWal
 ```
 
 When finished, remove the variable from the shell with `unset ELEVENLABS_API_KEY`.
@@ -128,7 +142,7 @@ When finished, remove the variable from the shell with `unset ELEVENLABS_API_KEY
 ## Release checklist
 
 - Run the release check and confirm every test passes with no whitespace errors.
-- Confirm `data/audio-manifest.json` resolves to all 456 nonempty, integrity-matching assets before treating the 76-phrasing command expansion as release-ready. The completed expansion run reused 324 published assets and added 132.
+- Confirm `data/audio-manifest.json` resolves to all 1,140 nonempty, integrity-matching assets before treating the 76-phrasing, five-voice corpus as release-ready. The completed five-voice run reused 456 published assets and added 684.
 - Exercise English and Spanish setup, playback, hint, response, reveal, results, export, and import in a supported browser.
 - Confirm the AI-generated-voice disclosure is visible in both locales.
 - Confirm no credentials or generated temporary files are included.

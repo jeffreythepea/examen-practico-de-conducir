@@ -7,16 +7,26 @@ import {
 } from './active-session.js';
 import { commandsForPhase, validateCatalog } from './catalog.js';
 import { createFeedbackCuePlayer } from './feedback-audio.js';
+import {
+  EXAMINERS,
+  examinerById,
+  filterVariantsForExaminer,
+  selectTodaysExaminer
+} from './examiners.js';
 import { setDocumentLocale, translate } from './i18n.js';
 import { createLessonFlag, updateLessonFlag } from './lesson-flags.js';
 import {
-  createJunctionMotion,
-  junctionMotionView,
-  reduceJunctionMotion
-} from './junction-motion.js';
+  createRoadMotion,
+  reduceRoadMotion,
+  roadMotionProfile,
+  roadMotionView
+} from './road-motion.js';
 import { createOfflineClient } from './offline-client.js';
 import { readinessForCatalog } from './readiness.js';
 import { renderLessonFlagEditor, renderReadinessView } from './readiness-view.js';
+import { sessionPresetById } from './session-presets.js';
+import { eligibleCommandsForTheme, SESSION_THEMES } from './session-themes.js';
+import { renderSoloSetupView } from './solo-setup-view.js';
 import {
   STORAGE_KEY,
   defaultState,
@@ -46,6 +56,14 @@ const RESULT_ONLY_SURFACE_FAMILIES = Object.freeze([
   'stopping',
   'semantic'
 ]);
+const ROAD_MOTION_SURFACE_IDS = new Set([
+  'junction-v2',
+  'roundabout-v2',
+  'u-turn-v1',
+  'overtake-v1',
+  'parking-v1',
+  'stopping-v1'
+]);
 
 export function promptControlsDisabled(model) {
   return model.screen !== 'prompt'
@@ -63,6 +81,15 @@ export function feedbackCueForTransition(before, after, event) {
   if (after.outcome === 'incorrect') return 'incorrect';
   if (after.outcome === 'unaided' || after.outcome === 'assisted') return 'correct';
   return null;
+}
+
+export function mockResultStatus(attempts, expectedCount) {
+  if (!Array.isArray(attempts) || !Number.isSafeInteger(expectedCount) || expectedCount < 1) {
+    return 'needs-practice';
+  }
+  return attempts.length === expectedCount && attempts.every(attempt => attempt.outcome === 'unaided')
+    ? 'clean'
+    : 'needs-practice';
 }
 
 export function nextSurfaceSeed(cryptoRef = globalThis.crypto) {
@@ -216,18 +243,28 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
     return resetTrial({ ...model, screen: 'setup', settings: model.settings, session: [] }, 0);
   }
   if (event.type === 'START_SESSION') {
-    return resetTrial({ ...model, screen: 'loading-audio', session: [...event.session] }, 0);
+    return resetTrial({
+      ...model,
+      screen: 'loading-audio',
+      session: [...event.session],
+      experience: event.experience ?? model.experience ?? null
+    }, 0);
   }
   if (event.type === 'RESUME_SESSION') {
     if (!Array.isArray(event.session) || !Number.isSafeInteger(event.index)
         || event.index < 0 || event.index > event.session.length) return model;
     const screen = event.index === event.session.length ? 'results' : 'loading-audio';
-    return resetTrial({ ...model, screen, session: [...event.session] }, event.index);
+    return resetTrial({
+      ...model,
+      screen,
+      session: [...event.session],
+      experience: event.experience ?? model.experience ?? null
+    }, event.index);
   }
   if (event.type === 'AUDIO_STARTED'
       && event.motionEnabled === true
       && model.screen === 'loading-audio'
-      && model.session[model.index]?.surfaceId === 'junction-v2') {
+      && ROAD_MOTION_SURFACE_IDS.has(model.session[model.index]?.surfaceId)) {
     let generated;
     try {
       generated = generateSurfaceWithRetries(
@@ -238,7 +275,8 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
     } catch {
       return model;
     }
-    if (!generated.model) return model;
+    const sceneId = generated.model?.geometry?.sceneId;
+    if (!generated.model || !roadMotionProfile(sceneId)) return model;
     return {
       ...model,
       screen: 'prompt',
@@ -251,9 +289,10 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       replays: 0,
       promptStartedAt: null,
       initialAudioPending: true,
-      junctionMotion: createJunctionMotion({
+      roadMotion: createRoadMotion({
         enabled: true,
-        startedAt: event.startedAt
+        startedAt: event.startedAt,
+        sceneId
       }),
       outcome: null,
       selectedResult: null,
@@ -268,14 +307,14 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
   if (event.type === 'AUDIO_COMPLETED'
       && model.screen === 'prompt'
       && model.initialAudioPending
-      && model.junctionMotion) {
+      && model.roadMotion) {
     return {
       ...model,
       variant: event.variant ? Object.freeze({ ...event.variant }) : model.variant,
       audioError: null,
       promptStartedAt: event.completedAt,
       initialAudioPending: false,
-      junctionMotion: reduceJunctionMotion(model.junctionMotion, {
+      roadMotion: reduceRoadMotion(model.roadMotion, {
         type: 'AUDIO_COMPLETED',
         at: event.completedAt
       })
@@ -302,7 +341,7 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       replays: continuingTrial ? model.replays : 0,
       promptStartedAt: event.completedAt,
       initialAudioPending: false,
-      junctionMotion: continuingTrial ? model.junctionMotion : null,
+      roadMotion: continuingTrial ? model.roadMotion : null,
       outcome: null,
       selectedResult: null,
       responseMs: null,
@@ -325,7 +364,7 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       surfaceResponse: initialMotionFailed ? {} : model.surfaceResponse,
       surfaceError: initialMotionFailed ? null : model.surfaceError,
       initialAudioPending: false,
-      junctionMotion: initialMotionFailed ? null : model.junctionMotion,
+      roadMotion: initialMotionFailed ? null : model.roadMotion,
       outcome: null,
       selectedResult: null,
       responseMs: null,
@@ -347,7 +386,7 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       surfaceResponse: initialMotionFailed ? {} : model.surfaceResponse,
       surfaceError: initialMotionFailed ? null : model.surfaceError,
       initialAudioPending: false,
-      junctionMotion: initialMotionFailed ? null : model.junctionMotion,
+      roadMotion: initialMotionFailed ? null : model.roadMotion,
       outcome: null,
       selectedResult: null,
       responseMs: null,
@@ -378,7 +417,10 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       promptStartedAt: event.startedAt ?? model.promptStartedAt
     };
   }
-  if (event.type === 'REPLAY_STARTED' && model.screen === 'prompt' && !model.replayPending) {
+  if (event.type === 'REPLAY_STARTED'
+      && model.screen === 'prompt'
+      && !model.replayPending
+      && model.experience?.replayPolicy !== 'none') {
     return { ...model, replayPending: true, replayOperationId: event.operationId };
   }
   if (event.type === 'REPLAY_FAILED'
@@ -399,7 +441,10 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       replayOperationId: null
     };
   }
-  if (event.type === 'SHOW_SPANISH' && model.screen === 'prompt' && !model.replayPending) {
+  if (event.type === 'SHOW_SPANISH'
+      && model.screen === 'prompt'
+      && !model.replayPending
+      && model.settings.hintPolicy !== 'unavailable') {
     return { ...model, textShown: true };
   }
   if (event.type === 'REPLAY_COMPLETED'
@@ -488,20 +533,25 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       completedAt: event.completedAt
     });
   }
-  if (event.type === 'JUNCTION_APPROACH_ENDED'
+  if (event.type === 'ROAD_APPROACH_ENDED'
       && model.screen === 'prompt'
-      && model.junctionMotion) {
-    const junctionMotion = reduceJunctionMotion(model.junctionMotion, {
+      && model.roadMotion) {
+    const roadMotion = reduceRoadMotion(model.roadMotion, {
       type: 'APPROACH_ENDED',
       at: event.completedAt
     });
-    return junctionMotion === model.junctionMotion ? model : { ...model, junctionMotion };
+    return roadMotion === model.roadMotion ? model : { ...model, roadMotion };
   }
   if (event.type === 'SET_MISS_REASON' && model.screen === 'reveal' && model.outcome === 'incorrect') {
     if (!MISS_REASONS.includes(event.reason)) return model;
     return { ...model, missReason: event.reason };
   }
   if (event.type === 'CONTINUE' && model.screen === 'reveal') {
+    const nextIndex = model.index + 1;
+    if (nextIndex >= model.session.length) return resetTrial({ ...model, screen: 'results' }, nextIndex);
+    return resetTrial({ ...model, screen: 'loading-audio' }, nextIndex);
+  }
+  if (event.type === 'MOCK_CONTINUE' && model.screen === 'mock-transition') {
     const nextIndex = model.index + 1;
     if (nextIndex >= model.session.length) return resetTrial({ ...model, screen: 'results' }, nextIndex);
     return resetTrial({ ...model, screen: 'loading-audio' }, nextIndex);
@@ -526,14 +576,26 @@ export function selectPlaybackVariant(
   speed,
   fallbackSupported,
   attempts = [],
-  rng = Math.random
+  rng = Math.random,
+  {
+    examinerChoice = 'mixed',
+    dateParts,
+    examinerRegistry = EXAMINERS
+  } = {}
 ) {
   const recorded = manifest.filter(variant =>
     variant.commandId === command.id
     && variant.speed === speed
   );
-  if (recorded.length > 0) {
-    return selectCoverageAwareVariant(recorded, attempts, rng);
+  const eligibleRecorded = filterVariantsForExaminer(recorded, examinerChoice, {
+    dateParts,
+    registry: examinerRegistry
+  });
+  if (eligibleRecorded.length > 0) {
+    return selectCoverageAwareVariant(eligibleRecorded, attempts, rng);
+  }
+  if (recorded.length > 0 && examinerChoice !== 'mixed') {
+    throw new Error(`Audio unavailable for examiner: ${examinerChoice}`);
   }
   if (!fallbackSupported) throw new Error(`Audio unavailable for ${command.id}`);
   const phrasingIndex = Math.min(
@@ -550,6 +612,101 @@ export function selectPlaybackVariant(
     provider: 'browser-speech',
     model: 'web-speech-api',
     path: null
+  });
+}
+
+export function resolveSessionExperience(settings, dateParts) {
+  const preset = sessionPresetById(settings?.experienceMode);
+  const examinerChoice = settings?.examinerChoice;
+  const resolvedExaminerId = examinerChoice === 'mixed'
+    ? null
+    : examinerChoice === 'today'
+      ? selectTodaysExaminer(dateParts).id
+      : examinerById(examinerChoice).id;
+  return Object.freeze({
+    modeId: preset.id,
+    examinerChoice,
+    resolvedExaminerId,
+    themeId: settings?.themeId ?? null,
+    replayPolicy: preset.replayPolicy,
+    revealPolicy: preset.revealPolicy,
+    simulated: preset.simulated
+  });
+}
+
+export function sessionIdentityData(experience) {
+  const preset = sessionPresetById(experience?.modeId);
+  const theme = experience?.themeId === null
+    ? null
+    : SESSION_THEMES.find(candidate => candidate.id === experience?.themeId);
+  if (experience?.themeId !== null && !theme) throw new Error(`Unknown theme: ${String(experience?.themeId)}`);
+
+  if (experience?.examinerChoice === 'mixed') {
+    return Object.freeze({
+      modeTitleKey: preset.titleKey,
+      themeTitleKey: theme?.titleKey ?? 'theme.adaptive.title',
+      examinerTitleKey: 'examiner.mixed.title',
+      examinerDescriptionKey: 'examiner.mixed.description',
+      visualTokens: Object.freeze(EXAMINERS.map(examiner => examiner.visualToken))
+    });
+  }
+
+  const examiner = examinerById(experience?.resolvedExaminerId);
+  return Object.freeze({
+    modeTitleKey: preset.titleKey,
+    themeTitleKey: theme?.titleKey ?? 'theme.adaptive.title',
+    examinerTitleKey: examiner.nameKey,
+    examinerDescriptionKey: examiner.descriptionKey,
+    visualTokens: Object.freeze([examiner.visualToken])
+  });
+}
+
+export function effectiveSessionSettings(settings) {
+  const preset = sessionPresetById(settings?.experienceMode);
+  if (preset.id === 'practice') return Object.freeze({ ...settings });
+  return Object.freeze({
+    ...settings,
+    speed: preset.settings.speed,
+    hintPolicy: preset.settings.hintPolicy,
+    timed: preset.settings.timed
+  });
+}
+
+export function localDateParts(now = new Date()) {
+  return Object.freeze({
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+    day: now.getDate()
+  });
+}
+
+export function sessionStartEligibility(
+  commands,
+  manifest,
+  settings,
+  fallbackSupported,
+  dateParts
+) {
+  const themed = settings.themeId === null
+    ? commands
+    : eligibleCommandsForTheme(commands, settings.themeId);
+  const pool = commandsForPhase(themed, settings.phase);
+  if (pool.length === 0) return Object.freeze({ canStart: false, reason: 'no-commands' });
+
+  const experience = resolveSessionExperience(settings, dateParts);
+  const examinerChoice = experience.resolvedExaminerId ?? 'mixed';
+  const playable = pool.every(command => {
+    const recorded = manifest.filter(variant =>
+      variant.commandId === command.id
+      && variant.speed === settings.speed
+    );
+    const eligible = filterVariantsForExaminer(recorded, examinerChoice);
+    return eligible.length > 0
+      || (examinerChoice === 'mixed' && recorded.length === 0 && fallbackSupported);
+  });
+  return Object.freeze({
+    canStart: playable,
+    reason: playable ? null : 'examiner-audio'
   });
 }
 
@@ -573,7 +730,7 @@ function resetTrial(model, index) {
     replays: 0,
     promptStartedAt: null,
     initialAudioPending: false,
-    junctionMotion: null,
+    roadMotion: null,
     outcome: null,
     selectedResult: null,
     selectedTargetId: null,
@@ -592,18 +749,20 @@ function reveal(model, { selectedResult, selectedTargetId, surfaceResponse, corr
     ? Math.max(0, completedAt - model.promptStartedAt)
     : null;
   const outcome = correct ? (model.textShown ? 'assisted' : 'unaided') : 'incorrect';
-  const junctionMotion = model.junctionMotion && Number.isFinite(completedAt)
-    ? reduceJunctionMotion(model.junctionMotion, { type: 'ANSWERED', at: completedAt })
-    : model.junctionMotion;
+  const roadMotion = model.roadMotion && Number.isFinite(completedAt)
+    ? reduceRoadMotion(model.roadMotion, { type: 'ANSWERED', at: completedAt })
+    : model.roadMotion;
   return {
     ...model,
-    screen: 'reveal',
+    screen: model.experience?.revealPolicy === 'session-end'
+      ? 'mock-transition'
+      : 'reveal',
     selectedResult,
     selectedTargetId,
     surfaceResponse,
     correct,
     timeout,
-    junctionMotion,
+    roadMotion,
     responseMs,
     outcome,
     missReason: null,
@@ -697,9 +856,9 @@ async function bootstrap() {
     return model.settings.locale;
   }
 
-  function movingJunctionEnabled(command) {
+  function movingRoadEnabled(command) {
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
-    return command?.surfaceId === 'junction-v2'
+    return ROAD_MOTION_SURFACE_IDS.has(command?.surfaceId)
       && state.settings.roadMovement
       && !reducedMotion;
   }
@@ -722,7 +881,9 @@ async function bootstrap() {
           ? renderPrompt()
           : model.screen === 'reveal'
             ? renderReveal()
-            : renderResults();
+            : model.screen === 'mock-transition'
+              ? renderMockTransition()
+              : renderResults();
     app.innerHTML = `${renderHeader()}${screen}`;
     bindCommonEvents();
     if (model.screen === 'setup') bindSetupEvents();
@@ -730,6 +891,7 @@ async function bootstrap() {
     if (model.screen === 'loading-audio') bindLoadingEvents();
     if (model.screen === 'prompt') bindPromptEvents();
     if (model.screen === 'reveal') bindRevealEvents();
+    if (model.screen === 'mock-transition') bindMockTransitionEvents();
     if (model.screen === 'results') bindResultsEvents();
     refreshTimerText();
     if (previousScreen === model.screen) {
@@ -758,40 +920,81 @@ async function bootstrap() {
     </header>`;
   }
 
+  function renderSessionIdentity() {
+    if (!model.experience) return '';
+    const identity = sessionIdentityData(model.experience);
+    return `<aside class="session-identity" aria-label="${translate(locale(), 'session.identity')}">
+      <div class="identity-chip"><span>${translate(locale(), 'session.mode')}</span><strong>${translate(locale(), identity.modeTitleKey)}</strong></div>
+      <div class="identity-chip"><span>${translate(locale(), 'session.theme')}</span><strong>${translate(locale(), identity.themeTitleKey)}</strong></div>
+      <div class="identity-chip examiner-identity">
+        <span>${translate(locale(), 'session.examiner')}</span>
+        <span class="examiner-token-stack" aria-hidden="true">${identity.visualTokens.map(token => `<i class="examiner-token ${token}"></i>`).join('')}</span>
+        <strong>${translate(locale(), identity.examinerTitleKey)}</strong>
+        <small>${translate(locale(), identity.examinerDescriptionKey)}</small>
+      </div>
+    </aside>`;
+  }
+
   function renderSetup() {
-    const pool = commandsForPhase(selectableCommands, state.settings.phase);
-    const canStart = pool.length > 0 && pool.every(command =>
-      hasAudio(command, state.settings.speed) || player.supportsFallback()
+    const dateParts = localDateParts(new Date());
+    const effectiveSettings = effectiveSessionSettings(state.settings);
+    const themed = state.settings.themeId === null
+      ? selectableCommands
+      : eligibleCommandsForTheme(selectableCommands, state.settings.themeId);
+    const pool = commandsForPhase(themed, state.settings.phase);
+    const eligibility = sessionStartEligibility(
+      selectableCommands,
+      manifest,
+      effectiveSettings,
+      player.supportsFallback(),
+      dateParts
     );
+    const startErrorKey = eligibility.reason === 'no-commands'
+      ? 'setup.start.noCommands'
+      : 'setup.start.examinerAudio';
     return `<section class="panel" aria-labelledby="setup-title">
       <h2 id="setup-title" data-screen-focus tabindex="-1">${translate(locale(), 'screen.setup')}</h2>
       ${recoveryError ? `<p class="notice" role="alert">${translate(locale(), 'error.recovery')}</p>` : ''}
       ${sessionRecoveryError ? `<p class="notice" role="alert">${translate(locale(), 'resume.recovery')}</p>` : ''}
       ${renderResumeCard()}
-      <div class="setup-grid">
-        ${selectControl('phase', 'setting.phase', [
-          ['driving', 'phase.driving'], ['precheck', 'phase.precheck'], ['mixed', 'phase.mixed']
-        ])}
-        ${selectControl('speed', 'setting.speed', [[0.75, '0.75×'], [0.9, '0.9×'], [1, '1×']], true)}
-        ${selectControl('hintPolicy', 'setting.hint', [
-          ['available', 'hint.available'], ['shown', 'hint.shown'], ['unavailable', 'hint.unavailable']
-        ])}
-        ${selectControl('timed', 'setting.timing', [[false, 'timing.off'], [true, 'timing.on']])}
-        ${selectControl('feedbackSounds', 'setting.feedbackSounds', [
-          [true, 'feedbackSounds.on'], [false, 'feedbackSounds.off']
-        ])}
-        ${selectControl('roadMovement', 'setting.roadMovement', [
-          [true, 'roadMovement.on'], [false, 'roadMovement.off']
-        ])}
-        ${selectControl('length', 'setting.length', [
-          ['short', 'length.short'], ['medium', 'length.medium'], ['all', 'length.all']
-        ])}
-        ${selectControl('mode', 'setting.mode', [['recommended', 'mode.recommended'], ['free', 'mode.free']])}
-      </div>
+      ${renderSoloSetupView({
+        locale: locale(),
+        t: (key, variables) => translate(locale(), key, variables),
+        selectedPresetId: state.settings.experienceMode,
+        selectedExaminerChoiceId: state.settings.examinerChoice,
+        selectedThemeId: state.settings.themeId,
+        dateParts
+      })}
+      <details class="advanced-practice-disclosure" ${state.settings.experienceMode === 'practice' ? '' : 'data-preset-owned="true"'}>
+        <summary>${translate(locale(), 'practice.advanced.title')}</summary>
+        <p>${translate(locale(), state.settings.experienceMode === 'practice'
+          ? 'practice.advanced.description'
+          : 'practice.advanced.presetOwned')}</p>
+        <div class="setup-grid">
+          ${selectControl('phase', 'setting.phase', [
+            ['driving', 'phase.driving'], ['precheck', 'phase.precheck'], ['mixed', 'phase.mixed']
+          ])}
+          ${selectControl('speed', 'setting.speed', [[0.75, '0.75×'], [0.9, '0.9×'], [1, '1×']], true)}
+          ${selectControl('hintPolicy', 'setting.hint', [
+            ['available', 'hint.available'], ['shown', 'hint.shown'], ['unavailable', 'hint.unavailable']
+          ])}
+          ${selectControl('timed', 'setting.timing', [[false, 'timing.off'], [true, 'timing.on']])}
+          ${selectControl('feedbackSounds', 'setting.feedbackSounds', [
+            [true, 'feedbackSounds.on'], [false, 'feedbackSounds.off']
+          ])}
+          ${selectControl('roadMovement', 'setting.roadMovement', [
+            [true, 'roadMovement.on'], [false, 'roadMovement.off']
+          ])}
+          ${selectControl('length', 'setting.length', [
+            ['short', 'length.short'], ['medium', 'length.medium'], ['all', 'length.all']
+          ])}
+          ${selectControl('mode', 'setting.mode', [['recommended', 'mode.recommended'], ['free', 'mode.free']])}
+        </div>
+      </details>
       <p class="pool-count">${translate(locale(), 'summary.count', { count: pool.length })}</p>
       <button type="button" data-action="open-readiness">${translate(locale(), 'screen.readiness')}</button>
-      <button class="primary" type="button" data-action="start" ${canStart ? '' : 'disabled'}>${translate(locale(), 'action.start')}</button>
-      ${canStart ? '' : `<p class="notice error" role="alert">${translate(locale(), 'error.audio')}</p>`}
+      <button class="primary" type="button" data-action="start" ${eligibility.canStart ? '' : 'disabled'}>${translate(locale(), 'action.start')}</button>
+      ${eligibility.canStart ? '' : `<p class="notice error" role="alert">${translate(locale(), startErrorKey)}</p>`}
       ${renderOfflineCard()}
       <details class="settings-disclosure">
         <summary><span aria-hidden="true">⚙️</span> ${translate(locale(), 'settings.title')}</summary>
@@ -891,13 +1094,14 @@ async function bootstrap() {
     const command = currentCommand();
     const phrasing = resolvePhrasing(command, model.variant);
     const controlsDisabled = promptControlsDisabled(model);
-    const motion = model.junctionMotion
-      ? junctionMotionView(model.junctionMotion, Date.now())
+    const motion = model.roadMotion
+      ? roadMotionView(model.roadMotion, Date.now())
       : null;
     return `<section class="panel prompt" aria-labelledby="prompt-title">
+      ${renderSessionIdentity()}
       <div class="prompt-meta">
         <p class="progress">${progressText()}</p>
-        ${state.settings.timed ? `<p class="timer" data-timer>${timerText()}</p>` : ''}
+        ${model.settings.timed ? `<p class="timer" data-timer>${timerText()}</p>` : ''}
       </div>
       <div class="gameplay-layout prompt-layout">
         <div class="gameplay-copy">
@@ -905,8 +1109,10 @@ async function bootstrap() {
           <p>${translate(locale(), 'prompt.listen')}</p>
           <p class="sr-status" role="status">${translate(locale(), model.initialAudioPending ? 'status.audioPlaying' : 'status.audioReady')}</p>
           <div class="prompt-actions">
-            <button type="button" data-action="replay" ${controlsDisabled ? 'disabled' : ''}>🔊 ${translate(locale(), 'action.replay')}</button>
-            ${state.settings.hintPolicy === 'available' && !model.textShown
+            ${model.experience?.replayPolicy !== 'none'
+              ? `<button type="button" data-action="replay" ${controlsDisabled ? 'disabled' : ''}>🔊 ${translate(locale(), 'action.replay')}</button>`
+              : ''}
+            ${model.settings.hintPolicy === 'available' && !model.textShown
               ? `<button type="button" data-action="show-spanish" ${controlsDisabled ? 'disabled' : ''}>${translate(locale(), 'action.showSpanish')}</button>`
               : ''}
           </div>
@@ -931,8 +1137,8 @@ async function bootstrap() {
   function renderReveal() {
     const command = currentCommand();
     const phrasing = resolvePhrasing(command, model.variant);
-    const motion = model.junctionMotion
-      ? junctionMotionView(model.junctionMotion, Date.now())
+    const motion = model.roadMotion
+      ? roadMotionView(model.roadMotion, Date.now())
       : null;
     return `<section class="panel reveal" aria-labelledby="outcome-title">
       <p class="progress">${progressText()}</p>
@@ -973,12 +1179,28 @@ async function bootstrap() {
     </fieldset>`;
   }
 
+  function renderMockTransition() {
+    return `<section class="panel mock-transition" aria-labelledby="mock-transition-title">
+      ${renderSessionIdentity()}
+      <p class="progress">${progressText()}</p>
+      <h2 id="mock-transition-title" data-screen-focus tabindex="-1">${translate(locale(), 'screen.mockTransition')}</h2>
+      <p>${translate(locale(), 'mock.transition')}</p>
+      <p class="notice">${translate(locale(), 'mock.simulated')}</p>
+    </section>`;
+  }
+
   function renderResults() {
     const attempts = state.attempts.filter(attempt => sessionAttemptIds.includes(attempt.id));
     const summary = summarizeSession(attempts, model.session);
+    const isMock = model.experience?.revealPolicy === 'session-end';
+    const mockStatus = isMock ? mockResultStatus(attempts, model.session.length) : null;
     return `<section class="panel results" aria-labelledby="results-title">
       <h2 id="results-title" role="status" aria-live="polite" aria-describedby="results-headline" data-screen-focus tabindex="-1">${translate(locale(), 'screen.results')}</h2>
-      <p id="results-headline" class="headline">${translate(locale(), 'summary.unaidedPercent', { percent: summary.unaidedPercentage })}</p>
+      ${renderSessionIdentity()}
+      <p id="results-headline" class="headline">${isMock
+        ? translate(locale(), `mock.result.${mockStatus}`)
+        : translate(locale(), 'summary.unaidedPercent', { percent: summary.unaidedPercentage })}</p>
+      ${isMock ? `<p class="notice">${translate(locale(), 'mock.result.nonOfficial')}</p>` : ''}
       <div class="result-counts">
         ${countCard('unaided', summary.counts.unaided)}
         ${countCard('assisted', summary.counts.assisted)}
@@ -989,16 +1211,43 @@ async function bootstrap() {
         <div><dt>${translate(locale(), 'summary.replays')}</dt><dd>${summary.replayCount}</dd></div>
         <div><dt>${translate(locale(), 'summary.hints')}</dt><dd>${summary.hintCount}</dd></div>
       </dl>
-      <h3>${translate(locale(), 'summary.weak')}</h3>
+      ${isMock ? renderMockReview(attempts) : `<h3>${translate(locale(), 'summary.weak')}</h3>
       ${summary.weakActions.length === 0
         ? `<p>${translate(locale(), 'summary.noWeak')}</p>`
         : `<ul class="weak-list">${summary.weakActions.slice(0, 5).map(item => {
             const command = selectableCommands.find(candidate => candidate.actionId === item.actionId);
             const phrasing = command.phrasings[0];
             return `<li>${escapeHtml(locale() === 'es' ? phrasing.es : phrasing.en)} — ${Math.round(item.weightedScore * 100)}%</li>`;
-          }).join('')}</ul>`}
+          }).join('')}</ul>`}`}
       <button class="primary" type="button" data-action="setup">${translate(locale(), 'action.newSession')}</button>
       <button type="button" data-action="open-readiness">${translate(locale(), 'screen.readiness')}</button>
+    </section>`;
+  }
+
+  function renderMockReview(attempts) {
+    const attemptByCommand = new Map(attempts.map(attempt => [attempt.commandId, attempt]));
+    return `<section aria-labelledby="mock-review-title">
+      <h3 id="mock-review-title">${translate(locale(), 'mock.review.title')}</h3>
+      <ol class="mock-review-list">${model.session.map(command => {
+        const attempt = attemptByCommand.get(command.id);
+        if (!attempt) return '';
+        const phrasing = command.phrasings.find(candidate => candidate.id === attempt.phrasingId)
+          ?? resolvePhrasing(command, command.audioVariant);
+        return `<li class="mock-review-item ${attempt.outcome}">
+          <h4 lang="es">${escapeHtml(phrasing.es)}</h4>
+          ${locale() === 'en' ? `<p>${escapeHtml(phrasing.en)}</p>` : ''}
+          <p><strong>${translate(locale(), 'reveal.expected')}:</strong> ${escapeHtml(translate(locale(), `actionResult.${command.acceptedResult}`))}</p>
+          <p><strong>${translate(locale(), 'mock.review.outcome')}:</strong> ${translate(locale(), `result.${attempt.outcome}`)}</p>
+          <p><strong>${translate(locale(), 'mock.review.response')}:</strong> ${attempt.responseMs === null
+            ? '—'
+            : translate(locale(), 'summary.milliseconds', { milliseconds: Math.round(attempt.responseMs) })}</p>
+          <p><strong>${translate(locale(), 'summary.replays')}:</strong> ${attempt.replays ?? 0}</p>
+          ${attempt.outcome === 'incorrect' ? `<fieldset class="diagnosis">
+            <legend>${translate(locale(), 'miss.title')}</legend>
+            <div class="diagnosis-grid">${MISS_REASONS.map(reason => `<button type="button" data-mock-miss-reason="${reason}" data-attempt-id="${escapeHtml(attempt.id)}" aria-pressed="${attempt.missReason === reason}">${translate(locale(), `miss.${reason}`)}</button>`).join('')}</div>
+          </fieldset>` : ''}
+        </li>`;
+      }).join('')}</ol>
     </section>`;
   }
 
@@ -1023,6 +1272,17 @@ async function bootstrap() {
   }
 
   function bindSetupEvents() {
+    app.querySelectorAll('[data-action="select-experience-mode"]').forEach(control => {
+      control.addEventListener('change', () => updateSettings({ experienceMode: control.value }));
+    });
+    app.querySelectorAll('[data-action="select-examiner"]').forEach(control => {
+      control.addEventListener('change', () => updateSettings({ examinerChoice: control.value }));
+    });
+    app.querySelectorAll('[data-action="select-theme"]').forEach(control => {
+      control.addEventListener('change', () => updateSettings({
+        themeId: control.value === 'adaptive' ? null : control.value
+      }));
+    });
     app.querySelectorAll('[data-setting]').forEach(control => control.addEventListener('change', () => {
       const setting = control.dataset.setting;
       const value = setting === 'speed'
@@ -1130,12 +1390,12 @@ async function bootstrap() {
     app.querySelectorAll('[data-control-event="set-wheel"]').forEach(control => control.addEventListener('input', () => {
       dispatchSurfaceEvent({ type: 'set-wheel', degrees: Number(control.value) });
     }));
-    app.querySelector('.junction-motion-scene[data-junction-motion-running="true"]')
+    app.querySelector('.road-motion-scene[data-road-motion-running="true"]')
       ?.addEventListener('animationend', event => {
-        if (event.animationName !== 'junction-camera-push') return;
+        if (event.animationName !== 'road-camera-push') return;
         const before = model;
         model = reduceScreen(model, {
-          type: 'JUNCTION_APPROACH_ENDED',
+          type: 'ROAD_APPROACH_ENDED',
           completedAt: Date.now()
         });
         if (model !== before) render();
@@ -1166,7 +1426,31 @@ async function bootstrap() {
     });
   }
 
+  function bindMockTransitionEvents() {
+    window.setTimeout(() => {
+      if (model.screen !== 'mock-transition') return;
+      model = reduceScreen(model, { type: 'MOCK_CONTINUE' });
+      render();
+      if (model.screen === 'loading-audio') void playCurrentCommand();
+    }, 600);
+  }
+
   function bindResultsEvents() {
+    app.querySelectorAll('[data-mock-miss-reason]').forEach(button => {
+      button.addEventListener('click', () => {
+        const { attemptId } = button.dataset;
+        const reason = button.dataset.mockMissReason;
+        if (!MISS_REASONS.includes(reason)) return;
+        state = {
+          ...state,
+          attempts: state.attempts.map(attempt => attempt.id === attemptId
+            ? { ...attempt, missReason: reason }
+            : attempt)
+        };
+        saveState(window.localStorage, state);
+        render();
+      });
+    });
     app.querySelector('[data-action="open-readiness"]')?.addEventListener('click', openReadiness);
     app.querySelector('[data-action="setup"]').addEventListener('click', () => {
       model = reduceScreen(model, { type: 'GO_TO_SETUP' });
@@ -1258,11 +1542,14 @@ async function bootstrap() {
   function startSession(target = null, selectionPhase = state.settings.phase) {
     sessionAttemptIds = [];
     const practiceTarget = target ?? { kind: state.settings.mode === 'free' ? 'free' : 'recommended' };
-    const sessionSettings = { ...state.settings };
+    const sessionSettings = effectiveSessionSettings(state.settings);
+    const sessionDateParts = localDateParts(new Date());
+    const experience = resolveSessionExperience(sessionSettings, sessionDateParts);
     const selectedCommands = createSession(selectableCommands, {
       phase: selectionPhase,
       length: sessionSettings.length,
       mode: sessionSettings.mode,
+      themeId: sessionSettings.themeId,
       target: practiceTarget,
       attempts: state.attempts,
       lessonFlags: state.lessonFlags
@@ -1277,7 +1564,18 @@ async function bootstrap() {
     readinessFilters = { ...readinessFilters, noticeKey: '' };
     const session = selectedCommands.map(command => ({
       ...command,
-      audioVariant: selectPlaybackVariant(manifest, command, sessionSettings.speed, player.supportsFallback(), state.attempts)
+      audioVariant: selectPlaybackVariant(
+        manifest,
+        command,
+        sessionSettings.speed,
+        player.supportsFallback(),
+        state.attempts,
+        Math.random,
+        {
+          examinerChoice: experience.resolvedExaminerId ?? 'mixed',
+          dateParts: sessionDateParts
+        }
+      )
     }));
     const activeSession = createActiveSession({
       id: createAttemptId(),
@@ -1289,11 +1587,15 @@ async function bootstrap() {
         speed: command.audioVariant.speed
       })),
       settings: resumableSettings(sessionSettings),
-      target: practiceTarget
+      target: practiceTarget,
+      experience: experience
     });
     state = { ...state, activeSession };
     saveState(window.localStorage, state);
-    model = reduceScreen({ ...model, settings: sessionSettings }, { type: 'START_SESSION', session });
+    model = reduceScreen(
+      { ...model, settings: sessionSettings },
+      { type: 'START_SESSION', session, experience }
+    );
     render();
     void playCurrentCommand();
   }
@@ -1301,11 +1603,15 @@ async function bootstrap() {
   function resumeSession() {
     if (!resumableSession) return;
     const restoredSettings = { ...state.settings, ...resumableSession.settings };
-    state = { ...state, settings: restoredSettings };
     sessionAttemptIds = [...resumableSession.attemptIds];
     model = reduceScreen(
       { ...model, settings: restoredSettings },
-      { type: 'RESUME_SESSION', session: resumableSession.sessionItems, index: resumableSession.index }
+      {
+        type: 'RESUME_SESSION',
+        session: resumableSession.sessionItems,
+        index: resumableSession.index,
+        experience: resumableSession.experience
+      }
     );
     render();
     if (model.screen === 'loading-audio') void playCurrentCommand();
@@ -1328,7 +1634,7 @@ async function bootstrap() {
     let variant = model.variant ?? command.audioVariant;
     try {
       if (!variant) {
-        variant = selectPlaybackVariant(manifest, command, state.settings.speed, player.supportsFallback(), state.attempts);
+        variant = selectPlaybackVariant(manifest, command, model.settings.speed, player.supportsFallback(), state.attempts);
       }
       const phrasing = resolvePhrasing(command, variant);
       const result = await player.play(
@@ -1336,7 +1642,7 @@ async function bootstrap() {
         { text: phrasing.es, speed: variant.speed },
         {
           onStarted: () => {
-            if (operation !== audioOperation || !movingJunctionEnabled(command)) return;
+            if (operation !== audioOperation || !movingRoadEnabled(command)) return;
             const before = model;
             try {
               model = reduceScreen(model, {
@@ -1401,7 +1707,7 @@ async function bootstrap() {
     model = reduceScreen(model, event);
     if (model === before) return;
     const cue = feedbackCueForTransition(before, model, event);
-    if (model.screen !== 'reveal') {
+    if (!['reveal', 'mock-transition'].includes(model.screen)) {
       render();
       playFeedbackCue(cue);
       return;
@@ -1425,21 +1731,21 @@ async function bootstrap() {
       textShown: model.textShown,
       responseMs: model.responseMs,
       replays: model.replays,
-      timed: state.settings.timed,
+      timed: model.settings.timed,
       timeout: model.timeout
     });
     if (result.scored) {
-      const activeSession = persistedActiveSessionAfterAttempt(state.activeSession, {
-        nextIndex: before.index + 1,
-        attemptId: result.attempt.id
-      });
+      const progress = { nextIndex: before.index + 1, attemptId: result.attempt.id };
+      const activeSession = before.experience?.revealPolicy === 'session-end'
+        ? advanceActiveSession(state.activeSession, progress)
+        : persistedActiveSessionAfterAttempt(state.activeSession, progress);
       state = { ...result.state, activeSession };
       currentAttemptId = result.attempt.id;
       sessionAttemptIds.push(result.attempt.id);
       saveState(window.localStorage, state);
     }
     render();
-    playFeedbackCue(cue);
+    if (model.screen !== 'mock-transition') playFeedbackCue(cue);
   }
 
   function playFeedbackCue(cue) {
@@ -1462,7 +1768,7 @@ async function bootstrap() {
   function startTimer() {
     stopTimer();
     if (model.initialAudioPending) return;
-    if (!state.settings.timed || model.screen !== 'prompt' || !model.activeSurfaceModel) return;
+    if (!model.settings.timed || model.screen !== 'prompt' || !model.activeSurfaceModel) return;
     timerDeadline = Date.now() + TRIAL_TIME_MS;
     timerTickId = window.setInterval(refreshTimerText, 200);
     timerId = window.setTimeout(() => {

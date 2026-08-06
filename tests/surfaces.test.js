@@ -189,13 +189,15 @@ test('every active catalog surface generates, reduces, and renders in both local
   }
 });
 
-test('surface renderer forwards a junction motion view to the spatial scene', () => {
+test('surface renderer forwards a generic road motion view to the spatial scene', () => {
   const command = commands.find(candidate => candidate.id === 'c-der');
   const model = generateSurface(command, 42);
   const motion = Object.freeze({
     phase: 'waiting',
     progress: 0.5,
     scale: 1.17,
+    endScale: 1.34,
+    origin: Object.freeze({ x: 50, y: 82 }),
     locked: false,
     moving: false,
     elapsedMs: 3_000,
@@ -203,8 +205,8 @@ test('surface renderer forwards a junction motion view to the spatial scene', ()
   });
 
   const markup = renderSurfaceModel(model, {}, 'en', { motion });
-  assert.match(markup, /data-junction-motion="waiting"/);
-  assert.match(markup, /--junction-motion-scale:1\.17/);
+  assert.match(markup, /data-road-motion="waiting"/);
+  assert.match(markup, /--road-motion-scale:1\.17/);
 });
 
 function completionEvents(model, correctTarget) {

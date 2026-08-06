@@ -36,9 +36,19 @@ async function gitReleaseFiles() {
   const { stdout } = await execFileAsync('git', [
     'ls-files', '--cached', '--others', '--exclude-standard', '-z'
   ], { cwd: ROOT, encoding: 'buffer' });
-  return stdout.toString('utf8').split('\0').filter(Boolean)
+  const paths = stdout.toString('utf8').split('\0').filter(Boolean)
     .filter(path => !EXCLUDED_RELEASE_PREFIXES.some(prefix => path.startsWith(prefix)))
     .map(path => resolve(ROOT, path));
+  const existing = [];
+  for (const path of paths) {
+    try {
+      await stat(path);
+      existing.push(path);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+  }
+  return existing;
 }
 
 async function regularFiles(directory) {
@@ -176,7 +186,7 @@ test('published audio manifest is an integrity-valid subset of catalog phrasings
   ]));
   const voiceCount = new Set(manifest.map(variant => variant.voiceId)).size;
   const speedCount = new Set(manifest.map(variant => variant.speed)).size;
-  assert.equal(voiceCount, 2);
+  assert.equal(voiceCount, 5);
   assert.equal(speedCount, 3);
   assert.ok(manifest.length <= phrasingCount * voiceCount * speedCount);
   assert.equal(new Set(manifest.map(variant => variant.id)).size, manifest.length);
@@ -196,7 +206,8 @@ test('expanded recorded corpus is complete after audio generation', async t => {
     readFile(resolve(ROOT, 'data/audio-manifest.json'), 'utf8').then(JSON.parse),
     readFile(resolve(ROOT, 'data/commands.json'), 'utf8').then(JSON.parse)
   ]);
-  const expected = catalog.reduce((total, command) => total + command.phrasings.length, 0) * 2 * 3;
+  const voiceCount = new Set(manifest.map(variant => variant.voiceId)).size;
+  const expected = catalog.reduce((total, command) => total + command.phrasings.length, 0) * voiceCount * 3;
   const missing = expected - manifest.length;
   if (missing > 0) {
     t.skip(`${missing} recorded variants pending`);
@@ -358,7 +369,7 @@ test('Release B documentation matches the generated catalog and records local re
   const variantCount = manifest.length;
 
   for (const [name, text] of [['README', readme], ['design', design], ['roadmap', roadmap]]) {
-    const normalized = text.replace(/\s+/g, ' ');
+    const normalized = text.replace(/,/g, '').replace(/\s+/g, ' ');
     assert.match(normalized, new RegExp(`${commandCount} commands?.{0,120}${phrasingCount}.{0,120}phrasings?`, 'i'), `${name} must use generated catalog counts`);
     assert.match(normalized, new RegExp(`${variantCount}.{0,120}(?:recorded|audio|variants?|corpus)`, 'i'), `${name} must use the generated audio-manifest count`);
   }
@@ -371,10 +382,10 @@ test('Release B documentation matches the generated catalog and records local re
     assert.match(normalized, /no composite (?:readiness )?(?:percentage|score)/i, `${name} must reject a composite score`);
   }
 
-  assert.match(design, /schema 3/i);
+  assert.match(design, /schema 4/i);
   assert.match(design, /less-exposed[\s\S]*(?:phrasing|voice)/i);
   assert.match(changelog, /Release B — readiness and targeted practice/i);
-  assert.match(storageSource, /SCHEMA_VERSION\s*=\s*3/);
+  assert.match(storageSource, /SCHEMA_VERSION\s*=\s*4/);
   assert.match(storageSource, /mode:\s*state\.settings\?\.mode === 'free' \? 'free' : 'recommended'/);
 });
 
@@ -410,41 +421,34 @@ test('deferred phrasing backlog remains discoverable and response-safe', async (
   assert.match(backlog, /opening demo[\s\S]*levels recital/i);
 });
 
-test('active documentation records the 76-phrasing catalog and audio expansion lifecycle', async () => {
-  const [readme, design, changelog, generationPlan, manifest] = await Promise.all([
+test('active documentation records the complete five-voice audio corpus', async () => {
+  const [readme, design, changelog, experimentPlan, manifest] = await Promise.all([
     readFile(resolve(ROOT, 'README.md'), 'utf8'),
     readFile(resolve(ROOT, 'docs/design.md'), 'utf8'),
     readFile(resolve(ROOT, 'CHANGELOG.md'), 'utf8'),
-    readFile(resolve(ROOT, 'docs/superpowers/plans/2026-07-20-command-and-phrasing-expansion.md'), 'utf8'),
+    readFile(resolve(ROOT, 'references/elevenlabs-expiring-credit-plan.md'), 'utf8'),
     readFile(resolve(ROOT, 'data/audio-manifest.json'), 'utf8').then(JSON.parse)
   ]);
 
-  assert.ok(
-    manifest.length === 324 || manifest.length === 456,
-    `published manifest must be either the verified 324-variant baseline or complete 456-variant expansion; got ${manifest.length}`
-  );
+  assert.equal(manifest.length, 1140);
   for (const [name, text] of [['README', readme], ['design', design]]) {
     const normalized = text.replace(/\s+/g, ' ');
     assert.match(normalized, /36 commands?.{0,120}76.{0,120}phrasings?/i, `${name} must state the expanded catalog size`);
-    assert.match(normalized, /324.{0,120}(?:published|recorded|existing|reusable)/i, `${name} must distinguish the published corpus`);
-    if (manifest.length === 324) {
-      assert.match(normalized, /132.{0,120}(?:pending|missing|generate)/i, `${name} must state the generation backlog`);
-    } else {
-      assert.match(normalized, /(?:132.{0,120}(?:added|generated|published)|(?:added|generated|published).{0,120}132)/i, `${name} must state the completed generation increment`);
-    }
-    assert.match(normalized, /456.{0,120}(?:target|planned|complete|variants?)/i, `${name} must state the expanded target`);
-    if (manifest.length === 456) {
-      assert.match(normalized, /(?:complete.{0,120}published.{0,120}456|456.{0,120}(?:published|recorded).{0,120}(?:complete|integrity)|(?:published|recorded).{0,120}456.{0,120}(?:complete|integrity))/i, `${name} must state that the complete expanded corpus is published`);
-    }
+    assert.match(normalized, /(?:five|5) voices/i, `${name} must state the voice count`);
+    assert.match(normalized, /(?:456.{0,120}(?:reus|previous|existing)|(?:reus|previous|existing).{0,120}456)/i, `${name} must distinguish the reused corpus`);
+    assert.match(normalized, /(?:684.{0,120}(?:added|generated|published)|(?:added|generated|published).{0,120}684)/i, `${name} must state the generation increment`);
+    assert.match(normalized, /(?:complete.{0,120}published.{0,120}(?:1,140|1140)|(?:1,140|1140).{0,120}(?:published|recorded).{0,120}(?:complete|integrity)|(?:published|recorded).{0,120}(?:1,140|1140).{0,120}(?:complete|integrity))/i, `${name} must state that the complete five-voice corpus is published`);
   }
   assert.match(changelog, /22[^\n]*(?:phrasing|variant)/i);
   assert.match(changelog, /deferred[^\n]*B list/i);
-  assert.match(generationPlan, /456[^\n]*variant/i);
-  assert.match(generationPlan, /(?:324[\s\S]{0,80}reus|reus[\s\S]{0,80}324)/i);
-  assert.match(generationPlan, /132[^\n]*(?:missing|pending|generate)/i);
-  assert.match(generationPlan, /ELEVENLABS_API_KEY/);
-  assert.match(generationPlan, /generate-audio\.mjs[\s\S]*CwhRBWXzGAHq8TQ4Fs17[\s\S]*EXAVITQu4vr4xnSDxMaL/);
-  assert.match(generationPlan, /do not[^\n]*fabricate[^\n]*manifest/i);
+  assert.match(changelog, /(?:five|5)[^\n]*voices/i);
+  assert.match(changelog, /(?:684[^\n]*(?:added|generated|published)|(?:added|generated|published)[^\n]*684)/i);
+  assert.match(experimentPlan, /1,140[^\n]*(?:variant|MP3|clip)/i);
+  assert.match(experimentPlan, /18,327[^\n]*credits/i);
+  assert.match(experimentPlan, /must not be added[\s\S]{0,100}production audio manifest/i);
+  for (const voiceId of ['CwhRBWXzGAHq8TQ4Fs17', 'EXAVITQu4vr4xnSDxMaL', 'JBFqnCBsd6RMkjVDRZzb', 'XrExE9yKIg1WjnnlVkGX', 'cjVigY5qzO86Huf0OWal']) {
+    assert.match(readme, new RegExp(voiceId));
+  }
 });
 
 test('release documentation defines recorded-first browser Spanish speech fallback', async () => {
@@ -465,16 +469,17 @@ test('release documentation defines recorded-first browser Spanish speech fallba
   assert.match(design, /both.*(?:recorded|MP3).*browser.*fail.*unscored|unscored.*both.*(?:recorded|MP3).*browser.*fail/is);
 });
 
-test('release documentation describes optional moving junctions without claiming device acceptance', async () => {
+test('release documentation describes expanded optional road motion without claiming device acceptance', async () => {
   const [readme, changelog] = await Promise.all([
     readFile(resolve(ROOT, 'README.md'), 'utf8'),
     readFile(resolve(ROOT, 'CHANGELOG.md'), 'utf8')
   ]);
   const normalizedReadme = readme.replace(/\s+/g, ' ');
 
-  assert.match(normalizedReadme, /four-way-junction.*six-second moving-road approach/i);
+  assert.match(normalizedReadme, /junction.*roundabout.*U-turn.*overtaking.*parking.*stopping.*six-second moving-road approach/i);
   assert.match(normalizedReadme, /Road movement defaults on.*Practice setup/i);
-  assert.match(normalizedReadme, /reduced motion.*static junction/i);
-  assert.match(changelog, /Moving junction experiment — in progress/);
-  assert.doesNotMatch(changelog, /moving junction[\s\S]{0,500}physical iPad acceptance/i);
+  assert.match(normalizedReadme, /reduced motion.*static exercise/i);
+  assert.match(changelog, /Expanded road-motion experiment — in progress/);
+  assert.match(changelog, /every selectable target remains fully visible/i);
+  assert.doesNotMatch(changelog, /expanded road-motion[\s\S]{0,700}physical iPad acceptance/i);
 });

@@ -1,4 +1,5 @@
 import { selectPracticeCommands, SESSION_LENGTHS } from './practice-selection.js';
+import { eligibleCommandsForTheme } from './session-themes.js';
 
 export const OUTCOME_WEIGHTS = Object.freeze({ unaided: 1, assisted: 0.5, incorrect: 0 });
 export { SESSION_LENGTHS };
@@ -25,12 +26,13 @@ export function classifyOutcome({ correct, textShown, timeout }) {
 
 /**
  * @param {Array<{ phase: string }>} commands
- * @param {{ phase: SessionPhase, length: SessionLength, mode?: SessionMode, target?: object, attempts?: Array<object>, lessonFlags?: Array<object>, now?: number, rng?: () => number }} settings
+ * @param {{ phase: SessionPhase, length: SessionLength, mode?: SessionMode, themeId?: string | null, target?: object, attempts?: Array<object>, lessonFlags?: Array<object>, now?: number, rng?: () => number }} settings
  */
 export function createSession(commands, {
   phase,
   length,
   mode = 'recommended',
+  themeId = null,
   target,
   attempts = [],
   lessonFlags = [],
@@ -38,7 +40,12 @@ export function createSession(commands, {
   rng = Math.random
 }) {
   if (!['free', 'recommended'].includes(mode)) throw new Error(`Unknown session mode: ${mode}`);
-  return selectPracticeCommands(commands, {
+  const eligibleCommands = themeId === null ? commands : eligibleCommandsForTheme(commands, themeId);
+  if (eligibleCommands.length === 0) return Object.freeze([]);
+  if (target?.kind === 'command' && !eligibleCommands.some(command => command.id === target.commandId)) {
+    return Object.freeze([]);
+  }
+  return selectPracticeCommands(eligibleCommands, {
     phase,
     length,
     target: target ?? { kind: mode === 'free' ? 'free' : 'recommended' },

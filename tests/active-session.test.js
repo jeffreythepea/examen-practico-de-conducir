@@ -4,8 +4,10 @@ import {
   advanceActiveSession,
   createActiveSession,
   discardActiveSession,
-  resolveActiveSession
+  resolveActiveSession,
+  validateStoredActiveSession
 } from '../src/active-session.js';
+import { EXAMINERS } from '../src/examiners.js';
 
 const commands = [{
   id: 'c-der', actionId: 'turn-right', phase: 'driving', surfaceId: 'junction-v2',
@@ -46,12 +48,18 @@ function session(overrides = {}) {
 
 test('active session serializes stable command and audio variant IDs but no live surface, timer, DOM, or audio objects', () => {
   const value = session();
-  assert.deepEqual(Object.keys(value).sort(), ['attemptIds', 'id', 'items', 'nextIndex', 'settings', 'startedAt', 'target', 'version']);
+  assert.deepEqual(Object.keys(value).sort(), ['attemptIds', 'experience', 'id', 'items', 'nextIndex', 'settings', 'startedAt', 'target', 'version']);
+  assert.equal(value.version, 2);
+  assert.deepEqual(value.experience, {
+    modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
+    themeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+  });
   assert.deepEqual(Object.keys(value.items[0]).sort(), ['commandId', 'phrasingId', 'speed', 'voiceId']);
   assert.equal(JSON.stringify(value).includes('activeSurfaceModel'), false);
   assert.equal(Object.isFrozen(value), true);
   assert.equal(Object.isFrozen(value.items), true);
   assert.equal(Object.isFrozen(value.items[0]), true);
+  assert.equal(Object.isFrozen(value.experience), true);
 });
 
 test('advancing appends one attempt and moves to the next unscored command', () => {
@@ -78,9 +86,10 @@ test('resolution restores the exact selected phrasing, voice, and speed', () => 
   assert.deepEqual(resolved.sessionItems[1].audioVariant, audioManifest[1]);
   assert.deepEqual(resolved.settings, settings);
   assert.deepEqual(resolved.target, { kind: 'recommended' });
+  assert.equal(resolved.experience.modeId, 'practice');
 });
 
-test('active sessions validate supported targets while accepting version-1 sessions without one', () => {
+test('active sessions validate supported targets while accepting sessions without one', () => {
   const legacy = session({ target: undefined });
   assert.equal(Object.hasOwn(legacy, 'target'), false);
 
@@ -95,7 +104,7 @@ test('active sessions validate supported targets while accepting version-1 sessi
   assert.throws(() => session({ target: { kind: 'free', commandId: 'c-der' } }), /activeSession\.target/);
 });
 
-test('version-1 active sessions default missing road movement on and retain explicit false', () => {
+test('active sessions default missing road movement on and retain explicit false', () => {
   const legacySettings = { ...settings };
   delete legacySettings.roadMovement;
   assert.equal(session({ settings: legacySettings }).settings.roadMovement, true);
@@ -104,6 +113,100 @@ test('version-1 active sessions default missing road movement on and retain expl
     () => session({ settings: { ...settings, roadMovement: 'on' } }),
     /activeSession\.settings\.roadMovement/
   );
+});
+
+test('version-1 sessions normalize immutably to the compatibility Practice and Mixed snapshot', () => {
+  const current = session();
+  const legacy = structuredClone(current);
+  legacy.version = 1;
+  delete legacy.experience;
+  const before = structuredClone(legacy);
+
+  const migrated = validateStoredActiveSession(legacy);
+  assert.equal(migrated.version, 2);
+  assert.deepEqual(migrated.experience, {
+    modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
+    themeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+  });
+  assert.deepEqual(legacy, before);
+  assert.deepEqual(migrated.items, current.items);
+  assert.deepEqual(migrated.settings, current.settings);
+});
+
+test('experience snapshots reject unknown or preset-inconsistent values', () => {
+  const compatibility = session().experience;
+  for (const experience of [
+    { ...compatibility, modeId: 'unknown' },
+    { ...compatibility, examinerChoice: 'unknown' },
+    { ...compatibility, themeId: 'unknown' },
+    { ...compatibility, replayPolicy: 'none' },
+    { ...compatibility, revealPolicy: 'session-end' },
+    { ...compatibility, simulated: true },
+    { ...compatibility, resolvedExaminerId: 'roger' },
+    { ...compatibility, examinerChoice: 'today' },
+    { ...compatibility, examinerChoice: 'roger', resolvedExaminerId: 'sarah' }
+  ]) assert.throws(() => session({ experience }), /activeSession\.experience/);
+
+  const mockExperience = {
+    modeId: 'mock', examinerChoice: 'mixed', resolvedExaminerId: null,
+    themeId: null, replayPolicy: 'none', revealPolicy: 'session-end', simulated: true
+  };
+  assert.throws(() => session({ experience: mockExperience }), /settings\.speed for experience/);
+  assert.throws(() => session({
+    experience: mockExperience,
+    settings: { ...settings, speed: 1, hintPolicy: 'available', timed: true }
+  }), /settings\.hintPolicy for experience/);
+  assert.throws(() => session({
+    experience: mockExperience,
+    settings: { ...settings, speed: 1, hintPolicy: 'unavailable', timed: false }
+  }), /settings\.timed for experience/);
+});
+
+test('Today and fixed examiner snapshots enforce one resolved examiner voice while Mixed preserves existing voices', () => {
+  const roger = EXAMINERS.find(({ id }) => id === 'roger');
+  const fixedExperience = {
+    modeId: 'practice', examinerChoice: 'roger', resolvedExaminerId: 'roger',
+    themeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+  };
+  const fixedItems = session().items.map(item => ({ ...item, voiceId: roger.voiceId }));
+  assert.doesNotThrow(() => session({ items: fixedItems, experience: fixedExperience }));
+  assert.doesNotThrow(() => session({
+    items: fixedItems,
+    experience: { ...fixedExperience, examinerChoice: 'today' }
+  }));
+  assert.throws(() => session({ experience: fixedExperience }), /voiceId for examiner/);
+  assert.doesNotThrow(() => session());
+});
+
+test('resolution rejects commands outside the snapshotted theme', () => {
+  const experience = {
+    modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
+    themeId: 'precheck-inspection', replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+  };
+  assert.throws(() => resolveActiveSession(session({ experience }), { commands, audioManifest }), /outside theme/i);
+  const precheckOnly = session({ items: [session().items[1]], experience });
+  assert.doesNotThrow(() => resolveActiveSession(precheckOnly, { commands, audioManifest }));
+});
+
+test('completed Mock snapshots remain valid and preserve session-end policy', () => {
+  const experience = {
+    modeId: 'mock', examinerChoice: 'mixed', resolvedExaminerId: null,
+    themeId: 'full-mock', replayPolicy: 'none', revealPolicy: 'session-end', simulated: true
+  };
+  const completed = session({
+    nextIndex: 2,
+    attemptIds: ['attempt-1', 'attempt-2'],
+    experience,
+    settings: { ...settings, speed: 1, hintPolicy: 'unavailable', timed: true }
+  });
+  assert.equal(completed.nextIndex, completed.items.length);
+  assert.deepEqual(validateStoredActiveSession(completed).experience, experience);
+});
+
+test('malformed session containers fail through active-session validation', () => {
+  for (const value of [null, undefined, [], 'session']) {
+    assert.throws(() => validateStoredActiveSession(value), /activeSession|cloneable/);
+  }
 });
 
 test('resolution accepts a completed session whose index equals command count', () => {

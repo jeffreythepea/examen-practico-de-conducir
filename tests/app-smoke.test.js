@@ -92,27 +92,60 @@ test('app wires best-effort feedback cues without coupling them to command audio
   assert.match(source, /void feedbackPlayer\.play/);
 });
 
+test('Mock hides replay and answer feedback during the drive and advances through a neutral frame', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /model\.experience\?\.replayPolicy !== 'none'/);
+  assert.match(source, /screen:\s*model\.experience\?\.revealPolicy === 'session-end'\s*\? 'mock-transition'/);
+  assert.match(source, /data-screen-focus[^>]*>\$\{translate\(locale\(\), 'screen\.mockTransition'\)\}/);
+  assert.match(source, /type:\s*'MOCK_CONTINUE'/);
+  assert.match(source, /model\.screen === 'mock-transition'/);
+});
+
+test('completed Mock results disclose the non-official rule and exact deferred command evidence', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /mockResultStatus\(attempts, model\.session\.length\)/);
+  assert.match(source, /class="mock-review-list"/);
+  assert.match(source, /data-mock-miss-reason/);
+  assert.match(source, /const \{ attemptId \} = button\.dataset/);
+  assert.match(source, /mock\.result\.nonOfficial/);
+});
+
+test('prompts, neutral Mock transitions, and results show compact localized session identity', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.match(source, /function renderSessionIdentity\(\)/);
+  assert.ok((source.match(/\$\{renderSessionIdentity\(\)\}/g) ?? []).length >= 3);
+  assert.match(source, /examiner\.mixed\.title/);
+  assert.match(source, /class="examiner-token-stack"/);
+  assert.match(css, /\.session-identity/);
+  assert.match(css, /\.examiner-token/);
+  assert.match(css, /@media \(orientation: landscape\) and \(min-width: 900px\)[\s\S]*?\.session-identity/);
+});
+
 test('app enables incomplete static-audio sessions only through supported browser speech', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
-  assert.match(source, /hasAudio\(command, state\.settings\.speed\)\s*\|\|\s*player\.supportsFallback\(\)/);
-  assert.match(source, /selectPlaybackVariant\(manifest, command, state\.settings\.speed, player\.supportsFallback\(\), state\.attempts\)/);
+  assert.match(source, /sessionStartEligibility\([\s\S]*?player\.supportsFallback\(\)/);
+  assert.match(source, /selectPlaybackVariant\([\s\S]*?examinerChoice:\s*experience\.resolvedExaminerId \?\? 'mixed'/);
   assert.match(source, /player\.play\([\s\S]*?variant,[\s\S]*?\{ text: phrasing\.es, speed: variant\.speed \}/);
 });
 
 test('browser controller coordinates moving junction audio, rendering, animation end, and timer lock', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
-  assert.match(source, /junctionMotionView\(model\.junctionMotion, Date\.now\(\)\)/);
+  assert.match(source, /roadMotionView\(model\.roadMotion, Date\.now\(\)\)/);
   assert.match(source, /matchMedia\?\.\('\(prefers-reduced-motion: reduce\)'\)/);
   assert.match(source, /onStarted/);
   assert.match(source, /type:\s*'AUDIO_STARTED'/);
-  assert.match(source, /type:\s*'JUNCTION_APPROACH_ENDED'/);
+  assert.match(source, /type:\s*'ROAD_APPROACH_ENDED'/);
   assert.match(source, /initialAudioPending/);
   assert.match(source, /status\.audioPlaying/);
   assert.match(source, /if \(model\.initialAudioPending\) return;/);
   assert.match(source, /renderSurfaceModel\([\s\S]*?motion[\s\S]*?renderSurfaceModel\([\s\S]*?motion/);
-  assert.match(source, /junction-camera-push/);
+  assert.match(source, /road-camera-push/);
 });
 
 test('daily-practice controls and SVG response targets preserve 44px touch minimums', async () => {
@@ -163,6 +196,20 @@ test('setup hides data-management actions behind a collapsed-by-default Settings
   assert.match(detailsMarkup, /class="data-controls" role="group" aria-label="\$\{translate\(locale\(\), 'data\.management'\)\}"/);
   assert.doesNotMatch(detailsMarkup, /importError/, 'an import failure must remain visible after the disclosure collapses on rerender');
   assert.match(source, /<\/details>\s*\$\{importError \? `<p class="notice error" role="alert">\$\{importError\}<\/p>` : ''\}/);
+});
+
+test('production setup renders and binds the semantic experience, examiner, and theme choices', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /import \{ renderSoloSetupView \} from '\.\/solo-setup-view\.js'/);
+  assert.match(source, /renderSoloSetupView\(\{[\s\S]*?selectedPresetId:\s*state\.settings\.experienceMode/);
+  assert.match(source, /selectedExaminerChoiceId:\s*state\.settings\.examinerChoice/);
+  assert.match(source, /selectedThemeId:\s*state\.settings\.themeId/);
+  assert.match(source, /data-action="select-experience-mode"/);
+  assert.match(source, /data-action="select-examiner"/);
+  assert.match(source, /data-action="select-theme"/);
+  assert.match(source, /class="advanced-practice-disclosure"/);
+  assert.match(source, /sessionStartEligibility\(/);
 });
 
 test('setup exposes bilingual offline status and download actions without blocking Start', async () => {
@@ -231,16 +278,19 @@ test('setup exposes only recommended and free modes and playback receives prior 
   assert.match(source, /\['recommended',\s*'mode\.recommended'\]/);
   assert.match(source, /\['free',\s*'mode\.free'\]/);
   assert.doesNotMatch(source, /\['weakest-first',\s*'mode\.weak'\]/);
-  assert.match(source, /selectPlaybackVariant\(manifest, command, state\.settings\.speed, player\.supportsFallback\(\), state\.attempts\)/);
+  assert.match(source, /selectPlaybackVariant\([\s\S]*?state\.attempts[\s\S]*?examinerChoice:\s*experience\.resolvedExaminerId \?\? 'mixed'/);
 });
 
 test('targeted practice filters selection without rewriting saved setup preferences', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
   assert.match(source, /function startSession\(target = null, selectionPhase = state\.settings\.phase\)/);
-  assert.match(source, /const sessionSettings = \{ \.\.\.state\.settings \};/);
+  assert.match(source, /const sessionSettings = effectiveSessionSettings\(state\.settings\);/);
   assert.match(source, /createSession\(selectableCommands, \{[\s\S]*?phase: selectionPhase/);
+  assert.match(source, /themeId:\s*sessionSettings\.themeId/);
+  assert.match(source, /experience:\s*experience/);
   assert.doesNotMatch(source, /state = \{ \.\.\.state, settings: sessionSettings, activeSession \}/);
+  assert.doesNotMatch(source, /state = \{ \.\.\.state, settings: restoredSettings \}/);
 });
 
 test('settings disclosure summary receives a 44px-capable, keyboard-focusable layout', async () => {

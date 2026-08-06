@@ -9,6 +9,9 @@ import {
   migrateState,
   saveState
 } from '../src/storage.js';
+import { EXAMINER_CHOICE_IDS } from '../src/examiners.js';
+import { SESSION_PRESET_IDS } from '../src/session-presets.js';
+import { THEME_IDS } from '../src/session-themes.js';
 
 class MemoryStorage {
   constructor(value = null) {
@@ -52,12 +55,26 @@ function completedAttempt(overrides = {}) {
   };
 }
 
-test('creates fresh version 3 defaults with recommended practice and an empty lesson log', () => {
+function schema3State(overrides = {}) {
+  const base = defaultState();
+  const settings = { ...base.settings };
+  delete settings.experienceMode;
+  delete settings.examinerChoice;
+  delete settings.themeId;
+  return {
+    ...base,
+    ...overrides,
+    schemaVersion: 3,
+    settings: { ...settings, ...(overrides.settings ?? {}) }
+  };
+}
+
+test('creates fresh version 4 defaults with recommended practice and an empty lesson log', () => {
   const first = defaultState();
   const second = defaultState();
 
   assert.deepEqual(first, {
-    schemaVersion: 3,
+    schemaVersion: 4,
     settings: {
       locale: 'en',
       phase: 'mixed',
@@ -67,7 +84,10 @@ test('creates fresh version 3 defaults with recommended practice and an empty le
       feedbackSounds: true,
       roadMovement: true,
       length: 'medium',
-      mode: 'recommended'
+      mode: 'recommended',
+      experienceMode: 'practice',
+      examinerChoice: 'mixed',
+      themeId: null
     },
     attempts: [],
     actionProgress: {},
@@ -78,18 +98,25 @@ test('creates fresh version 3 defaults with recommended practice and an empty le
   assert.notEqual(first.settings, second.settings);
 });
 
-test('schema 1 save migrates sequentially to schema 3 with activeSession null', () => {
+test('schema 1 save migrates sequentially to schema 4 with compatibility experience defaults', () => {
+  const settings = { ...defaultState().settings };
+  delete settings.experienceMode;
+  delete settings.examinerChoice;
+  delete settings.themeId;
   const legacy = {
     schemaVersion: 1,
-    settings: { ...defaultState().settings },
+    settings,
     attempts: [completedAttempt()],
     actionProgress: { 'turn-right': { consecutiveUnaided: 1, nextDueAt: 123 } },
     futureTopLevel: { keep: true }
   };
   const migrated = migrateState(legacy);
-  assert.equal(migrated.schemaVersion, 3);
+  assert.equal(migrated.schemaVersion, 4);
   assert.equal(migrated.activeSession, null);
   assert.equal(migrated.settings.mode, 'recommended');
+  assert.equal(migrated.settings.experienceMode, 'practice');
+  assert.equal(migrated.settings.examinerChoice, 'mixed');
+  assert.equal(migrated.settings.themeId, null);
   assert.deepEqual(migrated.lessonFlags, []);
   assert.deepEqual(migrated.attempts, legacy.attempts);
   assert.deepEqual(migrated.futureTopLevel, { keep: true });
@@ -111,19 +138,104 @@ test('schema 2 migration normalizes legacy modes and preserves a valid active se
     }
   };
   const state = {
-    ...defaultState(), schemaVersion: 2,
-    settings: { ...defaultState().settings, mode: 'weakest-first' },
+    ...schema3State(), schemaVersion: 2,
+    settings: { ...schema3State().settings, mode: 'weakest-first' },
     activeSession
   };
   delete state.lessonFlags;
   const migrated = importState(JSON.stringify(state));
-  assert.equal(migrated.schemaVersion, 3);
+  assert.equal(migrated.schemaVersion, 4);
   assert.equal(migrated.settings.mode, 'recommended');
+  assert.equal(migrated.settings.experienceMode, 'practice');
+  assert.equal(migrated.settings.examinerChoice, 'mixed');
+  assert.equal(migrated.settings.themeId, null);
   assert.equal(migrated.activeSession.settings.mode, 'recommended');
   assert.deepEqual(migrated.lessonFlags, []);
 });
 
-test('schema 3 rejects active-session attempts that are absent from completed history', () => {
+test('schema 3 migration is additive, immutable, and idempotent', () => {
+  const activeSession = {
+    version: 1,
+    id: 'session-compatibility',
+    startedAt: 123,
+    items: [{ commandId: 'c-der', phrasingId: 'c-der-canonical', voiceId: 'voice-es', speed: 0.9 }],
+    nextIndex: 0,
+    attemptIds: [],
+    settings: {
+      phase: 'mixed', speed: 0.9, hintPolicy: 'available', timed: false,
+      feedbackSounds: true, roadMovement: true, length: 'medium', mode: 'recommended'
+    }
+  };
+  const legacy = schema3State({
+    attempts: [completedAttempt()],
+    actionProgress: { 'turn-right': { consecutiveUnaided: 1, nextDueAt: 123 } },
+    lessonFlags: [{
+      id: 'flag-1', commandId: 'c-der', category: 'wording', note: 'Confirm wording.',
+      createdAt: 100, updatedAt: 100, status: 'open'
+    }],
+    activeSession
+  });
+  const before = structuredClone(legacy);
+
+  const migrated = migrateState(legacy);
+  const migratedAgain = migrateState(migrated);
+
+  assert.equal(migrated.schemaVersion, 4);
+  assert.deepEqual(migrated.settings, {
+    ...before.settings,
+    experienceMode: 'practice',
+    examinerChoice: 'mixed',
+    themeId: null
+  });
+  assert.deepEqual(migrated.attempts, before.attempts);
+  assert.deepEqual(migrated.actionProgress, before.actionProgress);
+  assert.deepEqual(migrated.lessonFlags, before.lessonFlags);
+  assert.deepEqual(migrated.activeSession, {
+    ...before.activeSession,
+    version: 2,
+    experience: {
+      modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
+      themeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+    }
+  });
+  assert.deepEqual(legacy, before);
+  assert.deepEqual(migratedAgain, migrated);
+  assert.notEqual(migratedAgain, migrated);
+  assert.notEqual(migratedAgain.settings, migrated.settings);
+});
+
+test('schema 4 accepts only stable experience, examiner, and nullable theme IDs', () => {
+  for (const experienceMode of SESSION_PRESET_IDS) {
+    assert.equal(importState(JSON.stringify({
+      ...defaultState(), settings: { ...defaultState().settings, experienceMode }
+    })).settings.experienceMode, experienceMode);
+  }
+  for (const examinerChoice of EXAMINER_CHOICE_IDS) {
+    assert.equal(importState(JSON.stringify({
+      ...defaultState(), settings: { ...defaultState().settings, examinerChoice }
+    })).settings.examinerChoice, examinerChoice);
+  }
+  for (const themeId of [null, ...THEME_IDS]) {
+    assert.equal(importState(JSON.stringify({
+      ...defaultState(), settings: { ...defaultState().settings, themeId }
+    })).settings.themeId, themeId);
+  }
+
+  for (const [field, value] of [
+    ['experienceMode', 'arcade'],
+    ['examinerChoice', 'mystery'],
+    ['themeId', false]
+  ]) {
+    assert.throws(
+      () => importState(JSON.stringify({
+        ...defaultState(), settings: { ...defaultState().settings, [field]: value }
+      })),
+      new RegExp(`settings\\.${field}`)
+    );
+  }
+});
+
+test('schema 4 rejects active-session attempts that are absent from completed history', () => {
   const activeSession = {
     version: 1, id: 'session-1', startedAt: 123,
     items: [{ commandId: 'c-der', phrasingId: 'c-der-canonical', voiceId: 'voice-es', speed: 0.9 }],
@@ -155,9 +267,9 @@ test('migration validates atomically and does not write an invalid candidate', (
 });
 
 test('future schema remains rejected without mutation', () => {
-  const future = { ...defaultState(), schemaVersion: 4 };
+  const future = { ...defaultState(), schemaVersion: 5 };
   const before = structuredClone(future);
-  assert.throws(() => migrateState(future), /Unsupported schema: 4/);
+  assert.throws(() => migrateState(future), /Unsupported schema: 5/);
   assert.deepEqual(future, before);
 });
 
@@ -245,10 +357,10 @@ test('rejects invalid imports before a caller replaces active state', () => {
     /Invalid settings.locale/
   );
   assert.deepEqual(activeState, before);
-  assert.throws(() => importState('{"schemaVersion":4}'), /Unsupported schema/);
+  assert.throws(() => importState('{"schemaVersion":5}'), /Unsupported schema/);
 });
 
-test('schema 3 round-trips validated lesson flags and rejects duplicate or malformed IDs', () => {
+test('schema 4 round-trips validated lesson flags and rejects duplicate or malformed IDs', () => {
   const flag = {
     id: 'flag-1', commandId: 'c-der', category: 'wording', note: 'Ask the instructor.',
     createdAt: 100, updatedAt: 200, status: 'open'
@@ -266,7 +378,7 @@ test('schema 3 round-trips validated lesson flags and rejects duplicate or malfo
   );
 });
 
-test('schema 3 accepts only recommended or free persisted practice modes', () => {
+test('schema 4 accepts only recommended or free persisted practice modes', () => {
   for (const mode of ['recommended', 'free']) {
     const state = { ...defaultState(), settings: { ...defaultState().settings, mode } };
     assert.equal(importState(exportState(state)).settings.mode, mode);

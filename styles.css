@@ -316,7 +316,7 @@ hr {
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation: none; }
   .steering-wheel-graphic { transition: none; }
-  .junction-motion-scene {
+  .road-motion-scene {
     animation: none !important;
     transform: none !important;
   }
@@ -328,6 +328,60 @@ hr {
   justify-content: space-between;
   gap: 1rem;
 }
+
+.session-identity {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.identity-chip {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.15rem 0.45rem;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f2f4f1;
+}
+
+.identity-chip > span:first-child,
+.identity-chip small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.identity-chip strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity-chip small {
+  grid-column: 1 / -1;
+}
+
+.examiner-token-stack {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.examiner-token {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgb(255 255 255 / 90%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgb(28 40 34 / 25%);
+}
+
+.examiner-token.forest { background: #1f6a4a; }
+.examiner-token.blue { background: #3d72a4; }
+.examiner-token.amber { background: #bd7a22; }
+.examiner-token.plum { background: #795477; }
+.examiner-token.slate { background: #64717a; }
 
 .progress,
 .timer {
@@ -410,36 +464,36 @@ hr {
   aspect-ratio: 3 / 2;
 }
 
-.surface-stage.junction-motion-stage {
+.surface-stage.road-motion-stage {
   overflow: visible;
   border-radius: 1.25rem;
 }
 
-.junction-motion-viewport {
+.road-motion-viewport {
   position: absolute;
   inset: 0;
   overflow: hidden;
   border-radius: inherit;
 }
 
-.junction-motion-scene {
+.road-motion-scene {
   position: absolute;
   inset: 0;
-  transform: scale(var(--junction-motion-scale, 1));
-  transform-origin: 50% 76%;
+  transform: scale(var(--road-motion-scale, 1));
+  transform-origin: var(--road-motion-origin-x) var(--road-motion-origin-y);
 }
 
-.junction-motion-scene[data-junction-motion-running="true"] {
-  animation-name: junction-camera-push;
+.road-motion-scene[data-road-motion-running="true"] {
+  animation-name: road-camera-push;
   animation-duration: 6000ms;
-  animation-delay: calc(-1 * var(--junction-motion-elapsed, 0ms));
+  animation-delay: calc(-1 * var(--road-motion-elapsed, 0ms));
   animation-timing-function: ease-in-out;
   animation-fill-mode: forwards;
 }
 
-@keyframes junction-camera-push {
+@keyframes road-camera-push {
   from { transform: scale(1); }
-  to { transform: scale(1.34); }
+  to { transform: scale(var(--road-motion-end-scale)); }
 }
 
 .driving-scene-image {
@@ -454,8 +508,8 @@ hr {
 }
 
 .surface-stage.driving-photo-stage > svg,
-.surface-stage.driving-photo-stage > .junction-motion-scene > svg,
-.junction-motion-viewport > .junction-motion-scene > svg {
+.surface-stage.driving-photo-stage > .road-motion-scene > svg,
+.road-motion-viewport > .road-motion-scene > svg {
   position: absolute;
   z-index: 1;
   inset: 0;
@@ -1504,6 +1558,24 @@ dd {
   line-height: 1.7;
 }
 
+.mock-review-list {
+  display: grid;
+  gap: 1rem;
+  padding-left: 1.5rem;
+}
+
+.mock-review-item {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f2f4f1;
+}
+
+.mock-review-item h4,
+.mock-review-item p {
+  margin-top: 0;
+}
+
 .readiness-screen {
   display: grid;
   gap: 1.25rem;
@@ -1773,6 +1845,117 @@ dd {
   outline-offset: 3px;
 }
 
+.solo-setup-preview {
+  display: grid;
+  gap: 1rem;
+  margin-block: 1rem;
+}
+
+.solo-choice-group {
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  padding: 0.8rem;
+}
+
+.solo-choice-group legend {
+  padding-inline: 0.35rem;
+  font-weight: 850;
+}
+
+.solo-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.65rem;
+}
+
+.solo-choice {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.6rem;
+  min-height: 44px;
+  border: 2px solid var(--line);
+  border-radius: 0.75rem;
+  padding: 0.7rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.solo-choice:has(input:checked) {
+  border-color: var(--green);
+  box-shadow: inset 0 0 0 1px var(--green);
+  background: #edf6f0;
+}
+
+.solo-choice input {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0.15rem 0 0;
+}
+
+.solo-choice:has(input:focus-visible) {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.solo-choice-copy {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.solo-choice-copy > span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.solo-choice-badge,
+.solo-choice-selected {
+  grid-column: 2;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.12rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.solo-choice-badge {
+  background: #fff1bf;
+  color: #694800;
+}
+
+.solo-choice-selected {
+  background: var(--green);
+  color: #fff;
+}
+
+.advanced-practice-disclosure {
+  margin-block: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  padding: 0.35rem 0.8rem 0.8rem;
+}
+
+.advanced-practice-disclosure summary {
+  min-height: 44px;
+  padding-block: 0.7rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.advanced-practice-disclosure summary:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.advanced-practice-disclosure > p {
+  margin-top: 0;
+  color: var(--muted);
+}
+
 @media (max-width: 700px) {
   .readiness-header,
   .readiness-command-header {
@@ -1864,6 +2047,15 @@ dd {
 
   .reveal-layout {
     grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  }
+
+  .solo-choice-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .session-identity {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-bottom: 0.5rem;
   }
 
   .gameplay-surface .surface-stage {

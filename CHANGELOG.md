@@ -1,10 +1,30 @@
 # Changelog
 
-## Moving junction experiment — in progress
+## Examiner modes and themed drives — release candidate
 
-- Added an optional, default-on camera push-in to realistic four-way-junction
-  questions while retaining static reduced-motion behavior, existing scoring,
-  and the explicit Timing setting.
+- Added Learn, Practice, and simulated Mock modes while preserving the existing
+  readiness and scoring rules. Learn applies a slower, written-Spanish-supported
+  session; Practice retains the learner's advanced settings; Mock withholds
+  correctness and explanations until the drive ends.
+- Added five neutral examiner characters with fixed, rotating Today, and Mixed
+  selection. Recorded variants remain coverage-aware, and a fixed examiner
+  never silently substitutes another recorded voice.
+- Added Adaptive practice plus six themed drives: First drive, City circuit,
+  Roundabout circuit, Manoeuvres, Precheck inspection, and Full mock.
+- Snapshotted the mode, resolved examiner, theme, policies, exact recordings,
+  and progress in resumable schema-4 sessions. Completed Mock sessions survive
+  reload for deferred, per-command review and miss-reason notes.
+- Added a compact bilingual mode/theme/examiner identity strip to prompts,
+  neutral Mock transitions, and results without covering response surfaces.
+
+## Expanded road-motion experiment — in progress
+
+- Extended the optional, default-on six-second camera push-in to realistic
+  junction, roundabout, U-turn, overtaking, parking, and voluntary-stopping
+  questions while retaining existing scoring and the explicit Timing setting.
+- Calibrated each photograph independently and added a generated-scene sweep
+  proving every selectable target remains fully visible at the animation
+  endpoint; reduced-motion users and Road movement Off retain static exercises.
 
 ## Release B — readiness and targeted practice — complete
 
@@ -31,6 +51,7 @@
 
 - Added 22 review-derived, instructor-plausible wording variants for 76 total Spanish phrasings without changing any command, action, response surface, or existing phrasing ID/text; recorded the deferred B list and its instructor questions outside scored practice.
 - Generated and published the 132 review-derived clips through the resumable ElevenLabs workflow, reusing the prior 324 recordings and completing the integrity-checked 456-variant corpus.
+- Expanded the production corpus to five voices (Roger, Sarah, George, Matilda, and Eric), reusing the 456 existing recordings; generated 684 additional clips for a complete 1,140-variant corpus.
 - Removed remaining user-visible Toyota Yaris Hybrid 2019 wording (reveal heading, setup warning, and the coolant-reservoir precheck answer) in favor of generic-manual-car language; the reveal screen no longer cites a bare, now-unnamed manual page number. Stable command, action, phrasing, and internal `yaris-*` surface/diagram IDs are unchanged pending a later migration decision.
 - Expanded the source-ledgered catalog from 30 to 36 commands, adding straight ahead, indicator, brake-fluid, washer-fluid, position-light, and dipped-headlight practice while keeping brake and washer fluid distinct.
 - Added 18 supplementary source-labeled alternatives in the earlier expansion. A trial retains the exact randomly selected playable phrasing through audio, Show Spanish, reveal, and attempt provenance.

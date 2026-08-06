@@ -12,7 +12,23 @@ const requiredKeys = [
   'setting.feedbackSounds','feedbackSounds.on','feedbackSounds.off',
   'setting.roadMovement','roadMovement.on','roadMovement.off',
   'setting.phase','setting.mode','mode.recommended','mode.free','action.start','action.replay','action.showSpanish','action.continue','action.retry','action.newSession',
-  'screen.setup','screen.loading','screen.prompt','screen.results','prompt.listen','prompt.progress','prompt.timer',
+  'experience.heading','experience.learn.title','experience.learn.description',
+  'experience.practice.title','experience.practice.description','experience.mock.title',
+  'experience.mock.description','experience.mock.simulated','examiner.heading',
+  'examiner.today.title','examiner.today.description','examiner.mixed.title','examiner.mixed.description',
+  'examiner.roger.name','examiner.roger.description','examiner.sarah.name','examiner.sarah.description',
+  'examiner.george.name','examiner.george.description','examiner.matilda.name','examiner.matilda.description',
+  'examiner.eric.name','examiner.eric.description','choice.selected',
+  'session.identity','session.mode','session.theme','session.examiner',
+  'theme.heading','theme.adaptive.title','theme.adaptive.description',
+  'theme.first-drive.title','theme.first-drive.description','theme.city-circuit.title','theme.city-circuit.description',
+  'theme.roundabout-circuit.title','theme.roundabout-circuit.description','theme.manoeuvres.title','theme.manoeuvres.description',
+  'theme.precheck-inspection.title','theme.precheck-inspection.description','theme.full-mock.title','theme.full-mock.description',
+  'practice.advanced.title','practice.advanced.description','practice.advanced.presetOwned',
+  'setup.start.noCommands','setup.start.examinerAudio',
+  'screen.setup','screen.loading','screen.prompt','screen.results','screen.mockTransition','mock.transition','mock.simulated',
+  'mock.result.clean','mock.result.needs-practice','mock.result.nonOfficial','mock.review.title','mock.review.outcome','mock.review.response',
+  'prompt.listen','prompt.progress','prompt.timer',
   'reveal.spanish','reveal.meaning','reveal.expected','reveal.vehicle','result.unaided','result.assisted','result.incorrect',
   'miss.hearing','miss.meaning','miss.mapping','miss.target','miss.accidental','miss.other',
   'miss.title','miss.optional','settings.title','data.export','data.import','data.importConfirm',
@@ -114,6 +130,26 @@ test('written-Spanish policy labels state when text appears and how it scores', 
 test('practice-order labels use plain language', () => {
   assert.equal(translate('en', 'mode.recommended'), 'Recommended practice');
   assert.equal(translate('es', 'mode.recommended'), 'Práctica recomendada');
+});
+
+test('solo experience and examiner scaffold copy is complete and neutral in both locales', () => {
+  assert.equal(translate('en', 'experience.mock.title'), 'Mock test');
+  assert.equal(translate('es', 'experience.mock.title'), 'Simulacro');
+  assert.equal(translate('en', 'examiner.today.description', { name: 'Roger' }), 'Changes each day: Roger');
+  assert.equal(translate('es', 'examiner.today.description', { name: 'Roger' }), 'Cambia cada día: Roger');
+  assert.equal(translate('en', 'examiner.matilda.description'), 'Clear, professional delivery');
+  assert.equal(translate('es', 'examiner.matilda.description'), 'Voz clara y profesional');
+  assert.deepEqual(
+    ['roger', 'sarah', 'george', 'matilda', 'eric'].map(id => translate('es', `examiner.${id}.name`)),
+    ['Roger', 'Sara', 'Jorge', 'Matilde', 'Eric']
+  );
+  for (const locale of ['en', 'es']) {
+    const copy = Object.entries(STRINGS[locale])
+      .filter(([key]) => key.startsWith('examiner.'))
+      .map(([, value]) => value)
+      .join(' ');
+    assert.doesNotMatch(copy, /Asturias|Asturian|asturiano|Madrid|Sevilla|strict|estricto/i);
+  }
 });
 
 test('session lengths state exact command counts in both locales', () => {

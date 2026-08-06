@@ -1,8 +1,11 @@
 import { validateStoredActiveSession } from './active-session.js';
+import { EXAMINER_CHOICE_IDS } from './examiners.js';
 import { validateLessonFlag } from './lesson-flags.js';
+import { SESSION_PRESET_IDS } from './session-presets.js';
+import { THEME_IDS } from './session-themes.js';
 
 export const STORAGE_KEY = 'examen-practico-de-conducir';
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 const LOCALES = new Set(['en', 'es']);
 const PHASES = new Set(['driving', 'precheck', 'mixed']);
@@ -12,6 +15,9 @@ const LENGTHS = new Set(['short', 'medium', 'all']);
 const MODES = new Set(['recommended', 'free']);
 const OUTCOMES = new Set(['unaided', 'assisted', 'incorrect']);
 const OUTCOME_WEIGHTS = Object.freeze({ unaided: 1, assisted: 0.5, incorrect: 0 });
+const EXPERIENCE_MODES = new Set(SESSION_PRESET_IDS);
+const EXAMINER_CHOICES = new Set(EXAMINER_CHOICE_IDS);
+const THEMES = new Set([null, ...THEME_IDS]);
 
 export function defaultState() {
   return {
@@ -25,7 +31,10 @@ export function defaultState() {
       feedbackSounds: true,
       roadMovement: true,
       length: 'medium',
-      mode: 'recommended'
+      mode: 'recommended',
+      experienceMode: 'practice',
+      examinerChoice: 'mixed',
+      themeId: null
     },
     attempts: [],
     actionProgress: {},
@@ -87,6 +96,16 @@ const MIGRATIONS = new Map([
     },
     lessonFlags: [],
     activeSession: migrateActiveSessionMode(state.activeSession)
+  })],
+  [3, state => ({
+    ...state,
+    schemaVersion: 4,
+    settings: {
+      ...state.settings,
+      experienceMode: state.settings.experienceMode ?? 'practice',
+      examinerChoice: state.settings.examinerChoice ?? 'mixed',
+      themeId: state.settings.themeId ?? null
+    }
   })]
 ]);
 
@@ -144,6 +163,9 @@ function validateSettings(settings) {
   if (typeof settings.roadMovement !== 'boolean') throw new Error('Invalid settings.roadMovement');
   if (!LENGTHS.has(settings.length)) throw new Error('Invalid settings.length');
   if (!MODES.has(settings.mode)) throw new Error('Invalid settings.mode');
+  if (!EXPERIENCE_MODES.has(settings.experienceMode)) throw new Error('Invalid settings.experienceMode');
+  if (!EXAMINER_CHOICES.has(settings.examinerChoice)) throw new Error('Invalid settings.examinerChoice');
+  if (!THEMES.has(settings.themeId)) throw new Error('Invalid settings.themeId');
 }
 
 function validateLessonFlags(flags) {

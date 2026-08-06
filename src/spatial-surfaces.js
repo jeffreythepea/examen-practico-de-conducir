@@ -159,19 +159,41 @@ export function renderSpatialSurface(model, locale, state = {}) {
       ${route}
     </svg>
     ${targets}`;
-  const movingJunction = model.family === 'junction' && state.motion;
-  const renderedScene = movingJunction
-    ? `<div class="junction-motion-viewport">
-    <div class="junction-motion-scene" data-junction-motion="${escapeAttribute(state.motion.phase)}" data-junction-motion-running="${state.motion.moving === true}" style="--junction-motion-scale:${Number(state.motion.scale)};--junction-motion-elapsed:${Number(state.motion.elapsedMs)}ms">
+  const roadMotion = validRoadMotion(state.motion);
+  const renderedScene = roadMotion
+    ? `<div class="road-motion-viewport">
+    <div class="road-motion-scene" data-road-motion="${escapeAttribute(roadMotion.phase)}" data-road-motion-running="${roadMotion.moving === true}" style="${roadMotionStyle(roadMotion)}">
       ${sceneContents}
     </div>
   </div>`
     : sceneContents;
 
-  return `<div class="surface-stage ${model.family}${scene ? ' driving-photo-stage' : ''}${movingJunction ? ' junction-motion-stage' : ''}" data-surface="${surfaceId}">
+  return `<div class="surface-stage ${model.family}${scene ? ' driving-photo-stage' : ''}${roadMotion ? ' road-motion-stage' : ''}" data-surface="${surfaceId}">
     ${renderedScene}
     ${resultLabel}
   </div>`;
+}
+
+function validRoadMotion(motion) {
+  if (!motion || typeof motion.phase !== 'string' || typeof motion.moving !== 'boolean') return null;
+  const values = [
+    motion.scale,
+    motion.endScale,
+    motion.origin?.x,
+    motion.origin?.y,
+    motion.elapsedMs
+  ];
+  return values.every(Number.isFinite) ? motion : null;
+}
+
+function roadMotionStyle(motion) {
+  return [
+    `--road-motion-scale:${motion.scale}`,
+    `--road-motion-end-scale:${motion.endScale}`,
+    `--road-motion-origin-x:${motion.origin.x}%`,
+    `--road-motion-origin-y:${motion.origin.y}%`,
+    `--road-motion-elapsed:${motion.elapsedMs}ms`
+  ].join(';');
 }
 
 function generateJunction(command, seed) {

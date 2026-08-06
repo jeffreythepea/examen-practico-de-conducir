@@ -1,7 +1,7 @@
 # Examen Práctico de Conducir — Product Design
 
 **Date:** 2026-07-17
-**Status:** Approved design; Stage 2 implemented; Offline iPad Release A complete
+**Status:** Approved design; Stage 2 implemented; Release B complete; examiner modes and themed drives in release review
 **Origin:** Extraction and redesign of the practical-exam drill in Piso Asturiano
 
 ## Purpose
@@ -84,6 +84,17 @@ while the Spanish UI does not translate the command into another language.
 Authentic labels on vehicle controls remain as they appear in the actual
 vehicle.
 
+The 2026-08-06 solo-engagement release adds three explicit experience modes
+without altering action-level readiness. **Learn** owns only its 0.9×,
+written-Spanish-shown, untimed policy; **Practice** preserves the learner's
+advanced settings; and **Mock** is a non-official simulation at 1× with timing,
+no replay, no written hint, and correctness withheld until the session ends.
+Each resumable session snapshots its mode, resolved examiner, theme, policies,
+exact recordings, and progress. Five neutral examiner characters can be fixed,
+rotated once per session with Today, or mixed across the recorded corpus.
+Adaptive practice remains available alongside First drive, City circuit,
+Roundabout circuit, Manoeuvres, Precheck inspection, and Full mock themes.
+
 Each trial follows this sequence:
 
 1. Play a Spanish command.
@@ -125,8 +136,11 @@ action mastery remains action-level. Lesson flags are local correction notes,
 not catalog mutations: they can be created from a reveal and edited, resolved,
 reopened, filtered by open or resolved status, or practiced from Readiness. They round-trip through the
 versioned backup/export format and never change an accepted response without a
-separate reviewed content change. There is no composite readiness score or
-percentage, streak, badge, quota, or engagement mechanic.
+separate reviewed content change. There is no composite readiness score,
+punitive streak, daily quota, or retention mechanic. The 2026-08-06
+[solo engagement priority realignment](superpowers/specs/2026-08-06-solo-engagement-roadmap-design.md)
+permits examiner identity, themed drives, self-selected challenges, and
+evidence-backed accomplishments without changing readiness rules.
 
 Sequential exam mode—realistic prechecks followed by driving—is deferred until
 practical lessons or an instructor establish credible counts and ordering.
@@ -184,7 +198,9 @@ possible.
 
 ### Driving surfaces
 
-Stage 2 uses action-matched static responses at the landscape-iPad baseline:
+Stage 2 uses action-matched responses at the landscape-iPad baseline. Eligible
+photo-backed road scenes can add an optional six-second camera push-in while
+retaining the same targets, scoring, and static reduced-motion fallback:
 
 - **Junction and roundabout:** tap the intended outgoing road, with the vehicle
   entering from the bottom. Photo-backed four-way junctions expose left,
@@ -206,10 +222,12 @@ responses because a pedal, control, or road placement would imply a falsely
 specific action without a road situation. This is explicit product scope, not a
 renderer fallback.
 
-Road simulation and deeper phrasing/voice mastery reporting remain deferred
-until real practice shows that static spatial responses are the limiting
-factor. The current phrasing expansion deliberately varies playback while
-continuing to score the underlying action.
+The camera push-in is intentionally bounded: every registered target remains
+inside the scene at the animation endpoint. It is a transfer experiment rather
+than a full driving simulation. Full simulation and deeper phrasing and voice
+mastery reporting remain deferred until real practice shows that this limited
+motion improves transfer or response time. The current phrasing expansion
+deliberately varies playback while continuing to score the underlying action.
 
 ### Precheck surfaces
 
@@ -266,16 +284,20 @@ it explicitly supports Spain Spanish and native speed settings; OpenAI remains
 a comparison candidate despite documentation noting that its built-in voices
 are optimized for English.
 
-The Stage 1 audition selected the ElevenLabs Roger and Sarah voices using
-`eleven_multilingual_v2`. Both passed the listening threshold and are randomized
-per trial. The setup screen visibly identifies the recordings as AI-generated
-in English and Spanish.
+The Stage 1 audition selected the ElevenLabs Roger and Sarah provider voices
+using `eleven_multilingual_v2`. A 2026-08-05 follow-up audition added the
+George, Matilda, and Eric provider voices after all three passed Jeffrey's
+listening review. Character-facing Spanish display names are Roger, Sara,
+Jorge, Matilde, and Eric; provider names remain unchanged in audio provenance.
+The five voices are
+randomized per trial. The setup screen visibly identifies the recordings as
+AI-generated in English and Spanish.
 
 Generate provider-native 0.75x, 0.9x, and 1x assets rather than relying on
-browser time-stretching. The 36 commands and 76 phrasings create a 456-variant
-target across two voices and three speeds. The complete published recorded
-corpus now contains all 456 integrity-checked variants; the resumable expansion
-run reused the previous 324 reusable variants and added 132. At trial
+browser time-stretching. The 36 commands and 76 phrasings create a 1,140-variant
+target across five voices and three speeds. The complete published recorded
+corpus now contains all 1,140 integrity-checked variants; the resumable
+five-voice expansion reused the previous 456 variants and added 684. At trial
 start the app randomly selects any playable variant for the command and speed,
 then retains its phrasing and voice through replay, written hint, reveal, and
 attempt logging. Later difficulty settings may expose canonical-versus-varied
@@ -307,11 +329,11 @@ recovery, backup transfer, bilingual UI, touch targets, and feedback sounds. He
 also confirmed no Safari Web Inspector warnings or errors, then approved the
 intentional two-column landscape prompt and reveal layout.
 
-The public build is a deterministic runtime allowlist rather than a copy of the repository. It includes the shell, bilingual interface modules, command and audio manifests, optimized gameplay images, icons, recovery page, service worker, and all 456 recorded MP3s. Every packaged asset has an exact byte count and SHA-256 digest in `offline-package.json`; tests, plans, references, source images, recovery checkpoints, and credentials are excluded.
+The public build is a deterministic runtime allowlist rather than a copy of the repository. It includes the shell, bilingual interface modules, command and audio manifests, optimized gameplay images, icons, recovery page, service worker, and all 1,140 recorded MP3s. Every packaged asset has an exact byte count and SHA-256 digest in `offline-package.json`; tests, plans, references, source images, recovery checkpoints, and credentials are excluded.
 
 Offline storage uses an **active / staging / pointer** architecture. The service worker serves only the integrity-verified active cache. A new package downloads into a distinct staging cache, resumes missing files after interruption, and cannot replace the active pointer until every required file verifies. The prior active package remains available until the replacement is confirmed. A staged update is applied only from setup, never during a practice session. A navigation failure without a valid active package returns the small bilingual recovery page instead of pretending the full game is ready.
 
-Browser storage schema 3 retains the optional active-session value introduced by schema 2 and adds local lesson flags plus recommended-practice settings. The active session contains only stable command, phrasing, voice, speed, settings, completed-attempt IDs, and an optional Release B target. It never serializes audio objects, timers, generated surface state, or DOM references. After a scored response, the attempt and next unscored index are saved together. On relaunch, the interrupted command restarts with its exact immutable audio variant and remains unscored; completed attempts are not repeated. A catalog mismatch clears only the resumable session and preserves completed history. Schema-1 and schema-2 saves migrate forward, including conversion of the legacy weakest-first mode to Recommended practice.
+Browser storage schema 4 retains the optional active-session value introduced by schema 2, the local lesson flags and recommended-practice settings introduced by schema 3, and adds the stable experience-mode, examiner-choice, and themed-drive settings. The active session contains only stable command, phrasing, voice, speed, settings, completed-attempt IDs, and an optional Release B target. It never serializes audio objects, timers, generated surface state, or DOM references. After a scored response, the attempt and next unscored index are saved together. On relaunch, the interrupted command restarts with its exact immutable audio variant and remains unscored; completed attempts are not repeated. A catalog mismatch clears only the resumable session and preserves completed history. Schema-1, schema-2, and schema-3 saves migrate forward, including conversion of the legacy weakest-first mode to Recommended practice.
 
 The installed web app is local-first but is not a native iPad app, and iPadOS can evict website caches under storage pressure. **Ready offline** therefore means that the current package is complete and verified at that moment. Browser Spanish speech remains a playback fallback for online use and is not the offline guarantee.
 
@@ -390,7 +412,7 @@ closer to the commanded actions.
 ### Stage 3: Variation
 
 - Add validated alternative phrasings. **Implemented for the current focused set.**
-- Add multiple voices. **Implemented with Roger and Sarah.**
+- Add multiple voices. **Implemented with five provider voices, displayed as Roger, Sara, Jorge, Matilde, and Eric.**
 - Add selectable canonical and varied difficulty.
 - Report action mastery separately from phrasing and voice exposure.
 
@@ -399,8 +421,8 @@ changes.
 
 ### Stage 4: Optional realism
 
-Prototype one moving-car exercise for junctions or roundabouts and compare it
-with the static surface.
+Compare the optional moving-road camera push-in across eligible photo-backed
+driving exercises with the static surface.
 
 **Exit criterion:** expand only with evidence of improved unaided transfer or
 response time.

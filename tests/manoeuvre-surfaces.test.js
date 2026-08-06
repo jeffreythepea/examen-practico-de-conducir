@@ -394,6 +394,49 @@ test('parking and stopping templates render distinct audited prohibition signs',
   assert.doesNotMatch(stoppingMarkup, /data-road-sign="no-parking"/);
 });
 
+test('road motion wraps every photo-backed manoeuvre scene with its calibrated transform', () => {
+  const cases = [
+    ['change-direction', 'u-turn-v1', 'clear-two-way-turnaround', 1.05, 50, 84],
+    ['overtake', 'overtake-v1', 'clear-two-lane-pass', 1.18, 54, 86],
+    ['park', 'parking-v1', 'curb-bays-clear-space', 1.06, 65, 84],
+    ['voluntary-stop', 'stopping-v1', 'no-stopping-curb-clear', 1.06, 66, 84]
+  ];
+
+  for (const [actionId, surfaceId, templateId, endScale, originX, originY] of cases) {
+    const model = modelForTemplate(actionId, surfaceId, templateId);
+    const markup = renderManoeuvreSurface(model, 'en', {
+      motion: {
+        phase: 'approaching-locked',
+        progress: 0.5,
+        scale: 1.09,
+        endScale,
+        origin: Object.freeze({ x: originX, y: originY }),
+        locked: true,
+        moving: true,
+        elapsedMs: 3_000,
+        remainingMs: 3_000
+      }
+    });
+
+    assert.match(markup, new RegExp(`class="surface-stage manoeuvre ${model.family} driving-photo-stage road-motion-stage"`));
+    assert.match(markup, /class="road-motion-viewport"/);
+    assert.match(markup, /class="road-motion-scene"/);
+    assert.match(markup, /data-road-motion="approaching-locked"/);
+    assert.match(markup, /data-road-motion-running="true"/);
+    assert.match(markup, /--road-motion-scale:1\.09/);
+    assert.match(markup, new RegExp(`--road-motion-end-scale:${endScale}`));
+    assert.match(markup, new RegExp(`--road-motion-origin-x:${originX}%`));
+    assert.match(markup, new RegExp(`--road-motion-origin-y:${originY}%`));
+    assert.match(markup, /--road-motion-elapsed:3000ms/);
+
+    const scene = markup.match(/<div class="road-motion-scene"[\s\S]*?<\/div>/)?.[0];
+    assert.ok(scene);
+    assert.match(scene, /class="driving-scene-image"/);
+    assert.match(scene, /<svg/);
+    assert.equal((scene.match(/class="manoeuvre-target"/g) ?? []).length, model.targets.length);
+  }
+});
+
 test('manoeuvre target styles preserve the target model dimensions and reveal states', async () => {
   const styles = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(styles, /\.manoeuvre-target\s*\{[^}]*position:\s*absolute[^}]*min-width:\s*44px[^}]*min-height:\s*44px/s);

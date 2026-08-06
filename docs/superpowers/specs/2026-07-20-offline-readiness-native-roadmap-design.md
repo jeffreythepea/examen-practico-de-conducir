@@ -4,6 +4,13 @@
 **Status:** Approved by Jeffrey
 **Product priority:** Jeffrey's exam readiness first; friends second; public release undecided
 
+> **Priority realignment, 2026-08-06:** The later
+> [solo engagement roadmap](2026-08-06-solo-engagement-roadmap-design.md)
+> supersedes this document where it placed a full native port ahead of solo
+> engagement and where it categorically deferred all game mechanics. Native is
+> now a later option; physical, challenging solo play comes next. Release D
+> remains lesson-gated, and social/public infrastructure remains deferred.
+
 ## Purpose
 
 The next product phase makes Examen Práctico dependable on an iPad without a
@@ -36,15 +43,18 @@ own reviewed specifications and plans when their entry criteria are met.
 - Expose learning evidence directly; do not hide it behind an invented score.
 - Treat the web app as the reference product prototype for a later SwiftUI app,
   not necessarily as the permanent platform.
-- Do not add engagement features merely to increase app use. Streaks, badges,
-  notifications, and similar retention mechanics are unlikely to be built.
+- Add engagement only when it deepens the driving-test fantasy, physical
+  practice, challenge, or demonstrated competence. Examiner characters,
+  themed drives, mock tests, and evidence-backed accomplishments are now
+  allowed by the later solo-engagement decision; manipulative retention
+  mechanics remain excluded.
 
 ## Current Product Baseline
 
 The app is a static, local-first web application with no runtime backend and no
 required frontend build. It contains 36 commands, 76 source-labeled Spanish
 phrasings, photo-backed action surfaces, local progress, versioned JSON
-backup/import, a complete 456-variant recorded ElevenLabs audio corpus, and
+backup/import, a complete 1,140-variant recorded ElevenLabs audio corpus, and
 browser Spanish-speech fallback.
 
 The current runtime media is dominated by roughly 40 MB of PNG photographs,
@@ -58,7 +68,7 @@ secure origin outside localhost.
 
 ### Entry prerequisite
 
-The full 456-variant recorded corpus is validated, atomically published, and
+The full 1,140-variant recorded corpus is validated, atomically published, and
 included in the verified offline package. Browser speech cannot substitute for
 recorded media in this acceptance gate because offline availability of a browser
 voice is not under the app's control. **Ready offline** remains available only
@@ -329,9 +339,11 @@ surface change with provenance.
 
 ## Release C — Native iPad Feasibility and Port
 
-Release C begins after Release A and Release B are working and have received a
-short period of real use. Native development is materially higher priority than
-simulation, engagement mechanics, or public-product onboarding.
+Release C was originally placed immediately after Releases A and B. The
+2026-08-06 priority realignment moves the full native port below the solo
+engagement track. The completed SwiftUI feasibility work remains useful
+evidence, and native can resume after the solo experience or when platform
+limitations justify it. Native remains above public-product onboarding.
 
 ### Architecture choice
 
@@ -409,8 +421,14 @@ alone.
 - Commercialization infrastructure
 - Instructor portal
 - General note-taking
-- Streaks, badges, daily quotas, push reminders, and other gamified retention
+- Coins, energy systems, punitive streaks, daily quotas, push reminders, and
+  other retention pressure unrelated to learning
 - Community-authored command content
+
+Examiner identity, themed drives, challenge modes, and competence-linked
+accomplishments are no longer categorically deferred. Their scope and the
+preserved later social backlog live in the
+[solo engagement roadmap](2026-08-06-solo-engagement-roadmap-design.md).
 
 These become relevant only after an explicit decision to release publicly,
 whether free or commercial.

@@ -1,11 +1,29 @@
+import { EXAMINERS, EXAMINER_CHOICE_IDS, examinerById } from './examiners.js';
+import { SESSION_PRESET_IDS, sessionPresetById } from './session-presets.js';
+import { SESSION_THEMES, THEME_IDS } from './session-themes.js';
+
 const PHASES = new Set(['driving', 'precheck', 'mixed']);
 const SPEEDS = new Set([0.75, 0.9, 1]);
 const HINT_POLICIES = new Set(['available', 'shown', 'unavailable']);
 const LENGTHS = new Set(['short', 'medium', 'all']);
 const MODES = new Set(['free', 'recommended']);
+const EXPERIENCE_MODES = new Set(SESSION_PRESET_IDS);
+const EXAMINER_CHOICES = new Set(EXAMINER_CHOICE_IDS);
+const EXAMINER_IDS = new Set(EXAMINERS.map(({ id }) => id));
+const THEMES = new Set([null, ...THEME_IDS]);
 const TARGET_KINDS = new Set([
   'recommended', 'needs-practice', 'not-tested', 'lesson-flags', 'not-ready', 'command', 'free'
 ]);
+
+const COMPATIBILITY_EXPERIENCE = Object.freeze({
+  modeId: 'practice',
+  examinerChoice: 'mixed',
+  resolvedExaminerId: null,
+  themeId: null,
+  replayPolicy: 'unlimited',
+  revealPolicy: 'immediate',
+  simulated: false
+});
 
 function clone(value) {
   try {
@@ -53,14 +71,54 @@ function validateTarget(target) {
   if (target.kind === 'command') nonempty(target.commandId, 'activeSession.target.commandId');
 }
 
+function validateExperience(experience, settings) {
+  record(experience, 'activeSession.experience');
+  if (!EXPERIENCE_MODES.has(experience.modeId)) throw new Error('Invalid activeSession.experience.modeId');
+  if (!EXAMINER_CHOICES.has(experience.examinerChoice)) throw new Error('Invalid activeSession.experience.examinerChoice');
+  if (!THEMES.has(experience.themeId)) throw new Error('Invalid activeSession.experience.themeId');
+
+  const preset = sessionPresetById(experience.modeId);
+  if (experience.replayPolicy !== preset.replayPolicy) throw new Error('Invalid activeSession.experience.replayPolicy');
+  if (experience.revealPolicy !== preset.revealPolicy) throw new Error('Invalid activeSession.experience.revealPolicy');
+  if (experience.simulated !== preset.simulated) throw new Error('Invalid activeSession.experience.simulated');
+  if (experience.modeId !== 'practice') {
+    for (const field of ['speed', 'hintPolicy', 'timed']) {
+      if (settings[field] !== preset.settings[field]) throw new Error(`Invalid activeSession.settings.${field} for experience`);
+    }
+  }
+
+  if (experience.examinerChoice === 'mixed') {
+    if (experience.resolvedExaminerId !== null) throw new Error('Invalid activeSession.experience.resolvedExaminerId');
+    return;
+  }
+  if (!EXAMINER_IDS.has(experience.resolvedExaminerId)) {
+    throw new Error('Invalid activeSession.experience.resolvedExaminerId');
+  }
+  if (experience.examinerChoice !== 'today' && experience.resolvedExaminerId !== experience.examinerChoice) {
+    throw new Error('Invalid activeSession.experience.resolvedExaminerId');
+  }
+}
+
+function normalizeVersionOne(session) {
+  if (session.version !== 1) return session;
+  return {
+    ...session,
+    version: 2,
+    experience: clone(COMPATIBILITY_EXPERIENCE)
+  };
+}
+
 export function validateStoredActiveSession(value) {
-  const session = clone(value);
-  record(session, 'activeSession');
-  if (session.version !== 1) throw new Error('Invalid activeSession.version');
+  const candidate = clone(value);
+  record(candidate, 'activeSession');
+  const session = normalizeVersionOne(candidate);
+  if (session.version !== 2) throw new Error('Invalid activeSession.version');
   nonempty(session.id, 'activeSession.id');
   if (typeof session.startedAt !== 'number' || !Number.isFinite(session.startedAt)) {
     throw new Error('Invalid activeSession.startedAt');
   }
+  validateSettings(session.settings);
+  validateExperience(session.experience, session.settings);
   if (!Array.isArray(session.items) || session.items.length === 0) throw new Error('Invalid activeSession.items');
   const commandIds = new Set();
   session.items.forEach((item, index) => {
@@ -69,6 +127,10 @@ export function validateStoredActiveSession(value) {
     for (const field of ['commandId', 'phrasingId', 'voiceId']) nonempty(item[field], `${path}.${field}`);
     if (!SPEEDS.has(item.speed)) throw new Error(`Invalid ${path}.speed`);
     if (commandIds.has(item.commandId)) throw new Error(`Invalid duplicate command: ${item.commandId}`);
+    if (session.experience.resolvedExaminerId !== null) {
+      const expectedVoiceId = examinerById(session.experience.resolvedExaminerId).voiceId;
+      if (item.voiceId !== expectedVoiceId) throw new Error(`Invalid ${path}.voiceId for examiner`);
+    }
     commandIds.add(item.commandId);
   });
   if (!Number.isSafeInteger(session.nextIndex) || session.nextIndex < 0 || session.nextIndex > session.items.length) {
@@ -82,14 +144,22 @@ export function validateStoredActiveSession(value) {
     attemptIds.add(attemptId);
   });
   if (session.attemptIds.length !== session.nextIndex) throw new Error('Invalid activeSession.attemptIds length');
-  validateSettings(session.settings);
   if (session.target === undefined) delete session.target;
   else validateTarget(session.target);
   return deepFreeze(session);
 }
 
-export function createActiveSession({ id, startedAt, items, nextIndex = 0, attemptIds = [], settings, target }) {
-  const session = { version: 1, id, startedAt, items, nextIndex, attemptIds, settings };
+export function createActiveSession({
+  id,
+  startedAt,
+  items,
+  nextIndex = 0,
+  attemptIds = [],
+  settings,
+  target,
+  experience = COMPATIBILITY_EXPERIENCE
+}) {
+  const session = { version: 2, id, startedAt, items, nextIndex, attemptIds, settings, experience };
   if (target !== undefined) session.target = target;
   return validateStoredActiveSession(session);
 }
@@ -113,6 +183,10 @@ export function resolveActiveSession(session, { commands, audioManifest }) {
   const sessionItems = stored.items.map(item => {
     const command = commandById.get(item.commandId);
     if (!command) throw new Error(`Unsupported command: ${item.commandId}`);
+    if (stored.experience.themeId !== null) {
+      const theme = SESSION_THEMES.find(candidate => candidate.id === stored.experience.themeId);
+      if (!theme.criteria(command)) throw new Error(`Command outside theme: ${item.commandId}`);
+    }
     if (!command.phrasings?.some(phrasing => phrasing.id === item.phrasingId)) {
       throw new Error(`Unsupported phrasing: ${item.phrasingId}`);
     }
@@ -129,7 +203,8 @@ export function resolveActiveSession(session, { commands, audioManifest }) {
     sessionItems,
     index: stored.nextIndex,
     attemptIds: [...stored.attemptIds],
-    settings: clone(stored.settings)
+    settings: clone(stored.settings),
+    experience: clone(stored.experience)
   };
   if (stored.target !== undefined) resolved.target = clone(stored.target);
   return deepFreeze(resolved);

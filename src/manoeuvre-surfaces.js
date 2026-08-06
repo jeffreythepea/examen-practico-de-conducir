@@ -232,11 +232,7 @@ export function renderManoeuvreSurface(model, locale, state = {}) {
   const sceneImage = scene
     ? `<img class="driving-scene-image" data-scene="${escapeAttribute(scene.id)}" data-provenance="${escapeAttribute(scene.provenance)}" src="${escapeAttribute(scene.asset)}" alt="${escapeAttribute(locale === 'es' ? scene.alt.es : scene.alt.en)}">`
     : '';
-
-  return `<div class="manoeuvre-surface">
-    <p class="surface-instruction">${escapeHtml(translate(locale, instructionKey))}</p>
-    <div class="surface-stage manoeuvre ${model.family}${scene ? ' driving-photo-stage' : ''}" data-surface="${surfaceId}">
-      ${sceneImage}
+  const sceneContents = `${sceneImage}
       <svg viewBox="0 0 100 100"${scene ? ' preserveAspectRatio="none"' : ''} aria-hidden="true" focusable="false">
         ${manoeuvreDrawing(model, Boolean(scene))}
         ${correctRoute}
@@ -250,11 +246,46 @@ export function renderManoeuvreSurface(model, locale, state = {}) {
           correctSelectionLabel: translate(locale, 'surface.selectionCorrect'),
           wrongSelectionLabel: translate(locale, 'surface.selectionWrong')
         }
-      )).join('')}
+      )).join('')}`;
+  const roadMotion = validRoadMotion(state.motion);
+  const renderedScene = roadMotion
+    ? `<div class="road-motion-viewport">
+      <div class="road-motion-scene" data-road-motion="${escapeAttribute(roadMotion.phase)}" data-road-motion-running="${roadMotion.moving === true}" style="${roadMotionStyle(roadMotion)}">
+        ${sceneContents}
+      </div>
+    </div>`
+    : sceneContents;
+
+  return `<div class="manoeuvre-surface">
+    <p class="surface-instruction">${escapeHtml(translate(locale, instructionKey))}</p>
+    <div class="surface-stage manoeuvre ${model.family}${scene ? ' driving-photo-stage' : ''}${roadMotion ? ' road-motion-stage' : ''}" data-surface="${surfaceId}">
+      ${renderedScene}
       ${resultLabel}
       ${restriction}
     </div>
   </div>`;
+}
+
+function validRoadMotion(motion) {
+  if (!motion || typeof motion.phase !== 'string' || typeof motion.moving !== 'boolean') return null;
+  const values = [
+    motion.scale,
+    motion.endScale,
+    motion.origin?.x,
+    motion.origin?.y,
+    motion.elapsedMs
+  ];
+  return values.every(Number.isFinite) ? motion : null;
+}
+
+function roadMotionStyle(motion) {
+  return [
+    `--road-motion-scale:${motion.scale}`,
+    `--road-motion-end-scale:${motion.endScale}`,
+    `--road-motion-origin-x:${motion.origin.x}%`,
+    `--road-motion-origin-y:${motion.origin.y}%`,
+    `--road-motion-elapsed:${motion.elapsedMs}ms`
+  ].join(';');
 }
 
 function jitteredTarget(templateTarget, rng) {

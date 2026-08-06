@@ -21,7 +21,8 @@ test('runtime asset discovery is deterministic, complete, and excludes developme
   assert.ok(paths.includes('data/commands.json'));
   assert.ok(paths.includes('manifest.webmanifest'));
   assert.ok(paths.includes('src/app.js'));
-  assert.ok(paths.includes('src/junction-motion.js'));
+  assert.ok(paths.includes('src/road-motion.js'));
+  assert.equal(paths.includes('src/junction-motion.js'), false);
   assert.equal(paths.filter(path => path.endsWith('.mp3')).length, audioManifest.length);
   assert.ok(paths.every(path => !path.startsWith('tests/')));
   assert.ok(paths.every(path => !path.startsWith('docs/')));
@@ -63,7 +64,13 @@ test('corpus completeness derives from the catalog rather than a historical fixe
       { id: 'c-test-supplementary-1' }
     ]
   }];
-  const voices = ['CwhRBWXzGAHq8TQ4Fs17', 'EXAVITQu4vr4xnSDxMaL'];
+  const voices = [
+    'CwhRBWXzGAHq8TQ4Fs17',
+    'EXAVITQu4vr4xnSDxMaL',
+    'JBFqnCBsd6RMkjVDRZzb',
+    'XrExE9yKIg1WjnnlVkGX',
+    'cjVigY5qzO86Huf0OWal'
+  ];
   const speeds = [0.75, 0.9, 1];
   const audioManifest = catalog.flatMap(command => command.phrasings.flatMap(phrasing =>
     voices.flatMap(voiceId => speeds.map(speed => ({
@@ -74,7 +81,7 @@ test('corpus completeness derives from the catalog rather than a historical fixe
     })))
   ));
 
-  assert.equal(audioManifest.length, 12);
+  assert.equal(audioManifest.length, 30);
   assert.equal(isRecordedCorpusComplete({ catalog, audioManifest }), true);
 });
 

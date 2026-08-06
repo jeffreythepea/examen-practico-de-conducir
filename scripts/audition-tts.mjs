@@ -1,13 +1,16 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { isAbsolute, resolve, sep } from 'node:path';
 
 export const AUDITION_COMMAND_IDS = Object.freeze([
   'c-der',
+  'c-recto',
   'c-rot3',
+  'c-rot5',
   'c-est',
   'c-adapte',
-  'c-pre-largo-alcance'
+  'c-pre-capo',
+  'c-pre-desempanar-delantera'
 ]);
 
 export const PROVIDERS = Object.freeze({
@@ -23,7 +26,7 @@ export const PROVIDERS = Object.freeze({
   })
 });
 
-const SPEEDS = new Set(['0.75', '0.9', '1']);
+const SPEEDS = new Set(['0.75', '0.9', '1', '1.15']);
 const PROJECT_ROOT = fileURLToPath(new URL('../', import.meta.url));
 const DEFAULT_OUTPUT_DIRECTORY = resolve(PROJECT_ROOT, 'tmp/audio-audition');
 
@@ -45,13 +48,16 @@ export async function main(argv = process.argv.slice(2), environment = process.e
     apiKey,
     fetchImpl: dependencies.fetchImpl ?? globalThis.fetch,
     mkdirImpl: dependencies.mkdirImpl ?? mkdir,
+    statImpl: dependencies.statImpl ?? stat,
     writeFileImpl: dependencies.writeFileImpl ?? writeFile
   });
-  log(`Generated ${generated.length} audition MP3 files.`);
+  const reusedCount = generated.filter(item => item.reused).length;
+  if (reusedCount > 0) log(`Reused ${reusedCount} existing audition MP3 files.`);
+  log(`Generated ${generated.length - reusedCount} audition MP3 files.`);
   return { exitCode: 0, plan, generated };
 }
 
-export async function generateAudition(plan, { apiKey, fetchImpl, mkdirImpl, writeFileImpl }) {
+export async function generateAudition(plan, { apiKey, fetchImpl, mkdirImpl, statImpl, writeFileImpl }) {
   if (typeof fetchImpl !== 'function') throw new Error('fetch is required for provider generation');
 
   const outputDirectory = resolve(plan.outputDirectory);
@@ -59,15 +65,29 @@ export async function generateAudition(plan, { apiKey, fetchImpl, mkdirImpl, wri
 
   const generated = [];
   for (const command of plan.commands) {
+    const path = auditionOutputPath(outputDirectory, command, plan.voice, plan.speed);
+    if (await isReusableAuditionFile(path, statImpl)) {
+      generated.push(Object.freeze({ ...command, path, reused: true }));
+      continue;
+    }
+
     const response = await requestProviderAudio(plan, command, apiKey, fetchImpl);
     if (!response.ok) throw new Error(`${plan.provider} generation failed with HTTP ${response.status}`);
 
-    const path = auditionOutputPath(outputDirectory, command, plan.voice, plan.speed);
     const audio = new Uint8Array(await response.arrayBuffer());
     await writeFileImpl(path, audio);
-    generated.push(Object.freeze({ ...command, path }));
+    generated.push(Object.freeze({ ...command, path, reused: false }));
   }
   return Object.freeze(generated);
+}
+
+async function isReusableAuditionFile(path, statImpl) {
+  try {
+    return (await statImpl(path)).size > 0;
+  } catch (error) {
+    if (error?.code === 'ENOENT') return false;
+    throw error;
+  }
 }
 
 async function requestProviderAudio(plan, command, apiKey, fetchImpl) {
@@ -135,7 +155,7 @@ export function parseArguments(argv) {
     throw new Error('provider must be elevenlabs or openai');
   }
   if (!options.voice) throw new Error('--voice requires a value');
-  if (!SPEEDS.has(options.speed)) throw new Error('speed must be 0.75, 0.9, or 1');
+  if (!SPEEDS.has(options.speed)) throw new Error('speed must be 0.75, 0.9, 1, or the audition-only 1.15');
   if (!isAbsolute(options.out)) throw new Error('--out must be an absolute directory');
   if (resolve(options.out) === sep) throw new Error('--out must not be the filesystem root');
   return Object.freeze({ provider: options.provider, voice: options.voice, speed: options.speed, out: options.out });
@@ -172,7 +192,8 @@ function speedDescription(speed) {
   return ({
     '0.75': 'a deliberately slow',
     '0.9': 'a slightly slow',
-    '1': 'normal'
+    '1': 'normal',
+    '1.15': 'a brisk but calm'
   })[speed];
 }
 

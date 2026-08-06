@@ -29,7 +29,10 @@ const STATIC_RUNTIME = Object.freeze([
 
 const EXPECTED_VOICE_IDS = Object.freeze([
   'CwhRBWXzGAHq8TQ4Fs17',
-  'EXAVITQu4vr4xnSDxMaL'
+  'EXAVITQu4vr4xnSDxMaL',
+  'JBFqnCBsd6RMkjVDRZzb',
+  'XrExE9yKIg1WjnnlVkGX',
+  'cjVigY5qzO86Huf0OWal'
 ]);
 const EXPECTED_SPEEDS = Object.freeze([0.75, 0.9, 1]);
 

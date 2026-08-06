@@ -2,19 +2,25 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   captureFocusSnapshot,
+  effectiveSessionSettings,
   feedbackCueForTransition,
   focusScreen,
   generateSurfaceWithRetries,
   localizedVehicleAnswer,
+  mockResultStatus,
   nextSurfaceSeed,
   promptControlsDisabled,
   reduceScreen,
+  resolveSessionExperience,
   resolvePhrasing,
   restoreFocusSnapshot,
   restoreOrDeferFocus,
   selectAudioVariant,
-  selectPlaybackVariant
+  selectPlaybackVariant,
+  sessionIdentityData,
+  sessionStartEligibility
 } from '../src/app.js';
+import { EXAMINERS, selectTodaysExaminer } from '../src/examiners.js';
 import { defaultState, loadState, saveState } from '../src/storage.js';
 import { renderSurfaceModel } from '../src/surfaces.js';
 import { recordAttempt } from '../src/training.js';
@@ -52,6 +58,74 @@ const secureCommand = Object.freeze({
   surfaceId: 'secure-yaris-v1',
   phrasings: [{ id: 'c-inmov-canonical', es: 'Inmovilice el vehículo', en: 'secure the vehicle' }]
 });
+const motionCommands = Object.freeze([
+  [
+    Object.freeze({
+      id: 'c-der',
+      actionId: 'turn-right',
+      phase: 'driving',
+      acceptedResult: 'turn-right',
+      surfaceId: 'junction-v2',
+      phrasings: [{ id: 'c-der-canonical', es: 'Gire a la derecha', en: 'turn right' }]
+    }),
+    'four-way-intersection-photo-v1'
+  ],
+  [
+    Object.freeze({
+      id: 'c-rot2',
+      actionId: 'roundabout-exit-2',
+      phase: 'driving',
+      acceptedResult: 'roundabout-exit-2',
+      surfaceId: 'roundabout-v2',
+      phrasings: [{ id: 'c-rot2-canonical', es: 'Segunda salida', en: 'second exit' }]
+    }),
+    'roundabout-four-photo-v1'
+  ],
+  [
+    Object.freeze({
+      id: 'c-sentido',
+      actionId: 'change-direction',
+      phase: 'driving',
+      acceptedResult: 'change-direction',
+      surfaceId: 'u-turn-v1',
+      phrasings: [{ id: 'c-sentido-canonical', es: 'Cambio de sentido', en: 'turn around' }]
+    }),
+    'u-turn-photo-v1'
+  ],
+  [
+    Object.freeze({
+      id: 'c-adel',
+      actionId: 'overtake',
+      phase: 'driving',
+      acceptedResult: 'overtake',
+      surfaceId: 'overtake-v1',
+      phrasings: [{ id: 'c-adel-canonical', es: 'Adelantamiento', en: 'overtake' }]
+    }),
+    'overtaking-photo-v1'
+  ],
+  [
+    Object.freeze({
+      id: 'c-est',
+      actionId: 'park',
+      phase: 'driving',
+      acceptedResult: 'park',
+      surfaceId: 'parking-v1',
+      phrasings: [{ id: 'c-est-canonical', es: 'Estacione', en: 'park' }]
+    }),
+    'parallel-parking-gap-photo-v1'
+  ],
+  [
+    Object.freeze({
+      id: 'c-parada',
+      actionId: 'voluntary-stop',
+      phase: 'driving',
+      acceptedResult: 'voluntary-stop',
+      surfaceId: 'stopping-v1',
+      phrasings: [{ id: 'c-parada-canonical', es: 'Realice una parada', en: 'stop' }]
+    }),
+    'urban-roadside-photo-v1'
+  ]
+]);
 
 function setupModel() {
   return { screen: 'setup', settings, session: [], index: 0 };
@@ -117,7 +191,7 @@ test('moving junction starts during initial audio, locks choices, then unlocks t
   assert.equal(model.initialAudioPending, true);
   assert.equal(model.promptStartedAt, null);
   assert.equal(model.activeSurfaceModel.family, 'junction');
-  assert.equal(model.junctionMotion.phase, 'approaching-locked');
+  assert.equal(model.roadMotion.phase, 'approaching-locked');
   assert.equal(promptControlsDisabled(model), true);
   assert.strictEqual(
     reduceScreen(model, {
@@ -137,9 +211,31 @@ test('moving junction starts during initial audio, locks choices, then unlocks t
   assert.equal(model.screen, 'prompt');
   assert.equal(model.initialAudioPending, false);
   assert.equal(model.promptStartedAt, 2_000);
-  assert.equal(model.junctionMotion.phase, 'approaching-interactive');
+  assert.equal(model.roadMotion.phase, 'approaching-interactive');
   assert.equal(promptControlsDisabled(model), false);
   assert.strictEqual(model.activeSurfaceModel, surface);
+});
+
+test('every approved photo-backed road family starts one generic locked motion lifecycle', () => {
+  for (const [command, expectedSceneId] of motionCommands) {
+    const loading = reduceScreen(setupModel(), {
+      type: 'START_SESSION',
+      session: [command]
+    });
+    const model = reduceScreen(loading, {
+      type: 'AUDIO_STARTED',
+      variant: rightVariant,
+      startedAt: 1_000,
+      seed: 123,
+      motionEnabled: true
+    });
+
+    assert.equal(model.screen, 'prompt', command.surfaceId);
+    assert.equal(model.activeSurfaceModel.geometry.sceneId, expectedSceneId, command.surfaceId);
+    assert.equal(model.roadMotion.sceneId, expectedSceneId, command.surfaceId);
+    assert.equal(model.roadMotion.phase, 'approaching-locked', command.surfaceId);
+    assert.equal(promptControlsDisabled(model), true, command.surfaceId);
+  }
 });
 
 test('moving junction eligibility and generation failure preserve the existing static audio path', () => {
@@ -193,21 +289,21 @@ test('moving junction waits at approach end and freezes on answers and timeouts'
     completedAt: 2_000
   });
 
-  const replayMotion = model.junctionMotion;
+  const replayMotion = model.roadMotion;
   const replaying = reduceScreen(model, { type: 'REPLAY_STARTED', operationId: 9 });
-  assert.strictEqual(replaying.junctionMotion, replayMotion);
+  assert.strictEqual(replaying.roadMotion, replayMotion);
   const replayed = reduceScreen(replaying, {
     type: 'REPLAY_COMPLETED',
     operationId: 9,
     completedAt: 2_500
   });
-  assert.strictEqual(replayed.junctionMotion, replayMotion);
+  assert.strictEqual(replayed.roadMotion, replayMotion);
 
   const waiting = reduceScreen(replayed, {
-    type: 'JUNCTION_APPROACH_ENDED',
+    type: 'ROAD_APPROACH_ENDED',
     completedAt: 7_000
   });
-  assert.equal(waiting.junctionMotion.phase, 'waiting');
+  assert.equal(waiting.roadMotion.phase, 'waiting');
 
   const correctTarget = model.activeSurfaceModel.targets.find(target =>
     target.resultId === model.activeSurfaceModel.expectedResult
@@ -218,13 +314,13 @@ test('moving junction waits at approach end and freezes on answers and timeouts'
     completedAt: 4_000
   });
   assert.equal(revealed.screen, 'reveal');
-  assert.equal(revealed.junctionMotion.phase, 'waiting');
-  assert.equal(revealed.junctionMotion.frozenProgress, 0.5);
+  assert.equal(revealed.roadMotion.phase, 'waiting');
+  assert.equal(revealed.roadMotion.frozenProgress, 0.5);
 
   const timed = reduceScreen(model, { type: 'TIMEOUT', completedAt: 5_500 });
   assert.equal(timed.screen, 'reveal');
-  assert.equal(timed.junctionMotion.phase, 'waiting');
-  assert.equal(timed.junctionMotion.frozenProgress, 0.75);
+  assert.equal(timed.roadMotion.phase, 'waiting');
+  assert.equal(timed.roadMotion.frozenProgress, 0.75);
 });
 
 test('initial moving audio failure is unscored and all trial resets clear motion fields', () => {
@@ -245,7 +341,7 @@ test('initial moving audio failure is unscored and all trial resets clear motion
     assert.equal(failed.screen, 'loading-audio');
     assert.equal(failed.outcome, null);
     assert.equal(failed.initialAudioPending, false);
-    assert.equal(failed.junctionMotion, null);
+    assert.equal(failed.roadMotion, null);
     assert.equal(failed.activeSurfaceModel, null);
   }
 
@@ -264,8 +360,8 @@ test('initial moving audio failure is unscored and all trial resets clear motion
   });
   const next = reduceScreen(reveal, { type: 'CONTINUE' });
   assert.equal(next.initialAudioPending, false);
-  assert.equal(next.junctionMotion, null);
-  assert.equal(reduceScreen(next, { type: 'GO_TO_SETUP' }).junctionMotion, null);
+  assert.equal(next.roadMotion, null);
+  assert.equal(reduceScreen(next, { type: 'GO_TO_SETUP' }).roadMotion, null);
 });
 
 test('resuming starts at the next unscored index or opens completed results', () => {
@@ -972,6 +1068,216 @@ test('playback selection prefers the least-exposed recorded phrasing and voice a
     selectPlaybackVariant(variants, command, 0.9, true, attempts, () => 0).id,
     'alternate-sarah'
   );
+});
+
+test('session experience resolves Today once from injected local date parts and preserves fixed or Mixed choices', () => {
+  const base = {
+    experienceMode: 'practice', examinerChoice: 'today', themeId: 'city-circuit'
+  };
+  const dateParts = { year: 2026, month: 8, day: 6 };
+  const today = resolveSessionExperience(base, dateParts);
+
+  assert.deepEqual(today, {
+    modeId: 'practice',
+    examinerChoice: 'today',
+    resolvedExaminerId: selectTodaysExaminer(dateParts).id,
+    themeId: 'city-circuit',
+    replayPolicy: 'unlimited',
+    revealPolicy: 'immediate',
+    simulated: false
+  });
+  assert.equal(Object.isFrozen(today), true);
+  assert.equal(resolveSessionExperience({ ...base, examinerChoice: 'mixed' }, dateParts).resolvedExaminerId, null);
+  assert.equal(resolveSessionExperience({ ...base, examinerChoice: 'roger' }, dateParts).resolvedExaminerId, 'roger');
+});
+
+test('session identity presents stable mode, theme, and examiner metadata without treating Mixed as one person', () => {
+  const fixed = sessionIdentityData({
+    modeId: 'learn', examinerChoice: 'today', resolvedExaminerId: 'george',
+    themeId: 'city-circuit', replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+  });
+  assert.equal(fixed.modeTitleKey, 'experience.learn.title');
+  assert.equal(fixed.themeTitleKey, 'theme.city-circuit.title');
+  assert.equal(fixed.examinerTitleKey, 'examiner.george.name');
+  assert.equal(fixed.examinerDescriptionKey, 'examiner.george.description');
+  assert.deepEqual(fixed.visualTokens, ['amber']);
+  assert.equal(Object.isFrozen(fixed.visualTokens), true);
+  assert.equal(Object.isFrozen(fixed), true);
+
+  const mixed = sessionIdentityData({
+    modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
+    themeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+  });
+  assert.equal(mixed.themeTitleKey, 'theme.adaptive.title');
+  assert.equal(mixed.examinerTitleKey, 'examiner.mixed.title');
+  assert.equal(mixed.examinerDescriptionKey, 'examiner.mixed.description');
+  assert.equal(mixed.visualTokens.length, EXAMINERS.length);
+});
+
+test('effective session settings preserve visible Practice controls and apply only preset-owned Learn fields', () => {
+  const base = {
+    locale: 'es', phase: 'driving', speed: 0.75, hintPolicy: 'unavailable', timed: true,
+    feedbackSounds: false, roadMovement: false, length: 'all', mode: 'free',
+    experienceMode: 'practice', examinerChoice: 'roger', themeId: 'city-circuit'
+  };
+
+  const practice = effectiveSessionSettings(base);
+  assert.deepEqual(practice, base);
+  assert.notStrictEqual(practice, base);
+  assert.equal(Object.isFrozen(practice), true);
+
+  const learn = effectiveSessionSettings({ ...base, experienceMode: 'learn' });
+  assert.deepEqual(learn, {
+    ...base,
+    experienceMode: 'learn',
+    speed: 0.9,
+    hintPolicy: 'shown',
+    timed: false
+  });
+  assert.equal(learn.phase, 'driving');
+  assert.equal(learn.length, 'all');
+  assert.equal(learn.mode, 'free');
+  assert.equal(Object.isFrozen(learn), true);
+
+  const mock = effectiveSessionSettings({ ...base, experienceMode: 'mock' });
+  assert.equal(mock.speed, 1);
+  assert.equal(mock.hintPolicy, 'unavailable');
+  assert.equal(mock.timed, true);
+});
+
+test('Mock blocks replay and Spanish hints, withholds reveal, and advances through a neutral frame', () => {
+  const experience = Object.freeze({
+    modeId: 'mock', examinerChoice: 'mixed', resolvedExaminerId: null, themeId: null,
+    replayPolicy: 'none', revealPolicy: 'session-end', simulated: true
+  });
+  const mockSettings = { ...settings, speed: 1, hintPolicy: 'unavailable', timed: true };
+  let model = reduceScreen(
+    { ...setupModel(), settings: mockSettings },
+    { type: 'START_SESSION', session, experience }
+  );
+  model = reduceScreen(model, {
+    type: 'AUDIO_COMPLETED', variant: { ...rightVariant, speed: 1 }, completedAt: 1_000, seed: 123
+  });
+
+  assert.equal(model.textShown, false);
+  assert.strictEqual(reduceScreen(model, { type: 'SHOW_SPANISH' }), model);
+  assert.strictEqual(reduceScreen(model, { type: 'REPLAY_STARTED', operationId: 1 }), model);
+
+  model = reduceScreen(model, {
+    type: 'SELECT_RESULT', selectedResult: 'turn-right', completedAt: 1_500
+  });
+  assert.equal(model.screen, 'mock-transition');
+  assert.equal(model.outcome, 'unaided', 'evidence remains available for session-end reconstruction');
+
+  model = reduceScreen(model, { type: 'MOCK_CONTINUE' });
+  assert.equal(model.screen, 'loading-audio');
+  assert.equal(model.index, 1);
+  model = reduceScreen(model, {
+    type: 'AUDIO_COMPLETED',
+    variant: { ...rightVariant, id: 'left', commandId: 'c-izq', phrasingId: 'c-izq-canonical', speed: 1 },
+    completedAt: 2_000,
+    seed: 2
+  });
+  model = reduceScreen(model, { type: 'TIMEOUT', completedAt: 10_000 });
+  assert.equal(model.screen, 'mock-transition');
+  model = reduceScreen(model, { type: 'MOCK_CONTINUE' });
+  assert.equal(model.screen, 'results');
+  assert.equal(model.index, 2);
+});
+
+test('Mock result status is clean only when every expected response is unaided', () => {
+  assert.equal(mockResultStatus([
+    { outcome: 'unaided' }, { outcome: 'unaided' }
+  ], 2), 'clean');
+  assert.equal(mockResultStatus([{ outcome: 'unaided' }], 2), 'needs-practice');
+  assert.equal(mockResultStatus([
+    { outcome: 'unaided' }, { outcome: 'incorrect' }
+  ], 2), 'needs-practice');
+  assert.equal(mockResultStatus([
+    { outcome: 'unaided' }, { outcome: 'assisted' }
+  ], 2), 'needs-practice');
+});
+
+test('playback filters fixed and Today examiner candidates before coverage-aware selection while Mixed retains all voices', () => {
+  const command = {
+    id: 'c-der',
+    phrasings: [
+      { id: 'c-der-canonical', es: 'Gire a la derecha' },
+      { id: 'c-der-alt-1', es: 'La próxima a la derecha' }
+    ]
+  };
+  const variants = EXAMINERS.slice(0, 2).map((examiner, index) => ({
+    ...rightVariant,
+    id: `recorded-${examiner.id}`,
+    phrasingId: index === 0 ? 'c-der-canonical' : 'c-der-alt-1',
+    voiceId: examiner.voiceId
+  }));
+  const attempts = [{
+    commandId: command.id,
+    phrasingId: 'c-der-canonical',
+    voiceId: EXAMINERS[0].voiceId,
+    speed: 1
+  }];
+
+  assert.equal(
+    selectPlaybackVariant(variants, command, 0.9, false, attempts, () => 0, {
+      examinerChoice: EXAMINERS[0].id
+    }).voiceId,
+    EXAMINERS[0].voiceId
+  );
+  assert.equal(
+    selectPlaybackVariant(variants, command, 0.9, false, attempts, () => 0, {
+      examinerChoice: 'mixed'
+    }).voiceId,
+    EXAMINERS[1].voiceId
+  );
+  const dateParts = { year: 2026, month: 8, day: 6 };
+  const today = selectTodaysExaminer(dateParts, EXAMINERS.slice(0, 2));
+  assert.equal(
+    selectPlaybackVariant(variants, command, 0.9, false, [], () => 0, {
+      examinerChoice: 'today', dateParts, examinerRegistry: EXAMINERS.slice(0, 2)
+    }).voiceId,
+    today.voiceId
+  );
+  assert.throws(
+    () => selectPlaybackVariant(variants, command, 0.9, true, [], () => 0, {
+      examinerChoice: EXAMINERS[2].id
+    }),
+    /Audio unavailable for examiner/
+  );
+});
+
+test('session Start eligibility distinguishes empty theme combinations from unavailable examiner recordings', () => {
+  const examiner = EXAMINERS[0];
+  const command = {
+    id: 'c-der', actionId: 'turn-right', phase: 'driving', surfaceId: 'junction-v2',
+    phrasings: [{ id: 'c-der-canonical', es: 'Gire a la derecha' }]
+  };
+  const manifest = [{
+    id: 'c-der-roger', commandId: command.id, phrasingId: command.phrasings[0].id,
+    voiceId: examiner.voiceId, speed: 0.9
+  }];
+  const settings = {
+    phase: 'driving', speed: 0.9, experienceMode: 'practice',
+    examinerChoice: examiner.id, themeId: null
+  };
+
+  assert.deepEqual(sessionStartEligibility([command], manifest, settings, false, {
+    year: 2026, month: 8, day: 6
+  }), { canStart: true, reason: null });
+  assert.deepEqual(sessionStartEligibility([command], manifest, {
+    ...settings, examinerChoice: EXAMINERS[1].id
+  }, true, { year: 2026, month: 8, day: 6 }), {
+    canStart: false, reason: 'examiner-audio'
+  });
+  assert.deepEqual(sessionStartEligibility([command], manifest, {
+    ...settings, phase: 'precheck', themeId: 'roundabout-circuit'
+  }, false, { year: 2026, month: 8, day: 6 }), {
+    canStart: false, reason: 'no-commands'
+  });
+  assert.deepEqual(sessionStartEligibility([command], [], {
+    ...settings, examinerChoice: 'mixed'
+  }, true, { year: 2026, month: 8, day: 6 }), { canStart: true, reason: null });
 });
 
 test('prompt and reveal phrasing resolves from the retained audio variant', () => {

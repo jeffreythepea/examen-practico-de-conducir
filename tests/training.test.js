@@ -16,7 +16,13 @@ const DAY_MS = 86_400_000;
 const NOW = Date.UTC(2026, 6, 17, 12);
 
 function command(id, actionId, phase = 'driving') {
-  return { id, actionId, phase };
+  return {
+    id,
+    actionId,
+    phase,
+    surfaceId: 'option-grid-v1',
+    phrasings: [{ id: `${id}-canonical`, es: id, en: id }]
+  };
 }
 
 const commands = [
@@ -314,6 +320,43 @@ test('recommended sessions use readiness priorities and explicit targets', () =>
     }).map(item => item.id),
     ['missed']
   );
+});
+
+test('theme eligibility is applied before readiness-aware phase, target, and length selection', () => {
+  const themedCommands = [
+    command('straight', 'continue-forward'),
+    command('left', 'turn-left'),
+    command('roundabout', 'roundabout-exit-2'),
+    command('oil', 'locate-oil', 'precheck')
+  ];
+  const attempts = [
+    completedAttempt({ id: 'roundabout-miss', commandId: 'roundabout', actionId: 'roundabout-exit-2', outcome: 'incorrect' })
+  ];
+
+  const firstDrive = createSession(themedCommands, {
+    phase: 'mixed', length: 'all', themeId: 'first-drive', attempts, now: NOW, rng: () => 0
+  });
+  assert.deepEqual(firstDrive.map(({ id }) => id).sort(), ['left', 'straight']);
+
+  const targetedOutsideTheme = createSession(themedCommands, {
+    phase: 'mixed', length: 'all', themeId: 'first-drive',
+    target: { kind: 'command', commandId: 'roundabout' }
+  });
+  assert.deepEqual(targetedOutsideTheme, []);
+  assert.equal(Object.isFrozen(targetedOutsideTheme), true);
+
+  const noTheme = createSession(themedCommands, {
+    phase: 'mixed', length: 'all', themeId: null, rng: () => 0
+  });
+  assert.equal(noTheme.length, themedCommands.length);
+});
+
+test('impossible phase and theme combinations return an explicit empty session', () => {
+  const eligible = createSession(commands, {
+    phase: 'precheck', length: 'all', themeId: 'roundabout-circuit', rng: () => 0
+  });
+  assert.deepEqual(eligible, []);
+  assert.equal(Object.isFrozen(eligible), true);
 });
 
 test('free-practice session ignores due dates while retaining the same attempt scoring engine', () => {
