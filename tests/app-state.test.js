@@ -79,7 +79,7 @@ const motionCommands = Object.freeze([
       surfaceId: 'roundabout-v2',
       phrasings: [{ id: 'c-rot2-canonical', es: 'Segunda salida', en: 'second exit' }]
     }),
-    'roundabout-four-photo-v1'
+    'roundabout-four-photo-v2'
   ],
   [
     Object.freeze({
@@ -1183,6 +1183,40 @@ test('Mock blocks replay and Spanish hints, withholds reveal, and advances throu
   model = reduceScreen(model, { type: 'MOCK_CONTINUE' });
   assert.equal(model.screen, 'results');
   assert.equal(model.index, 2);
+});
+
+test('Full Mock continuity synchronizes transition, command, and completed route screens', () => {
+  const experience = Object.freeze({
+    modeId: 'mock', examinerChoice: 'mixed', resolvedExaminerId: null, themeId: 'full-mock',
+    replayPolicy: 'none', revealPolicy: 'session-end', simulated: true
+  });
+  let model = reduceScreen(
+    setupModel(),
+    { type: 'START_SESSION', session, experience, atTransition: true }
+  );
+  assert.equal(model.screen, 'mock-transition');
+  assert.equal(model.index, 0);
+
+  model = reduceScreen(model, { type: 'CONTINUITY_SYNC', index: 0, atTransition: false });
+  assert.equal(model.screen, 'loading-audio');
+  assert.equal(model.index, 0);
+
+  model = { ...model, screen: 'mock-transition' };
+  model = reduceScreen(model, { type: 'CONTINUITY_SYNC', index: 1, atTransition: true });
+  assert.equal(model.screen, 'mock-transition');
+  assert.equal(model.index, 1);
+
+  model = reduceScreen(model, { type: 'CONTINUITY_SYNC', index: 2, atTransition: false });
+  assert.equal(model.screen, 'results');
+  assert.equal(model.index, 2);
+});
+
+test('resuming Full Mock continuity can restore an unscored transition', () => {
+  const model = reduceScreen(setupModel(), {
+    type: 'RESUME_SESSION', session, index: 1, atTransition: true
+  });
+  assert.equal(model.screen, 'mock-transition');
+  assert.equal(model.index, 1);
 });
 
 test('Mock result status is clean only when every expected response is unaided', () => {

@@ -1,10 +1,21 @@
 import { createAudioPlayer, validateAudioManifest } from './audio.js';
 import {
   advanceActiveSession,
+  advanceActiveSessionTransition,
   createActiveSession,
   discardActiveSession,
   resolveActiveSession
 } from './active-session.js';
+import {
+  continuityEnabledForExperience,
+  continuityTransitionViewModel,
+  currentContinuityStep,
+  prepareContinuitySession
+} from './continuity-controller.js';
+import {
+  CONTINUITY_SCENE_FAMILIES,
+  renderContinuityTransition
+} from './continuity-transition-view.js';
 import { commandsForPhase, validateCatalog } from './catalog.js';
 import { createFeedbackCuePlayer } from './feedback-audio.js';
 import {
@@ -61,6 +72,7 @@ const ROAD_MOTION_SURFACE_IDS = new Set([
   'roundabout-v2',
   'u-turn-v1',
   'overtake-v1',
+  'join-traffic-v1',
   'parking-v1',
   'stopping-v1'
 ]);
@@ -245,7 +257,7 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
   if (event.type === 'START_SESSION') {
     return resetTrial({
       ...model,
-      screen: 'loading-audio',
+      screen: event.atTransition ? 'mock-transition' : 'loading-audio',
       session: [...event.session],
       experience: event.experience ?? model.experience ?? null
     }, 0);
@@ -253,7 +265,9 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
   if (event.type === 'RESUME_SESSION') {
     if (!Array.isArray(event.session) || !Number.isSafeInteger(event.index)
         || event.index < 0 || event.index > event.session.length) return model;
-    const screen = event.index === event.session.length ? 'results' : 'loading-audio';
+    const screen = event.atTransition
+      ? 'mock-transition'
+      : event.index === event.session.length ? 'results' : 'loading-audio';
     return resetTrial({
       ...model,
       screen,
@@ -555,6 +569,15 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
     const nextIndex = model.index + 1;
     if (nextIndex >= model.session.length) return resetTrial({ ...model, screen: 'results' }, nextIndex);
     return resetTrial({ ...model, screen: 'loading-audio' }, nextIndex);
+  }
+  if (event.type === 'CONTINUITY_SYNC' && model.screen === 'mock-transition') {
+    if (!Number.isSafeInteger(event.index) || event.index < 0 || event.index > model.session.length) {
+      return model;
+    }
+    const screen = event.atTransition
+      ? 'mock-transition'
+      : event.index === model.session.length ? 'results' : 'loading-audio';
+    return resetTrial({ ...model, screen }, event.index);
   }
   return model;
 }
@@ -1180,6 +1203,19 @@ async function bootstrap() {
   }
 
   function renderMockTransition() {
+    const step = currentContinuityStep(state.activeSession);
+    if (step?.kind === 'transition') {
+      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+      const transition = continuityTransitionViewModel(step, {
+        motionEnabled: state.settings.roadMovement && !reducedMotion,
+        progressText: continuityProgressText()
+      });
+      return `<section class="panel mock-transition" aria-label="${translate(locale(), 'screen.mockTransition')}">
+        ${renderSessionIdentity()}
+        ${renderContinuityTransition(transition, locale())}
+        <p class="notice">${translate(locale(), 'mock.simulated')}</p>
+      </section>`;
+    }
     return `<section class="panel mock-transition" aria-labelledby="mock-transition-title">
       ${renderSessionIdentity()}
       <p class="progress">${progressText()}</p>
@@ -1427,6 +1463,26 @@ async function bootstrap() {
   }
 
   function bindMockTransitionEvents() {
+    const step = currentContinuityStep(state.activeSession);
+    if (step?.kind === 'transition') {
+      let consumed = false;
+      const advance = () => {
+        if (consumed || model.screen !== 'mock-transition') return;
+        const current = currentContinuityStep(state.activeSession);
+        if (current?.id !== step.id) return;
+        consumed = true;
+        advanceContinuityTransition();
+      };
+      app.querySelectorAll('[data-action="skip-continuity-transition"]')
+        .forEach(button => button.addEventListener('click', advance));
+      const family = continuityTransitionViewModel(step, {
+        motionEnabled: true,
+        progressText: continuityProgressText()
+      }).family;
+      const delay = Math.max(1_200, CONTINUITY_SCENE_FAMILIES[family].camera.durationMs + 250);
+      window.setTimeout(advance, delay);
+      return;
+    }
     window.setTimeout(() => {
       if (model.screen !== 'mock-transition') return;
       model = reduceScreen(model, { type: 'MOCK_CONTINUE' });
@@ -1562,7 +1618,7 @@ async function bootstrap() {
       return;
     }
     readinessFilters = { ...readinessFilters, noticeKey: '' };
-    const session = selectedCommands.map(command => ({
+    let session = selectedCommands.map(command => ({
       ...command,
       audioVariant: selectPlaybackVariant(
         manifest,
@@ -1577,6 +1633,12 @@ async function bootstrap() {
         }
       )
     }));
+    let continuity;
+    if (continuityEnabledForExperience(experience)) {
+      const prepared = prepareContinuitySession(session, selectableCommands);
+      session = [...prepared.session];
+      continuity = prepared.continuity;
+    }
     const activeSession = createActiveSession({
       id: createAttemptId(),
       startedAt: Date.now(),
@@ -1588,16 +1650,22 @@ async function bootstrap() {
       })),
       settings: resumableSettings(sessionSettings),
       target: practiceTarget,
+      continuity,
       experience: experience
     });
     state = { ...state, activeSession };
     saveState(window.localStorage, state);
     model = reduceScreen(
       { ...model, settings: sessionSettings },
-      { type: 'START_SESSION', session, experience }
+      {
+        type: 'START_SESSION',
+        session,
+        experience,
+        atTransition: currentContinuityStep(activeSession)?.kind === 'transition'
+      }
     );
     render();
-    void playCurrentCommand();
+    if (model.screen === 'loading-audio') void playCurrentCommand();
   }
 
   function resumeSession() {
@@ -1610,9 +1678,25 @@ async function bootstrap() {
         type: 'RESUME_SESSION',
         session: resumableSession.sessionItems,
         index: resumableSession.index,
-        experience: resumableSession.experience
+        experience: resumableSession.experience,
+        atTransition: currentContinuityStep(state.activeSession)?.kind === 'transition'
       }
     );
+    render();
+    if (model.screen === 'loading-audio') void playCurrentCommand();
+  }
+
+  function advanceContinuityTransition() {
+    const advanced = advanceActiveSessionTransition(state.activeSession);
+    const nextStep = currentContinuityStep(advanced);
+    const routeComplete = !nextStep;
+    state = { ...state, activeSession: routeComplete ? null : advanced };
+    saveState(window.localStorage, state);
+    model = reduceScreen(model, {
+      type: 'CONTINUITY_SYNC',
+      index: advanced.nextIndex,
+      atTransition: nextStep?.kind === 'transition'
+    });
     render();
     if (model.screen === 'loading-audio') void playCurrentCommand();
   }
@@ -1736,16 +1820,31 @@ async function bootstrap() {
     });
     if (result.scored) {
       const progress = { nextIndex: before.index + 1, attemptId: result.attempt.id };
-      const activeSession = before.experience?.revealPolicy === 'session-end'
+      const continuityEnabled = Boolean(state.activeSession?.continuity);
+      let activeSession = before.experience?.revealPolicy === 'session-end'
         ? advanceActiveSession(state.activeSession, progress)
         : persistedActiveSessionAfterAttempt(state.activeSession, progress);
+      const nextStep = continuityEnabled ? currentContinuityStep(activeSession) : null;
+      const continuityIndex = activeSession?.nextIndex ?? progress.nextIndex;
+      if (continuityEnabled && !nextStep) activeSession = null;
       state = { ...result.state, activeSession };
       currentAttemptId = result.attempt.id;
       sessionAttemptIds.push(result.attempt.id);
       saveState(window.localStorage, state);
+      if (continuityEnabled) {
+        model = reduceScreen(model, {
+          type: 'CONTINUITY_SYNC',
+          index: continuityIndex,
+          atTransition: nextStep?.kind === 'transition'
+        });
+      }
     }
     render();
-    if (model.screen !== 'mock-transition') playFeedbackCue(cue);
+    if (before.experience?.revealPolicy === 'session-end') {
+      if (model.screen === 'loading-audio') void playCurrentCommand();
+      return;
+    }
+    playFeedbackCue(cue);
   }
 
   function playFeedbackCue(cue) {
@@ -1801,6 +1900,11 @@ async function bootstrap() {
 
   function progressText() {
     return translate(locale(), 'prompt.progress', { current: model.index + 1, total: model.session.length });
+  }
+
+  function continuityProgressText() {
+    const current = Math.min(model.session.length, model.index + 1);
+    return translate(locale(), 'prompt.progress', { current, total: model.session.length });
   }
 
   function hasAudio(command, speed) {

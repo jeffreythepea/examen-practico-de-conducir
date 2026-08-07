@@ -192,7 +192,7 @@ test('schema 3 migration is additive, immutable, and idempotent', () => {
   assert.deepEqual(migrated.lessonFlags, before.lessonFlags);
   assert.deepEqual(migrated.activeSession, {
     ...before.activeSession,
-    version: 2,
+    version: 3,
     experience: {
       modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
       themeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
@@ -202,6 +202,33 @@ test('schema 3 migration is additive, immutable, and idempotent', () => {
   assert.deepEqual(migratedAgain, migrated);
   assert.notEqual(migratedAgain, migrated);
   assert.notEqual(migratedAgain.settings, migrated.settings);
+});
+
+test('schema 4 round-trips an active-session-v3 continuity cursor without attempts', () => {
+  const activeSession = {
+    version: 3,
+    id: 'session-continuity',
+    startedAt: 123,
+    items: [{ commandId: 'c-der', phrasingId: 'c-der-canonical', voiceId: 'voice-es', speed: 0.9 }],
+    nextIndex: 0,
+    attemptIds: [],
+    settings: {
+      phase: 'mixed', speed: 0.9, hintPolicy: 'available', timed: false,
+      feedbackSounds: true, roadMovement: true, length: 'medium', mode: 'recommended'
+    },
+    experience: {
+      modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
+      themeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+    },
+    continuity: {
+      nextRouteStepIndex: 0,
+      route: [{ kind: 'command', itemIndex: 0, commandId: 'c-der', chapter: 'driving' }]
+    }
+  };
+  const state = { ...defaultState(), activeSession };
+  const imported = importState(exportState(state));
+  assert.deepEqual(imported.activeSession.continuity, activeSession.continuity);
+  assert.deepEqual(imported.attempts, []);
 });
 
 test('schema 4 accepts only stable experience, examiner, and nullable theme IDs', () => {

@@ -9,6 +9,7 @@ const POSITION_JITTER = 1.5;
 export const MANOEUVRE_SURFACE_IDS = Object.freeze([
   'u-turn-v1',
   'overtake-v1',
+  'join-traffic-v1',
   'parking-v1',
   'stopping-v1'
 ]);
@@ -69,6 +70,22 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       targets: [
         { id: 'passing-path', resultId: 'overtake', kind: 'overtaking-route', feature: 'passing-lane', x: 44, y: 39 },
         { id: 'wait-behind', resultId: 'follow-vehicle', kind: 'lane-choice', feature: 'follow-lane', x: 58.5, y: 56 }
+      ]
+    }
+  ],
+  'join-traffic-v1': [
+    {
+      id: 'curbside-safe-merge',
+      expectedResult: 'join-traffic',
+      features: ['right-curb-start', 'correct-travel-lane', 'opposing-lane'],
+      correctRoute: [
+        { x: 66, y: 40 }, { x: 62, y: 38 }, { x: 58, y: 37 },
+        { x: 54, y: 38 }, { x: 50, y: 40 }
+      ],
+      targets: [
+        { id: 'merge-correct-lane', resultId: 'join-traffic', kind: 'manoeuvre-route', feature: 'correct-travel-lane', x: 50, y: 40 },
+        { id: 'remain-at-curb', resultId: 'stay-parked', kind: 'lane-choice', feature: 'right-curb-start', x: 69, y: 55 },
+        { id: 'enter-opposing-lane', resultId: 'wrong-lane', kind: 'lane-choice', feature: 'opposing-lane', x: 31, y: 40 }
       ]
     }
   ],
@@ -137,6 +154,7 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
 const SURFACE_CONTRACTS = Object.freeze({
   'u-turn-v1': Object.freeze({ action: 'change-direction', family: 'u-turn' }),
   'overtake-v1': Object.freeze({ action: 'overtake', family: 'overtake' }),
+  'join-traffic-v1': Object.freeze({ action: 'join-traffic', family: 'join-traffic' }),
   'parking-v1': Object.freeze({ action: 'park', family: 'parking' }),
   'stopping-v1': Object.freeze({ action: 'voluntary-stop', family: 'stopping' })
 });
@@ -184,11 +202,15 @@ export function generateManoeuvreSurface(command, seed) {
       features: template.features,
       ...(contract.family === 'u-turn' ? { sceneId: 'u-turn-photo-v1' } : {}),
       ...(contract.family === 'overtake' ? { sceneId: 'overtaking-photo-v1' } : {}),
+      ...(contract.family === 'join-traffic' ? { sceneId: 'join-traffic-photo-v1' } : {}),
       ...(contract.family === 'parking' ? { sceneId: 'parallel-parking-gap-photo-v1' } : {}),
       ...(contract.family === 'stopping' ? { sceneId: 'urban-roadside-photo-v1' } : {}),
       ...(contract.family === 'overtake' ? {
         learnerVehicle: { x: 59, y: 80, width: 14, height: 22 },
         leadVehicle: { x: 53, y: 26, width: 7, height: 10 }
+      } : {}),
+      ...(contract.family === 'join-traffic' ? {
+        learnerVehicle: { x: 68, y: 60, width: 20, height: 28 }
       } : {}),
       ...(template.correctRoute ? {
         correctRoute: routeToTarget(template.correctRoute, correctTarget, template.correctRouteTargetIndex)
@@ -214,7 +236,9 @@ export function renderManoeuvreSurface(model, locale, state = {}) {
   const surfaceId = FAMILY_SURFACES[model?.family];
   if (!surfaceId) throw new Error(`Unsupported manoeuvre model: ${model?.family}`);
 
-  const usesRoadTargets = model.family === 'u-turn' || model.family === 'overtake';
+  const usesRoadTargets = model.family === 'u-turn'
+    || model.family === 'overtake'
+    || model.family === 'join-traffic';
   const instructionKey = usesRoadTargets ? 'surface.selectRoad' : 'surface.selectSpace';
   const targetLabelKey = usesRoadTargets ? 'surface.selectRoad' : 'surface.targetSpace';
   const selectedTarget = model.targets.find(target => target.id === state.selectedTargetId);

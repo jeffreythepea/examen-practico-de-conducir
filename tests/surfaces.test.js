@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
   SEMANTIC_RESULT_ICONS,
+  START_ENGINE_RESULT_ICONS,
   SUPPORTED_SURFACE_IDS,
   generateSurface,
   reduceSurfaceResponse,
@@ -20,16 +21,57 @@ test('registry contains every active model-aware ID and no removed legacy diagra
     'roundabout-v2',
     'u-turn-v1',
     'overtake-v1',
+    'join-traffic-v1',
     'parking-v1',
     'stopping-v1',
     'wheel-center-v1',
     'secure-yaris-v1',
     'option-grid-v1',
+    'start-engine-v1',
     ...YARIS_SURFACE_IDS
   ]);
   assert.equal(SUPPORTED_SURFACE_IDS.some(id => id.startsWith('yaris-manual-v1-')), false);
   assert.equal(SUPPORTED_SURFACE_IDS.includes('junction-v1'), false);
   assert.equal(SUPPORTED_SURFACE_IDS.includes('roundabout-v1'), false);
+});
+
+test('start-engine surface tests one semantic action without teaching a mechanical sequence', () => {
+  const command = commands.find(candidate => candidate.id === 'c-arr');
+  const model = generateSurface(command, 91);
+  assert.equal(model.family, 'semantic');
+  assert.equal(model.expectedResult, 'start-engine');
+  assert.equal(model.meta.declaredException, false);
+  assert.deepEqual(model.targets.map(target => target.resultId).sort(), [
+    'sound-horn', 'start-engine', 'stop-engine'
+  ]);
+  assert.deepEqual(START_ENGINE_RESULT_ICONS, {
+    'start-engine': '▶️',
+    'stop-engine': '⏹️',
+    'sound-horn': '📣'
+  });
+  assert.equal(JSON.stringify(model).match(/clutch|neutral|key|gear/gi), null);
+
+  const correct = model.targets.find(target => target.resultId === 'start-engine');
+  assert.deepEqual(reduceSurfaceResponse(model, {}, {
+    type: 'select-target',
+    targetId: correct.id
+  }), {
+    complete: true,
+    selectedResult: 'start-engine',
+    selectedTargetId: correct.id
+  });
+
+  for (const locale of ['en', 'es']) {
+    const markup = renderSurfaceModel(model, {}, locale, {});
+    assert.match(markup, /data-surface="start-engine-v1"/);
+    for (const target of model.targets) {
+      const expectedLabel = translate(locale, `actionResult.${target.resultId}`);
+      const buttonMatch = markup.match(new RegExp(`<button[^>]*data-target="${target.id}"[^>]*aria-label="([^"]*)"[^>]*>([\\s\\S]*?)</button>`));
+      assert.ok(buttonMatch, `${locale} ${target.id} must render an accessible button`);
+      assert.equal(buttonMatch[1], expectedLabel);
+      assert.match(buttonMatch[2], new RegExp(`<span class="option-icon" aria-hidden="true">${START_ENGINE_RESULT_ICONS[target.resultId]}</span>`));
+    }
+  }
 });
 
 test('unsupported commands are filtered with a development diagnostic and never substituted', () => {
@@ -150,7 +192,9 @@ test('Task 7 atomically activates every eligible model-aware surface and exactly
     'c-adel': 'overtake-v1',
     'c-adapte': 'option-grid-v1',
     'c-detencion': 'option-grid-v1',
-    'c-final': 'option-grid-v1'
+    'c-final': 'option-grid-v1',
+    'c-arr': 'start-engine-v1',
+    'c-incorp': 'join-traffic-v1'
   };
   for (const [id, surfaceId] of Object.entries(expectedDriving)) {
     assert.equal(commands.find(command => command.id === id).surfaceId, surfaceId, id);

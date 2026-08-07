@@ -71,6 +71,62 @@ function validateTarget(target) {
   if (target.kind === 'command') nonempty(target.commandId, 'activeSession.target.commandId');
 }
 
+function validateContinuity(continuity, items, nextIndex) {
+  record(continuity, 'activeSession.continuity');
+  const allowedKeys = ['nextRouteStepIndex', 'route'];
+  if (Object.keys(continuity).some(key => !allowedKeys.includes(key))) {
+    throw new Error('Invalid activeSession.continuity');
+  }
+  if (!Array.isArray(continuity.route) || continuity.route.length === 0) {
+    throw new Error('Invalid activeSession.continuity.route');
+  }
+  if (!Number.isSafeInteger(continuity.nextRouteStepIndex)
+      || continuity.nextRouteStepIndex < 0
+      || continuity.nextRouteStepIndex > continuity.route.length) {
+    throw new Error('Invalid activeSession.continuity.nextRouteStepIndex');
+  }
+
+  const commandIndexes = new Set();
+  const transitionIds = new Set();
+  continuity.route.forEach((step, routeIndex) => {
+    const path = `activeSession.continuity.route[${routeIndex}]`;
+    record(step, path);
+    nonempty(step.kind, `${path}.kind`);
+    nonempty(step.chapter, `${path}.chapter`);
+    if (step.kind === 'command') {
+      const allowed = ['chapter', 'commandId', 'itemIndex', 'kind'];
+      if (Object.keys(step).some(key => !allowed.includes(key))) throw new Error(`Invalid ${path}`);
+      if (!Number.isSafeInteger(step.itemIndex) || step.itemIndex < 0 || step.itemIndex >= items.length) {
+        throw new Error(`Invalid ${path}.itemIndex`);
+      }
+      nonempty(step.commandId, `${path}.commandId`);
+      if (items[step.itemIndex].commandId !== step.commandId) throw new Error(`Invalid ${path}.commandId`);
+      if (commandIndexes.has(step.itemIndex)) throw new Error(`Invalid duplicate ${path}.itemIndex`);
+      commandIndexes.add(step.itemIndex);
+      return;
+    }
+    if (step.kind === 'transition') {
+      const allowed = ['chapter', 'id', 'kind', 'sceneId'];
+      if (Object.keys(step).some(key => !allowed.includes(key))) throw new Error(`Invalid ${path}`);
+      nonempty(step.id, `${path}.id`);
+      nonempty(step.sceneId, `${path}.sceneId`);
+      if (transitionIds.has(step.id)) throw new Error(`Invalid duplicate ${path}.id`);
+      transitionIds.add(step.id);
+      return;
+    }
+    throw new Error(`Invalid ${path}.kind`);
+  });
+  if (commandIndexes.size !== items.length) throw new Error('Invalid activeSession.continuity command coverage');
+  const completedCommands = continuity.route
+    .slice(0, continuity.nextRouteStepIndex)
+    .filter(step => step.kind === 'command').length;
+  if (completedCommands !== nextIndex) throw new Error('Invalid activeSession.continuity progress');
+  const currentStep = continuity.route[continuity.nextRouteStepIndex];
+  if (currentStep?.kind === 'command' && currentStep.itemIndex !== nextIndex) {
+    throw new Error('Invalid activeSession.continuity command order');
+  }
+}
+
 function validateExperience(experience, settings) {
   record(experience, 'activeSession.experience');
   if (!EXPERIENCE_MODES.has(experience.modeId)) throw new Error('Invalid activeSession.experience.modeId');
@@ -108,11 +164,16 @@ function normalizeVersionOne(session) {
   };
 }
 
+function normalizeVersionTwo(session) {
+  if (session.version !== 2) return session;
+  return { ...session, version: 3 };
+}
+
 export function validateStoredActiveSession(value) {
   const candidate = clone(value);
   record(candidate, 'activeSession');
-  const session = normalizeVersionOne(candidate);
-  if (session.version !== 2) throw new Error('Invalid activeSession.version');
+  const session = normalizeVersionTwo(normalizeVersionOne(candidate));
+  if (session.version !== 3) throw new Error('Invalid activeSession.version');
   nonempty(session.id, 'activeSession.id');
   if (typeof session.startedAt !== 'number' || !Number.isFinite(session.startedAt)) {
     throw new Error('Invalid activeSession.startedAt');
@@ -146,6 +207,8 @@ export function validateStoredActiveSession(value) {
   if (session.attemptIds.length !== session.nextIndex) throw new Error('Invalid activeSession.attemptIds length');
   if (session.target === undefined) delete session.target;
   else validateTarget(session.target);
+  if (session.continuity === undefined) delete session.continuity;
+  else validateContinuity(session.continuity, session.items, session.nextIndex);
   return deepFreeze(session);
 }
 
@@ -157,10 +220,12 @@ export function createActiveSession({
   attemptIds = [],
   settings,
   target,
+  continuity,
   experience = COMPATIBILITY_EXPERIENCE
 }) {
-  const session = { version: 2, id, startedAt, items, nextIndex, attemptIds, settings, experience };
+  const session = { version: 3, id, startedAt, items, nextIndex, attemptIds, settings, experience };
   if (target !== undefined) session.target = target;
+  if (continuity !== undefined) session.continuity = continuity;
   return validateStoredActiveSession(session);
 }
 
@@ -169,10 +234,31 @@ export function advanceActiveSession(session, { nextIndex, attemptId }) {
   nonempty(attemptId, 'attemptId');
   if (current.attemptIds.includes(attemptId)) throw new Error('Invalid duplicate attemptId');
   if (nextIndex !== current.nextIndex + 1) throw new Error('Invalid nextIndex');
+  const continuity = current.continuity === undefined
+    ? undefined
+    : {
+        ...current.continuity,
+        nextRouteStepIndex: current.continuity.nextRouteStepIndex + 1
+      };
   return validateStoredActiveSession({
     ...current,
     nextIndex,
-    attemptIds: [...current.attemptIds, attemptId]
+    attemptIds: [...current.attemptIds, attemptId],
+    ...(continuity === undefined ? {} : { continuity })
+  });
+}
+
+export function advanceActiveSessionTransition(session) {
+  const current = validateStoredActiveSession(session);
+  if (!current.continuity) throw new Error('Active session continuity is disabled');
+  const step = current.continuity.route[current.continuity.nextRouteStepIndex];
+  if (step?.kind !== 'transition') throw new Error('Active session is not at a transition');
+  return validateStoredActiveSession({
+    ...current,
+    continuity: {
+      ...current.continuity,
+      nextRouteStepIndex: current.continuity.nextRouteStepIndex + 1
+    }
   });
 }
 
@@ -207,6 +293,7 @@ export function resolveActiveSession(session, { commands, audioManifest }) {
     experience: clone(stored.experience)
   };
   if (stored.target !== undefined) resolved.target = clone(stored.target);
+  if (stored.continuity !== undefined) resolved.continuity = clone(stored.continuity);
   return deepFreeze(resolved);
 }
 

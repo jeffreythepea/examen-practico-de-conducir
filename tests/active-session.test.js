@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   advanceActiveSession,
+  advanceActiveSessionTransition,
   createActiveSession,
   discardActiveSession,
   resolveActiveSession,
@@ -46,10 +47,22 @@ function session(overrides = {}) {
   });
 }
 
+function continuity(overrides = {}) {
+  return {
+    nextRouteStepIndex: 0,
+    route: [
+      { kind: 'command', itemIndex: 0, commandId: 'c-der', chapter: 'driving' },
+      { kind: 'transition', id: 'cruise-0-1', sceneId: 'urban-cruise', chapter: 'driving' },
+      { kind: 'command', itemIndex: 1, commandId: 'c-pre-aceite', chapter: 'precheck' }
+    ],
+    ...overrides
+  };
+}
+
 test('active session serializes stable command and audio variant IDs but no live surface, timer, DOM, or audio objects', () => {
   const value = session();
   assert.deepEqual(Object.keys(value).sort(), ['attemptIds', 'experience', 'id', 'items', 'nextIndex', 'settings', 'startedAt', 'target', 'version']);
-  assert.equal(value.version, 2);
+  assert.equal(value.version, 3);
   assert.deepEqual(value.experience, {
     modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
     themeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
@@ -62,6 +75,16 @@ test('active session serializes stable command and audio variant IDs but no live
   assert.equal(Object.isFrozen(value.experience), true);
 });
 
+test('version 3 optionally snapshots an immutable continuity route without timer or DOM state', () => {
+  const value = session({ continuity: continuity() });
+  assert.deepEqual(value.continuity, continuity());
+  assert.equal(Object.isFrozen(value.continuity), true);
+  assert.equal(Object.isFrozen(value.continuity.route), true);
+  assert.equal(Object.isFrozen(value.continuity.route[0]), true);
+  assert.equal(JSON.stringify(value.continuity).includes('timer'), false);
+  assert.equal(JSON.stringify(value.continuity).includes('element'), false);
+});
+
 test('advancing appends one attempt and moves to the next unscored command', () => {
   const before = session();
   const after = advanceActiveSession(before, { nextIndex: 1, attemptId: 'attempt-1' });
@@ -69,6 +92,55 @@ test('advancing appends one attempt and moves to the next unscored command', () 
   assert.deepEqual(after.attemptIds, ['attempt-1']);
   assert.equal(before.nextIndex, 0);
   assert.throws(() => advanceActiveSession(after, { nextIndex: 2, attemptId: 'attempt-1' }), /attemptId/);
+});
+
+test('a scored continuity command atomically advances command and route progress', () => {
+  const before = session({ continuity: continuity() });
+  const after = advanceActiveSession(before, { nextIndex: 1, attemptId: 'attempt-1' });
+  assert.equal(after.nextIndex, 1);
+  assert.deepEqual(after.attemptIds, ['attempt-1']);
+  assert.equal(after.continuity.nextRouteStepIndex, 1);
+  assert.equal(after.continuity.route[after.continuity.nextRouteStepIndex].kind, 'transition');
+});
+
+test('transition advancement creates no attempt and cannot skip a command', () => {
+  const afterCommand = advanceActiveSession(
+    session({ continuity: continuity() }),
+    { nextIndex: 1, attemptId: 'attempt-1' }
+  );
+  const afterTransition = advanceActiveSessionTransition(afterCommand);
+  assert.equal(afterTransition.nextIndex, 1);
+  assert.deepEqual(afterTransition.attemptIds, ['attempt-1']);
+  assert.equal(afterTransition.continuity.nextRouteStepIndex, 2);
+  assert.equal(afterTransition.continuity.route[2].kind, 'command');
+  assert.throws(
+    () => advanceActiveSessionTransition(session({ continuity: continuity() })),
+    /not at a transition/i
+  );
+  assert.throws(() => advanceActiveSessionTransition(session()), /disabled/i);
+});
+
+test('continuity validation rejects malformed routes, mismatched commands, and inconsistent progress', () => {
+  assert.throws(() => session({ continuity: { route: [], nextRouteStepIndex: 0 } }), /continuity\.route/);
+  assert.throws(() => session({ continuity: continuity({ nextRouteStepIndex: 4 }) }), /nextRouteStepIndex/);
+  assert.throws(() => session({ continuity: continuity({
+    route: [
+      { kind: 'command', itemIndex: 0, commandId: 'c-pre-aceite', chapter: 'driving' },
+      continuity().route[1],
+      continuity().route[2]
+    ]
+  }) }), /commandId/);
+  assert.throws(() => session({ continuity: continuity({
+    route: [continuity().route[0], continuity().route[1]]
+  }) }), /command coverage/);
+  assert.throws(() => session({ continuity: continuity({
+    route: [continuity().route[2], continuity().route[1], continuity().route[0]]
+  }) }), /command order/);
+  assert.throws(() => session({
+    nextIndex: 1,
+    attemptIds: ['attempt-1'],
+    continuity: continuity()
+  }), /continuity progress/);
 });
 
 test('resolution rejects duplicate, missing, or unsupported command or audio variant IDs', () => {
@@ -87,6 +159,13 @@ test('resolution restores the exact selected phrasing, voice, and speed', () => 
   assert.deepEqual(resolved.settings, settings);
   assert.deepEqual(resolved.target, { kind: 'recommended' });
   assert.equal(resolved.experience.modeId, 'practice');
+});
+
+test('resolution restores continuity route progress without exposing mutable state', () => {
+  const resolved = resolveActiveSession(session({ continuity: continuity() }), { commands, audioManifest });
+  assert.deepEqual(resolved.continuity, continuity());
+  assert.equal(Object.isFrozen(resolved.continuity), true);
+  assert.equal(Object.isFrozen(resolved.continuity.route), true);
 });
 
 test('active sessions validate supported targets while accepting sessions without one', () => {
@@ -123,7 +202,7 @@ test('version-1 sessions normalize immutably to the compatibility Practice and M
   const before = structuredClone(legacy);
 
   const migrated = validateStoredActiveSession(legacy);
-  assert.equal(migrated.version, 2);
+  assert.equal(migrated.version, 3);
   assert.deepEqual(migrated.experience, {
     modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
     themeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
@@ -131,6 +210,16 @@ test('version-1 sessions normalize immutably to the compatibility Practice and M
   assert.deepEqual(legacy, before);
   assert.deepEqual(migrated.items, current.items);
   assert.deepEqual(migrated.settings, current.settings);
+});
+
+test('version-2 sessions normalize to version 3 with continuity disabled', () => {
+  const legacy = structuredClone(session());
+  legacy.version = 2;
+  const before = structuredClone(legacy);
+  const migrated = validateStoredActiveSession(legacy);
+  assert.equal(migrated.version, 3);
+  assert.equal(Object.hasOwn(migrated, 'continuity'), false);
+  assert.deepEqual(legacy, before);
 });
 
 test('experience snapshots reject unknown or preset-inconsistent values', () => {

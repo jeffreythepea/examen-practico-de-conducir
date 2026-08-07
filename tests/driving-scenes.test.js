@@ -12,9 +12,11 @@ const EXPECTED = Object.freeze({
   'overtaking-photo-v1': './assets/driving/overtaking-photo-v1.webp',
   'four-way-intersection-photo-v1': './assets/driving/four-way-intersection-photo-v1.webp',
   'roundabout-four-photo-v1': './assets/driving/roundabout-four-photo-v1.webp',
+  'roundabout-four-photo-v2': './assets/driving/roundabout-four-photo-v2.webp',
   'roundabout-five-photo-v1': './assets/driving/roundabout-five-photo-v1.webp',
   'parallel-parking-gap-photo-v1': './assets/driving/parallel-parking-gap-photo-v1.webp',
-  'urban-roadside-photo-v1': './assets/driving/urban-roadside-photo-v1.webp'
+  'urban-roadside-photo-v1': './assets/driving/urban-roadside-photo-v1.webp',
+  'join-traffic-photo-v1': './assets/driving/join-traffic-photo-v1.webp'
 });
 
 test('driving photo registry exposes only the reviewed stable scene vocabulary', () => {

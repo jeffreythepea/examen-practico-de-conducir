@@ -1,5 +1,6 @@
 tmp/audio-audition/
 tmp/audio-ambience/
+tmp/.DS_Store
 .superpowers/
 node_modules/
 dist/

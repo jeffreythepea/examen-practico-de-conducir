@@ -2067,3 +2067,98 @@ dd {
     margin-top: 0;
   }
 }
+
+/* continuity-transition:start */
+.continuity-transition {
+  display: grid;
+  width: min(100%, 760px);
+  justify-items: center;
+  gap: 0.75rem;
+  margin-inline: auto;
+}
+
+.continuity-transition-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.continuity-transition-stage {
+  width: min(100%, 720px);
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  contain: layout paint;
+  border-radius: 1.25rem;
+  background: #d9e4dc;
+  box-shadow: 0 8px 24px rgb(20 40 30 / 16%);
+}
+
+.continuity-transition-scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 44px;
+  overflow: hidden;
+  border: 0;
+  border-radius: inherit;
+  padding: 0;
+  background: transparent;
+}
+
+button.continuity-transition-scene {
+  cursor: pointer;
+}
+
+.continuity-transition-scene:focus-visible,
+.continuity-transition-skip:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.continuity-transition-image-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: scale(var(--continuity-start-scale, 1));
+  transform-origin: var(--continuity-origin-x, 50%) var(--continuity-origin-y, 84%);
+}
+
+.continuity-transition[data-continuity-motion="true"] .continuity-transition-image-frame {
+  animation: continuity-camera-push var(--continuity-duration, 2000ms) ease-in-out forwards;
+}
+
+.continuity-transition-image-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
+}
+
+.continuity-transition-skip {
+  min-width: 88px;
+  min-height: 44px;
+}
+
+@keyframes continuity-camera-push {
+  from { transform: scale(var(--continuity-start-scale, 1)); }
+  to { transform: scale(var(--continuity-end-scale, 1)); }
+}
+
+@media (orientation: landscape) and (min-width: 900px) {
+  .continuity-transition-stage {
+    width: min(100%, 72vh, 720px);
+    max-height: min(66vh, 480px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .continuity-transition-image-frame,
+  .continuity-transition[data-continuity-motion="true"] .continuity-transition-image-frame {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+/* continuity-transition:end */

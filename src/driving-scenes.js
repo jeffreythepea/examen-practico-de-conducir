@@ -3,9 +3,11 @@ export const DRIVING_SCENE_IDS = Object.freeze([
   'overtaking-photo-v1',
   'four-way-intersection-photo-v1',
   'roundabout-four-photo-v1',
+  'roundabout-four-photo-v2',
   'roundabout-five-photo-v1',
   'parallel-parking-gap-photo-v1',
-  'urban-roadside-photo-v1'
+  'urban-roadside-photo-v1',
+  'join-traffic-photo-v1'
 ]);
 
 export const DRIVING_SCENES = deepFreeze({
@@ -45,6 +47,15 @@ export const DRIVING_SCENES = deepFreeze({
       es: 'Glorieta ilustrativa con entrada inferior y cuatro salidas'
     }
   },
+  'roundabout-four-photo-v2': {
+    id: 'roundabout-four-photo-v2',
+    asset: './assets/driving/roundabout-four-photo-v2.webp',
+    provenance: 'ai-generated-illustrative',
+    alt: {
+      en: 'Illustrative roundabout with a bottom entry and four clean outgoing exits',
+      es: 'Glorieta ilustrativa con entrada inferior y cuatro salidas despejadas'
+    }
+  },
   'roundabout-five-photo-v1': {
     id: 'roundabout-five-photo-v1',
     asset: './assets/driving/roundabout-five-photo-v1.webp',
@@ -70,6 +81,15 @@ export const DRIVING_SCENES = deepFreeze({
     alt: {
       en: 'Illustrative urban road with clear curb, driveway, and pedestrian crossing',
       es: 'Calle urbana ilustrativa con bordillo libre, acceso y paso de peatones'
+    }
+  },
+  'join-traffic-photo-v1': {
+    id: 'join-traffic-photo-v1',
+    asset: './assets/driving/join-traffic-photo-v1.webp',
+    provenance: 'ai-generated-illustrative',
+    alt: {
+      en: 'Illustrative urban road with the learner car parked at the right curb before joining traffic',
+      es: 'Calle urbana ilustrativa con el coche del alumno junto al bordillo derecho antes de incorporarse a la circulación'
     }
   }
 });

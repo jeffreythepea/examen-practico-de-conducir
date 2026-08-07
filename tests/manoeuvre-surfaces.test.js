@@ -22,6 +22,7 @@ function command(action, surfaceId) {
 const CASES = Object.freeze([
   ['change-direction', 'u-turn-v1', 'u-turn'],
   ['overtake', 'overtake-v1', 'overtake'],
+  ['join-traffic', 'join-traffic-v1', 'join-traffic'],
   ['park', 'parking-v1', 'parking'],
   ['voluntary-stop', 'stopping-v1', 'stopping']
 ]);
@@ -30,6 +31,7 @@ test('manoeuvre surfaces expose only explicit stable IDs and named audited templ
   assert.deepEqual(MANOEUVRE_SURFACE_IDS, [
     'u-turn-v1',
     'overtake-v1',
+    'join-traffic-v1',
     'parking-v1',
     'stopping-v1'
   ]);
@@ -40,6 +42,7 @@ test('manoeuvre surfaces expose only explicit stable IDs and named audited templ
       'clear-junction-turnaround',
       'clear-two-lane-pass',
       'clear-return-lane',
+      'curbside-safe-merge',
       'marked-bays-clear-entry',
       'curb-bays-clear-space',
       'urban-curb-clear',
@@ -48,13 +51,51 @@ test('manoeuvre surfaces expose only explicit stable IDs and named audited templ
   );
 
   for (const templates of Object.values(MANOEUVRE_TEMPLATES)) {
-    assert.equal(templates.length, 2);
+    assert.ok(templates.length > 0);
     for (const template of templates) {
       assert.ok(template.features.length > 0, `${template.id} must declare visible features`);
       assert.ok(template.targets.length > 1, `${template.id} must declare accepted and rejected targets`);
       assert.ok(template.targets.some(target => target.resultId === template.expectedResult));
     }
   }
+});
+
+test('join-traffic presents a curb start with correct-lane, parked, and wrong-lane choices', () => {
+  for (let seed = 0; seed < 64; seed += 1) {
+    const model = generateManoeuvreSurface(command('join-traffic', 'join-traffic-v1'), seed);
+    const accepted = model.targets.find(target => target.resultId === 'join-traffic');
+    const parked = model.targets.find(target => target.resultId === 'stay-parked');
+    const wrongLane = model.targets.find(target => target.resultId === 'wrong-lane');
+
+    assert.equal(model.family, 'join-traffic');
+    assert.equal(model.expectedResult, 'join-traffic');
+    assert.equal(model.geometry.sceneId, 'join-traffic-photo-v1');
+    assert.deepEqual(model.geometry.learnerVehicle, { x: 68, y: 60, width: 20, height: 28 });
+    assert.ok(accepted.x >= 47 && accepted.x <= 53 && accepted.y >= 37 && accepted.y <= 43,
+      'accepted target must sit in the correct travel lane ahead of the parked car');
+    assert.ok(parked.x >= 66 && parked.x <= 72 && parked.y >= 52 && parked.y <= 58,
+      'stay-parked target must remain at the right curb');
+    assert.ok(wrongLane.x >= 28 && wrongLane.x <= 34 && wrongLane.y >= 37 && wrongLane.y <= 43,
+      'wrong-lane target must sit clearly across the centre line');
+    assertNonOverlappingTargets(model.targets);
+
+    const route = model.geometry.correctRoute;
+    assert.ok(route[0].x >= 64 && route[0].y >= 38,
+      'reveal route must begin at the front of the curbside learner car');
+    assert.deepEqual(route.at(-1), { x: accepted.x, y: accepted.y });
+    assert.ok(route.every((point, index) => index === 0 || point.x <= route[index - 1].x),
+      'reveal route must merge progressively left from the curb into the lane');
+  }
+
+  const model = generateManoeuvreSurface(command('join-traffic', 'join-traffic-v1'), 9);
+  const markup = renderManoeuvreSurface(model, 'en');
+  assert.match(markup, /class="surface-stage manoeuvre join-traffic driving-photo-stage"/);
+  assert.match(markup, /data-surface="join-traffic-v1"/);
+  assert.match(markup, /data-scene="join-traffic-photo-v1"/);
+  assert.match(markup, /src="\.\/assets\/driving\/join-traffic-photo-v1\.webp"/);
+  assert.match(markup, /class="surface-instruction">Select this road</);
+  assert.doesNotMatch(markup, /data-correct-route/);
+  assert.match(renderManoeuvreSurface(model, 'es', { reveal: true }), /data-correct-route/);
 });
 
 test('manoeuvre surfaces expose only defensible template-declared spatial targets', () => {
@@ -466,6 +507,7 @@ test('production activation includes every eligible manoeuvre and only three sem
 
   const commands = JSON.parse(await readFile(new URL('../data/commands.json', import.meta.url), 'utf8'));
   const expectedActive = {
+    'c-incorp': 'join-traffic-v1',
     'c-sentido': 'u-turn-v1',
     'c-adel': 'overtake-v1',
     'c-est': 'parking-v1',

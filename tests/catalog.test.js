@@ -7,14 +7,85 @@ const commands = JSON.parse(await readFile(new URL('../data/commands.json', impo
 
 test('catalog contains the complete safe atomic command inventory', () => {
   assert.doesNotThrow(() => validateCatalog(commands));
-  assert.equal(commands.length, 36);
-  assert.equal(commands.reduce((total, command) => total + command.phrasings.length, 0), 76);
-  assert.equal(commandsForPhase(commands, 'driving').length, 18);
+  assert.equal(commands.length, 38);
+  assert.equal(commands.reduce((total, command) => total + command.phrasings.length, 0), 79);
+  assert.equal(commandsForPhase(commands, 'driving').length, 20);
   assert.equal(commandsForPhase(commands, 'precheck').length, 18);
-  assert.equal(commandsForPhase(commands, 'mixed').length, 36);
-  assert.equal(new Set(commands.map(command => command.id)).size, 36);
-  assert.equal(new Set(commands.map(command => command.actionId)).size, 36);
+  assert.equal(commandsForPhase(commands, 'mixed').length, 38);
+  assert.equal(new Set(commands.map(command => command.id)).size, 38);
+  assert.equal(new Set(commands.map(command => command.actionId)).size, 38);
   assert.equal(commands.some(command => command.id === 'c-pre-deposito-b'), false);
+});
+
+test('simulated-exam continuity commands preserve approved wording, semantics, and provenance', () => {
+  const start = commandById(commands, 'c-arr');
+  assert.deepEqual(start, {
+    id: 'c-arr',
+    actionId: 'start-engine',
+    category: 'man',
+    phase: 'driving',
+    responseType: 'control-instruction',
+    surfaceId: 'start-engine-v1',
+    icon: '🔑',
+    acceptedResult: 'start-engine',
+    phrasings: [
+      {
+        id: 'c-arr-canonical',
+        es: 'Arranque el motor',
+        en: 'start the engine',
+        wording: 'verbatim',
+        validation: 'instructor-plausible',
+        sourcePage: 'review-derived/composite 2026-08-07',
+        sourceText: 'Arranque el motor',
+        sourceDocument: 'review-derived/composite 2026-08-07',
+        provenanceNote: 'review-derived/composite 2026-08-07; Jeffrey-reported examiner wording, absent from Fermín guide'
+      },
+      {
+        id: 'c-arr-supplementary-1',
+        es: 'Ponga el motor en marcha',
+        en: 'start the engine',
+        wording: 'source-derived',
+        validation: 'instructor-plausible',
+        sourcePage: 'review-derived/composite 2026-08-07',
+        sourceText: 'Ponga el motor en marcha',
+        sourceDocument: 'review-derived/composite 2026-08-07',
+        provenanceNote: 'review-derived/composite 2026-08-07; Jeffrey-approved supplementary wording, absent from Fermín guide'
+      }
+    ]
+  });
+
+  const join = commandById(commands, 'c-incorp');
+  assert.deepEqual(join, {
+    id: 'c-incorp',
+    actionId: 'join-traffic',
+    category: 'man',
+    phase: 'driving',
+    responseType: 'spoken-maneuver',
+    surfaceId: 'join-traffic-v1',
+    icon: '🚗',
+    acceptedResult: 'join-traffic',
+    phrasings: [
+      {
+        id: 'c-incorp-canonical',
+        es: 'Incorpórese a la circulación',
+        en: 'join the traffic flow',
+        wording: 'verbatim',
+        validation: 'instructor-plausible',
+        sourcePage: 'review-derived 2026-08-07',
+        sourceText: 'Incorpórese a la circulación',
+        sourceDocument: 'review-derived 2026-08-07',
+        provenanceNote: 'review-derived 2026-08-07, instructor-plausible; Jeffrey-approved wording, absent from Fermín guide'
+      }
+    ]
+  });
+
+  for (const command of [start, join]) {
+    assert.equal(command.actionId, command.acceptedResult);
+    for (const phrasing of command.phrasings) {
+      assert.equal(Object.hasOwn(phrasing, 'acceptedResult'), false);
+      assert.equal(Object.hasOwn(phrasing, 'surfaceId'), false);
+    }
+  }
 });
 
 test('expanded inventory keeps six source-labeled atomic additions', () => {
@@ -177,11 +248,11 @@ test('phase and lookup APIs reject invalid input', () => {
 
 test('catalog validation names malformed records', () => {
   const malformed = structuredClone(commands);
-  malformed[0].phrasings[0].sourceText = '';
+  malformed.find(command => command.id === 'c-der').phrasings[0].sourceText = '';
   assert.throws(() => validateCatalog(malformed), /c-der.*sourceText/);
 
   const wrongCanonicalId = structuredClone(commands);
-  wrongCanonicalId[0].phrasings[0].id = 'arbitrary';
+  wrongCanonicalId.find(command => command.id === 'c-der').phrasings[0].id = 'arbitrary';
   assert.throws(() => validateCatalog(wrongCanonicalId), /c-der.*canonical phrasing id/);
 
   const wrongPrecheckStatus = structuredClone(commands);

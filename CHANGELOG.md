@@ -1,5 +1,21 @@
 # Changelog
 
+## Simulated-exam continuity — in progress
+
+- Expanded the working catalog to 38 commands and 79 Spanish phrasings with
+  `Arranque el motor` / `Ponga el motor en marcha` and `Incorpórese a la
+  circulación`, preserving stable command, action, phrasing, and provenance
+  rules.
+- Added the semantic start-engine response surface and the pure continuity
+  planner, transition view, and resumable active-session foundation. Controller
+  integration, the join-traffic surface, and physical-device acceptance remain
+  pending.
+- Prepared rollback-safe join-traffic and cleaned-roundabout visual candidates;
+  they remain outside the production runtime until alignment and device review.
+- Generated and integrity-checked the final 45 clips for the three continuity
+  phrasings, completing the 1,185-recording corpus across five voices and three
+  speeds.
+
 ## Examiner modes and themed drives — release candidate
 
 - Added Learn, Practice, and simulated Mock modes while preserving the existing

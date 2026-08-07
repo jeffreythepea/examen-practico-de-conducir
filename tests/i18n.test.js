@@ -98,6 +98,23 @@ test('every stable normalized action/result has a distinct English and Spanish l
   }
 });
 
+test('start-engine semantic choices are clear, bilingual, and procedure-neutral', () => {
+  assert.deepEqual(
+    ['start-engine', 'stop-engine', 'sound-horn'].map(id => translate('en', `actionResult.${id}`)),
+    ['Switch on the engine', 'Switch off the engine', 'Sound the horn']
+  );
+  assert.deepEqual(
+    ['start-engine', 'stop-engine', 'sound-horn'].map(id => translate('es', `actionResult.${id}`)),
+    ['Ponga en funcionamiento el motor', 'Apague el motor', 'Toque el claxon']
+  );
+  for (const locale of ['en', 'es']) {
+    const copy = ['start-engine', 'stop-engine', 'sound-horn']
+      .map(id => translate(locale, `actionResult.${id}`))
+      .join(' ');
+    assert.doesNotMatch(copy, /clutch|embrague|neutral|punto muerto|key|llave|gear|marcha/i);
+  }
+});
+
 test('translation validates locale, key, and interpolation variables', () => {
   assert.equal(translate('en', 'phase.driving'), 'Driving');
   assert.equal(translate('es', 'phase.driving'), 'Conducción');

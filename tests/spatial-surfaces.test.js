@@ -146,10 +146,10 @@ test('renderer draws unlabeled localized road targets and disables every target 
   const model = generateSpatialSurface(command('roundabout-exit-2'), 17, { exitCount: 4 });
   const markup = renderSpatialSurface(model, 'es', { disabled: true });
 
-  assert.equal(model.geometry.sceneId, 'roundabout-four-photo-v1');
+  assert.equal(model.geometry.sceneId, 'roundabout-four-photo-v2');
   assert.match(markup, /^<div class="surface-stage roundabout driving-photo-stage" data-surface="roundabout-v2">/);
-  assert.match(markup, /class="driving-scene-image"[^>]+data-scene="roundabout-four-photo-v1"/);
-  assert.match(markup, /src="\.\/assets\/driving\/roundabout-four-photo-v1\.webp"/);
+  assert.match(markup, /class="driving-scene-image"[^>]+data-scene="roundabout-four-photo-v2"/);
+  assert.match(markup, /src="\.\/assets\/driving\/roundabout-four-photo-v2\.webp"/);
   assert.match(markup, /<svg viewBox="0 0 100 100" preserveAspectRatio="none"[^>]+aria-hidden="true"[^>]+focusable="false"/);
   assert.equal((markup.match(/class="road-target"/g) ?? []).length, 4);
   assert.equal((markup.match(/ disabled/g) ?? []).length, 4);

@@ -17,11 +17,13 @@ export const SUPPORTED_SURFACE_IDS = Object.freeze([
   'roundabout-v2',
   'u-turn-v1',
   'overtake-v1',
+  'join-traffic-v1',
   'parking-v1',
   'stopping-v1',
   'wheel-center-v1',
   'secure-yaris-v1',
   'option-grid-v1',
+  'start-engine-v1',
   ...YARIS_SURFACE_IDS
 ]);
 
@@ -36,15 +38,28 @@ export function supportedCommands(commands, onUnsupported = () => {}) {
 }
 
 const SPATIAL_SURFACE_IDS = new Set(['junction-v2', 'roundabout-v2']);
-const MANOEUVRE_SURFACE_IDS = new Set(['u-turn-v1', 'overtake-v1', 'parking-v1', 'stopping-v1']);
+const MANOEUVRE_SURFACE_IDS = new Set([
+  'u-turn-v1',
+  'overtake-v1',
+  'join-traffic-v1',
+  'parking-v1',
+  'stopping-v1'
+]);
 const CONTROL_SURFACE_IDS = new Set(['wheel-center-v1', 'secure-yaris-v1']);
 const SEMANTIC_RESULTS = Object.freeze(['adapt-speed', 'involuntary-stop', 'exam-finish']);
+const START_ENGINE_RESULTS = Object.freeze(['start-engine', 'stop-engine', 'sound-horn']);
 const SEMANTIC_LAYOUT_SEED_SALT = 0x9e3779b9;
 
 export const SEMANTIC_RESULT_ICONS = Object.freeze({
   'adapt-speed': '⏬',
   'involuntary-stop': '🚧',
   'exam-finish': '🏁'
+});
+
+export const START_ENGINE_RESULT_ICONS = Object.freeze({
+  'start-engine': '▶️',
+  'stop-engine': '⏹️',
+  'sound-horn': '📣'
 });
 
 /**
@@ -56,6 +71,7 @@ export function generateSurface(command, seed) {
   if (CONTROL_SURFACE_IDS.has(command?.surfaceId)) return generateControlSurface(command, seed);
   if (YARIS_SURFACE_IDS.includes(command?.surfaceId)) return generateYarisSurface(command, seed);
   if (command?.surfaceId === 'option-grid-v1') return generateSemanticSurface(command, seed);
+  if (command?.surfaceId === 'start-engine-v1') return generateStartEngineSurface(command, seed);
   throw new Error(`Unsupported surface: ${command?.surfaceId}`);
 }
 
@@ -91,7 +107,7 @@ export function renderSurfaceModel(model, responseState = {}, locale, options = 
   if (model.family === 'junction' || model.family === 'roundabout') {
     return renderSpatialSurface(model, locale, state);
   }
-  if (['u-turn', 'overtake', 'parking', 'stopping'].includes(model.family)) {
+  if (['u-turn', 'overtake', 'join-traffic', 'parking', 'stopping'].includes(model.family)) {
     return renderManoeuvreSurface(model, locale, state);
   }
   if (model.family === 'wheel' || model.family === 'secure-manual') {
@@ -108,10 +124,29 @@ function generateSemanticSurface(command, seed) {
   if (!SEMANTIC_RESULTS.includes(command?.acceptedResult) || command.actionId !== command.acceptedResult) {
     throw new Error(`Unsupported semantic action: ${command?.actionId}`);
   }
+  return generateSemanticChoices(command, seed, {
+    surfaceId: 'option-grid-v1',
+    results: SEMANTIC_RESULTS,
+    declaredException: true
+  });
+}
+
+function generateStartEngineSurface(command, seed) {
+  if (command?.actionId !== 'start-engine' || command.acceptedResult !== 'start-engine') {
+    throw new Error(`Unsupported start-engine action: ${command?.actionId}`);
+  }
+  return generateSemanticChoices(command, seed, {
+    surfaceId: 'start-engine-v1',
+    results: START_ENGINE_RESULTS,
+    declaredException: false
+  });
+}
+
+function generateSemanticChoices(command, seed, contract) {
   const layoutSeed = (seed ^ SEMANTIC_LAYOUT_SEED_SALT) >>> 0;
-  const shuffledResults = shuffleResults(SEMANTIC_RESULTS, seededRandom(layoutSeed));
+  const shuffledResults = shuffleResults(contract.results, seededRandom(layoutSeed));
   return createSurfaceModel({
-    id: `option-grid-v1:${seed}`,
+    id: `${contract.surfaceId}:${seed}`,
     family: 'semantic',
     version: 1,
     seed,
@@ -126,7 +161,11 @@ function generateSemanticSurface(command, seed) {
       height: 30
     })),
     geometry: { layout: 'semantic-grid', columns: 2 },
-    meta: { commandId: command.id, declaredException: true }
+    meta: {
+      commandId: command.id,
+      declaredException: contract.declaredException,
+      surfaceId: contract.surfaceId
+    }
   });
 }
 
@@ -140,6 +179,10 @@ function shuffleResults(results, rng) {
 }
 
 function renderSemanticSurface(model, locale, state) {
+  const surfaceId = model.meta?.surfaceId ?? 'option-grid-v1';
+  const iconSet = surfaceId === 'start-engine-v1'
+    ? START_ENGINE_RESULT_ICONS
+    : SEMANTIC_RESULT_ICONS;
   const buttons = model.targets.map(target => {
     const correct = target.resultId === model.expectedResult;
     const selected = Boolean(state.reveal && target.id === state.selectedTargetId);
@@ -156,10 +199,10 @@ function renderSemanticSurface(model, locale, state) {
       : selectionState === 'wrong'
         ? '<span class="target-status-marker wrong" aria-hidden="true">×</span>'
         : '';
-    const icon = `<span class="option-icon" aria-hidden="true">${SEMANTIC_RESULT_ICONS[target.resultId]}</span>`;
+    const icon = `<span class="option-icon" aria-hidden="true">${iconSet[target.resultId]}</span>`;
     return `<button class="surface-option semantic-option" type="button" data-target="${escapeAttribute(target.id)}" data-result="${escapeAttribute(target.resultId)}" aria-label="${escapeAttribute(translate(locale, `actionResult.${target.resultId}`) + accessibleOutcome)}"${selectedAttributes}${revealAttributes}${state.disabled ? ' disabled' : ''}>${marker}${icon}<span>${escapeHtml(translate(locale, `actionResult.${target.resultId}`))}</span></button>`;
   }).join('');
-  return `<div class="surface-grid semantic-grid" data-surface="option-grid-v1">${buttons}</div>`;
+  return `<div class="surface-grid semantic-grid" data-surface="${escapeAttribute(surfaceId)}">${buttons}</div>`;
 }
 
 function escapeHtml(value = '') {

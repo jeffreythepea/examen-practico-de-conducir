@@ -1,5 +1,62 @@
 [
   {
+    "id": "c-arr",
+    "actionId": "start-engine",
+    "category": "man",
+    "phase": "driving",
+    "responseType": "control-instruction",
+    "surfaceId": "start-engine-v1",
+    "icon": "🔑",
+    "acceptedResult": "start-engine",
+    "phrasings": [
+      {
+        "id": "c-arr-canonical",
+        "es": "Arranque el motor",
+        "en": "start the engine",
+        "wording": "verbatim",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived/composite 2026-08-07",
+        "sourceText": "Arranque el motor",
+        "sourceDocument": "review-derived/composite 2026-08-07",
+        "provenanceNote": "review-derived/composite 2026-08-07; Jeffrey-reported examiner wording, absent from Fermín guide"
+      },
+      {
+        "id": "c-arr-supplementary-1",
+        "es": "Ponga el motor en marcha",
+        "en": "start the engine",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived/composite 2026-08-07",
+        "sourceText": "Ponga el motor en marcha",
+        "sourceDocument": "review-derived/composite 2026-08-07",
+        "provenanceNote": "review-derived/composite 2026-08-07; Jeffrey-approved supplementary wording, absent from Fermín guide"
+      }
+    ]
+  },
+  {
+    "id": "c-incorp",
+    "actionId": "join-traffic",
+    "category": "man",
+    "phase": "driving",
+    "responseType": "spoken-maneuver",
+    "surfaceId": "join-traffic-v1",
+    "icon": "🚗",
+    "acceptedResult": "join-traffic",
+    "phrasings": [
+      {
+        "id": "c-incorp-canonical",
+        "es": "Incorpórese a la circulación",
+        "en": "join the traffic flow",
+        "wording": "verbatim",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-08-07",
+        "sourceText": "Incorpórese a la circulación",
+        "sourceDocument": "review-derived 2026-08-07",
+        "provenanceNote": "review-derived 2026-08-07, instructor-plausible; Jeffrey-approved wording, absent from Fermín guide"
+      }
+    ]
+  },
+  {
     "id": "c-der",
     "actionId": "turn-right",
     "category": "dir",

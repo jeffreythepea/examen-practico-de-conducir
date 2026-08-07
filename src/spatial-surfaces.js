@@ -12,7 +12,7 @@ const FOUR_EXIT_ANGLES = Object.freeze([-12, -83, -163, -206]);
 const FIVE_EXIT_ANGLES = Object.freeze([24, -22, -90, -154, -200]);
 const ROUNDABOUT_SCENES = Object.freeze({
   4: Object.freeze({
-    sceneId: 'roundabout-four-photo-v1',
+    sceneId: 'roundabout-four-photo-v2',
     angles: FOUR_EXIT_ANGLES,
     routeCircle: Object.freeze({ x: 50, y: 48, radius: 20 }),
     targetAnchors: Object.freeze([

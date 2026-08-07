@@ -102,6 +102,19 @@ test('Mock hides replay and answer feedback during the drive and advances throug
   assert.match(source, /model\.screen === 'mock-transition'/);
 });
 
+test('Full Mock continuity persists a narrative route and renders skippable unscored transitions', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /continuityEnabledForExperience\(experience\)/);
+  assert.match(source, /prepareContinuitySession\(session, selectableCommands\)/);
+  assert.match(source, /continuity,\s*\n\s*experience:/);
+  assert.match(source, /currentContinuityStep\(state\.activeSession\)/);
+  assert.match(source, /renderContinuityTransition\(transition, locale\(\)\)/);
+  assert.match(source, /advanceActiveSessionTransition\(state\.activeSession\)/);
+  assert.match(source, /data-action="skip-continuity-transition"/);
+  assert.match(source, /type:\s*'CONTINUITY_SYNC'/);
+});
+
 test('completed Mock results disclose the non-official rule and exact deferred command evidence', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
