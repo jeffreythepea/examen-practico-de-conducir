@@ -38,6 +38,7 @@ import {
   createPostAnswerMotion,
   postAnswerMotionView
 } from './post-answer-motion.js';
+import { compactAttempts } from './attempt-compaction.js';
 import { readinessForCatalog } from './readiness.js';
 import { renderLessonFlagEditor, renderReadinessView } from './readiness-view.js';
 import { sessionPresetById } from './session-presets.js';
@@ -894,6 +895,7 @@ async function bootstrap() {
       ...savedState,
       settings: { ...savedState.settings, mode: practiceMode(savedState.settings.mode) }
     };
+    state = compactAttempts(state, Date.now());
     readinessFilters = { ...readinessFilters, phase: state.settings.phase };
     if (state.activeSession) {
       try {
