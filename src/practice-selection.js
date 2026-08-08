@@ -20,6 +20,26 @@ function uniqueCommands(commands) {
   });
 }
 
+// Interleaves an already-shuffled group's driving/precheck commands (a stratified
+// merge) so a mixed session can't front-load one phase by chance. Each phase's
+// shuffled relative order is preserved; the leading phase is chosen with the
+// injected rng so neither phase is systematically favored; leftovers from
+// whichever phase runs out first are appended in their shuffled order.
+function stratifyByPhase(group, rng) {
+  const driving = group.filter(command => command.phase === 'driving');
+  const precheck = group.filter(command => command.phase === 'precheck');
+  const other = group.filter(command => command.phase !== 'driving' && command.phase !== 'precheck');
+  const buckets = rng() < 0.5 ? [driving, precheck] : [precheck, driving];
+  const indices = [0, 0];
+  const merged = [];
+  while (indices[0] < buckets[0].length || indices[1] < buckets[1].length) {
+    for (let bucket = 0; bucket < 2; bucket += 1) {
+      if (indices[bucket] < buckets[bucket].length) merged.push(buckets[bucket][indices[bucket]++]);
+    }
+  }
+  return [...merged, ...other];
+}
+
 function groupByReadiness(commands, readinessRecords, now) {
   const groups = {
     'not-tested': [],
@@ -157,12 +177,15 @@ export function selectPracticeCommands(commands, {
   if (target.kind === 'recommended') {
     // Need to re-group and shuffle within each group
     const groups = groupByReadiness(eligibleCommands, readinessRecords, now);
+    const shuffleGroup = phase === 'mixed'
+      ? group => stratifyByPhase(fisherYatesShuffle(group, rng), rng)
+      : group => fisherYatesShuffle(group, rng);
     const shuffled = [
-      ...fisherYatesShuffle(groups['not-tested'], rng),
-      ...fisherYatesShuffle(groups['needs-practice'], rng),
-      ...fisherYatesShuffle(groups['due'], rng),
-      ...fisherYatesShuffle(groups['in-progress'], rng),
-      ...fisherYatesShuffle(groups['ready'], rng)
+      ...shuffleGroup(groups['not-tested']),
+      ...shuffleGroup(groups['needs-practice']),
+      ...shuffleGroup(groups['due']),
+      ...shuffleGroup(groups['in-progress']),
+      ...shuffleGroup(groups['ready'])
     ];
     selected = shuffled;
   } else {

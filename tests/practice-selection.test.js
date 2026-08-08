@@ -92,12 +92,16 @@ test('recommended orders unseen before needs-practice before due before in-progr
   const selected = selectPracticeCommands(PRIORITY_COMMANDS, {
     phase: 'mixed', length: 'all', attempts: PRIORITY_ATTEMPTS, now: NOW, rng: () => 0
   });
-  // With rng=0, Fisher-Yates reverses pairs within each priority group
-  // not-tested: [unseen, precheck-1] -> reversed to [precheck-1, unseen]
+  // With rng=0, Fisher-Yates reverses pairs within each priority group; the
+  // not-tested group additionally goes through B4's stratified phase merge
+  // (mixed phase), which picks the leading phase via rng() < 0.5 -> driving
+  // leads, so ['unseen' (driving), 'precheck-1' (precheck)] instead of the
+  // raw post-shuffle order.
+  // not-tested: [precheck-1, unseen] (post-shuffle) -> stratified to [unseen, precheck-1]
   // needs-practice: [missed] -> stays [missed]
-  // due: [due-in-progress, learning] -> reversed to [learning, due-in-progress]
+  // due: [due-in-progress, learning] -> reversed to [learning, due-in-progress] (single-phase group, stratify is a no-op)
   // ready: [ready-cmd] -> stays [ready-cmd]
-  const expected = ['precheck-1', 'unseen', 'missed', 'learning', 'due-in-progress', 'ready-cmd'];
+  const expected = ['unseen', 'precheck-1', 'missed', 'learning', 'due-in-progress', 'ready-cmd'];
   assert.deepEqual(selected.map(c => c.id), expected);
 });
 
@@ -369,19 +373,67 @@ test('recommended priority: not-tested > needs-practice > due > in-progress > re
     attempts: PRIORITY_ATTEMPTS, now: NOW, rng: () => 0
   });
   const ids = selected.map(c => c.id);
-  // With rng=0, Fisher-Yates reverses pairs:
-  // not-tested: [precheck-1, unseen] (first 2)
+  // With rng=0, Fisher-Yates reverses pairs; not-tested additionally goes
+  // through B4's stratified phase merge (mixed phase, rng=0 -> driving leads):
+  // not-tested: [unseen, precheck-1] (first 2)
   // needs-practice: [missed] (index 2)
   // due: [learning, due-in-progress] (indices 3, 4)
   // ready: [ready-cmd] (last)
-  assert.equal(ids.indexOf('unseen'), 1);
-  assert.equal(ids.indexOf('precheck-1'), 0);
+  assert.equal(ids.indexOf('unseen'), 0);
+  assert.equal(ids.indexOf('precheck-1'), 1);
   assert.equal(ids.indexOf('missed'), 2);
   // due commands before ready
   assert(ids.indexOf('due-in-progress') < ids.indexOf('ready-cmd'));
   assert(ids.indexOf('learning') < ids.indexOf('ready-cmd'));
   // ready last
   assert.equal(ids.indexOf('ready-cmd'), ids.length - 1);
+});
+
+function mulberry32(seed) {
+  let a = seed;
+  return () => {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+test('B4: mixed sessions interleave phases within a priority group instead of front-loading one phase', () => {
+  const drivingCommands = Array.from({ length: 6 }, (_, i) => command(`d-${i}`, `d-${i}-action`, 'driving'));
+  const precheckCommands = Array.from({ length: 6 }, (_, i) => command(`p-${i}`, `p-${i}-action`, 'precheck'));
+  const commands = [...drivingCommands, ...precheckCommands];
+
+  for (let seed = 0; seed < 20; seed += 1) {
+    const selected = selectPracticeCommands(commands, {
+      phase: 'mixed', length: 'all', target: { kind: 'recommended' },
+      attempts: [], now: NOW, rng: mulberry32(seed)
+    });
+    assert.equal(selected.length, 12);
+    const phases = selected.map(c => c.phase);
+    let run = 1;
+    for (let i = 1; i < phases.length; i += 1) {
+      run = phases[i] === phases[i - 1] ? run + 1 : 1;
+      assert.ok(run <= 2, `seed ${seed}: more than 2 consecutive ${phases[i]} commands at index ${i} — ${phases.join(',')}`);
+    }
+  }
+});
+
+test('B4: priority-group ordering and non-mixed phases are unaffected by the stratified merge', () => {
+  // Priority ordering must still hold when every command is the same phase (single-phase
+  // group, stratify is a no-op).
+  const single = selectPracticeCommands(PRIORITY_COMMANDS.filter(c => c.phase === 'driving'), {
+    phase: 'mixed', length: 'all', target: { kind: 'recommended' },
+    attempts: PRIORITY_ATTEMPTS, now: NOW, rng: () => 0
+  });
+  assert.equal(single.map(c => c.id).at(-1), 'ready-cmd');
+
+  // A non-mixed phase must never invoke the stratified merge (there is only one phase).
+  const precheckOnly = selectPracticeCommands(PRIORITY_COMMANDS, {
+    phase: 'precheck', length: 'all', target: { kind: 'recommended' },
+    attempts: PRIORITY_ATTEMPTS, now: NOW, rng: () => 0
+  });
+  assert.deepEqual(precheckOnly.map(c => c.id), ['precheck-1']);
 });
 
 test('lesson-flags target returns empty array when no open flags', () => {
