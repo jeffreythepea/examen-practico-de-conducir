@@ -858,6 +858,7 @@ async function bootstrap() {
   let sessionRecoveryError = false;
   let importError = '';
   let recoveryError = '';
+  let persistError = false;
   let audioBusy = false;
   let timerId = null;
   let timerTickId = null;
@@ -891,7 +892,7 @@ async function bootstrap() {
         resumableSession = resolveActiveSession(state.activeSession, { commands: selectableCommands, audioManifest: manifest });
       } catch {
         state = discardActiveSession(state);
-        saveState(window.localStorage, state);
+        persistState();
         sessionRecoveryError = true;
       }
     }
@@ -928,6 +929,15 @@ async function bootstrap() {
     return ROAD_MOTION_SURFACE_IDS.has(command?.surfaceId)
       && state.settings.roadMovement
       && !reducedMotion;
+  }
+
+  function persistState() {
+    try {
+      saveState(window.localStorage, state);
+      persistError = false;
+    } catch {
+      persistError = true;
+    }
   }
 
   function render() {
@@ -1023,6 +1033,7 @@ async function bootstrap() {
       <h2 id="setup-title" data-screen-focus tabindex="-1">${translate(locale(), 'screen.setup')}</h2>
       ${recoveryError ? `<p class="notice" role="alert">${translate(locale(), 'error.recovery')}</p>` : ''}
       ${sessionRecoveryError ? `<p class="notice" role="alert">${translate(locale(), 'resume.recovery')}</p>` : ''}
+      ${persistError ? `<p class="notice" role="alert">${translate(locale(), 'error.persistence')} <button type="button" data-action="dismiss-persist-error">${translate(locale(), 'notice.dismiss')}</button></p>` : ''}
       ${renderResumeCard()}
       ${renderSoloSetupView({
         locale: locale(),
@@ -1387,6 +1398,10 @@ async function bootstrap() {
     app.querySelector('[data-action="export"]').addEventListener('click', downloadBackup);
     app.querySelector('[data-action="import"]').addEventListener('click', () => app.querySelector('[data-import-file]').click());
     app.querySelector('[data-action="reset"]').addEventListener('click', resetProgress);
+    app.querySelector('[data-action="dismiss-persist-error"]')?.addEventListener('click', () => {
+      persistError = false;
+      render();
+    });
     app.querySelector('[data-import-file]').addEventListener('change', event => {
       const [file] = event.target.files;
       if (file) void importBackup(file);
@@ -1552,7 +1567,7 @@ async function bootstrap() {
             ? { ...attempt, missReason: reason }
             : attempt)
         };
-        saveState(window.localStorage, state);
+        persistState();
         render();
       });
     });
@@ -1562,7 +1577,7 @@ async function bootstrap() {
       sessionAttemptIds = [];
       state = discardActiveSession(state);
       resumableSession = null;
-      saveState(window.localStorage, state);
+      persistState();
       render();
     });
   }
@@ -1602,7 +1617,7 @@ async function bootstrap() {
         ? updateLessonFlag(state.lessonFlags, flagId, { category, note })
         : createLessonFlag(state.lessonFlags, { commandId, category, note });
       state = { ...state, lessonFlags };
-      saveState(window.localStorage, state);
+      persistState();
       readinessFilters = { ...readinessFilters, editor: null };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -1623,7 +1638,7 @@ async function bootstrap() {
   function changeLessonFlagStatus(flagId, status) {
     try {
       state = { ...state, lessonFlags: updateLessonFlag(state.lessonFlags, flagId, { status }) };
-      saveState(window.localStorage, state);
+      persistState();
       readinessFilters = { ...readinessFilters, editor: null };
       render();
     } catch {
@@ -1637,7 +1652,7 @@ async function bootstrap() {
 
   function updateSettings(changes) {
     state = { ...state, settings: { ...state.settings, ...changes } };
-    saveState(window.localStorage, state);
+    persistState();
     model = { ...reduceScreen(model, { type: 'SET_LOCALE', locale: state.settings.locale }), settings: state.settings };
     importError = '';
     recoveryError = '';
@@ -1703,7 +1718,7 @@ async function bootstrap() {
       experience: experience
     });
     state = { ...state, activeSession };
-    saveState(window.localStorage, state);
+    persistState();
     model = reduceScreen(
       { ...model, settings: sessionSettings },
       {
@@ -1740,7 +1755,7 @@ async function bootstrap() {
     const nextStep = currentContinuityStep(advanced);
     const routeComplete = !nextStep;
     state = { ...state, activeSession: routeComplete ? null : advanced };
-    saveState(window.localStorage, state);
+    persistState();
     model = reduceScreen(model, {
       type: 'CONTINUITY_SYNC',
       index: advanced.nextIndex,
@@ -1754,7 +1769,7 @@ async function bootstrap() {
     state = discardActiveSession(state);
     resumableSession = null;
     sessionRecoveryError = false;
-    saveState(window.localStorage, state);
+    persistState();
     render();
   }
 
@@ -1879,7 +1894,7 @@ async function bootstrap() {
       state = { ...result.state, activeSession };
       currentAttemptId = result.attempt.id;
       sessionAttemptIds.push(result.attempt.id);
-      saveState(window.localStorage, state);
+      persistState();
       if (continuityEnabled) {
         model = reduceScreen(model, {
           type: 'CONTINUITY_SYNC',
@@ -1921,7 +1936,7 @@ async function bootstrap() {
       ...state,
       attempts: state.attempts.map(attempt => attempt.id === currentAttemptId ? { ...attempt, missReason: reason } : attempt)
     };
-    saveState(window.localStorage, state);
+    persistState();
   }
 
   function startTimer() {
@@ -1990,7 +2005,7 @@ async function bootstrap() {
         : null;
       state = candidateState;
       resumableSession = candidateSession;
-      saveState(window.localStorage, state);
+      persistState();
       model = { screen: 'setup', settings: state.settings, session: [], index: 0 };
       importError = '';
       recoveryError = '';

@@ -164,7 +164,7 @@ test('browser controller coordinates moving junction audio, rendering, animation
 test('correct post-answer movement starts only after saved scoring and remains presentation-only', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
   const controller = source.slice(source.indexOf('function completeTrial(event)'), source.indexOf('function playFeedbackCue'));
-  const saveIndex = controller.indexOf('saveState(window.localStorage, state)');
+  const saveIndex = controller.indexOf('persistState()');
   const startIndex = controller.indexOf("type: 'POST_ANSWER_MOTION_STARTED'");
   const renderIndex = controller.lastIndexOf('render()');
 
@@ -218,6 +218,36 @@ test('results screen frames hint-heavy non-mock sessions with an assisted-answer
   const i18nSource = await readFile(new URL('../src/i18n.js', import.meta.url), 'utf8');
   assert.match(i18nSource, /'results\.hintNotice': '[^']+work toward answering from audio alone[^']+'/);
   assert.match(i18nSource, /'results\.hintNotice': '[^']+intenta responder solo con el audio[^']+'/);
+});
+
+test('a persistence failure keeps the session alive and surfaces a dismissible setup notice, replacing every direct saveState call', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  const helperBody = source.slice(
+    source.indexOf('function persistState()'),
+    source.indexOf('function render()')
+  );
+  assert.match(helperBody, /try\s*\{\s*saveState\(window\.localStorage, state\);\s*persistError = false;\s*\}\s*catch\s*\{\s*persistError = true;\s*\}/);
+  assert.doesNotMatch(helperBody, /throw/, 'persistState must never rethrow — a failed save must not break the caller');
+
+  const completeTrial = source.slice(
+    source.indexOf('function completeTrial(event)'),
+    source.indexOf('function playFeedbackCue')
+  );
+  const persistIndex = completeTrial.indexOf('persistState();');
+  const renderIndex = completeTrial.lastIndexOf('render()');
+  assert.ok(persistIndex >= 0 && renderIndex > persistIndex,
+    'the trial must still reach render()/reveal after a persistState() call, whether or not the save succeeded');
+
+  assert.match(source, /\$\{persistError \? `<p class="notice" role="alert">\$\{translate\(locale\(\), 'error\.persistence'\)\} <button type="button" data-action="dismiss-persist-error">/);
+  assert.match(source, /'\[data-action="dismiss-persist-error"\]'\)\?\.addEventListener\('click', \(\) => \{\s*persistError = false;\s*render\(\);\s*\}\)/);
+
+  const directCalls = source.match(/saveState\(window\.localStorage, state\)/g) ?? [];
+  assert.equal(directCalls.length, 1, 'saveState(window.localStorage, state) must appear only inside persistState() itself — every call site must go through persistState()');
+
+  const i18n = await readFile(new URL('../src/i18n.js', import.meta.url), 'utf8');
+  assert.match(i18n, /'error\.persistence': 'Progress could not be saved to this device\. Consider Export backup\.'/);
+  assert.match(i18n, /'error\.persistence': 'El progreso no se pudo guardar en este dispositivo\. Considera Exportar copia\.'/);
 });
 
 test('setup hides data-management actions behind a collapsed-by-default Settings disclosure', async () => {
