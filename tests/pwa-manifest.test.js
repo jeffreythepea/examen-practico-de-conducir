@@ -53,13 +53,16 @@ test('document head references relative PWA assets while retaining iPad standalo
   assert.match(html, /<meta name="apple-mobile-web-app-status-bar-style" content="default">/);
 });
 
-test('document head sets a restrictive Content-Security-Policy', async () => {
+test('document head sets a restrictive Content-Security-Policy that still allows the inline positioning styles spatial targets depend on', async () => {
   const html = await readFile(resolve(ROOT, 'index.html'), 'utf8');
 
   assert.match(
     html,
-    /<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'">/
+    /<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; base-uri 'self'; form-action 'self'; object-src 'none'">/
   );
+
+  const app = await readFile(resolve(ROOT, 'src', 'app.js'), 'utf8');
+  assert.doesNotMatch(app, /<script/i, 'no inline <script> may ever be added — script-src has no unsafe-inline allowance');
 });
 
 test('initial offline recovery page is bilingual and does not claim readiness', async () => {
