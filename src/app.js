@@ -634,17 +634,6 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
   return model;
 }
 
-export function selectAudioVariant(manifest, selection, rng = Math.random) {
-  const candidates = manifest.filter(variant =>
-    variant.commandId === selection.commandId
-    && (!selection.phrasingId || variant.phrasingId === selection.phrasingId)
-    && variant.speed === selection.speed
-  );
-  if (candidates.length === 0) throw new Error(`Audio unavailable for ${selection.commandId}`);
-  const index = Math.min(candidates.length - 1, Math.floor(rng() * candidates.length));
-  return Object.freeze({ ...candidates[index] });
-}
-
 export function selectPlaybackVariant(
   manifest,
   command,
@@ -1973,13 +1962,6 @@ async function bootstrap() {
   function continuityProgressText() {
     const current = Math.min(model.session.length, model.index + 1);
     return translate(locale(), 'prompt.progress', { current, total: model.session.length });
-  }
-
-  function hasAudio(command, speed) {
-    return manifest.some(variant =>
-      variant.commandId === command.id
-      && variant.speed === speed
-    );
   }
 
   function downloadBackup() {
