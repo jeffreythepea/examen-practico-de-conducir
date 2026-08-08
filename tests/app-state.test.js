@@ -16,7 +16,6 @@ import {
   resolvePhrasing,
   restoreFocusSnapshot,
   restoreOrDeferFocus,
-  selectAudioVariant,
   selectPlaybackVariant,
   sessionIdentityData,
   sessionStartEligibility
@@ -1049,13 +1048,14 @@ test('audio selection randomly chooses between available voices and returns one 
     { ...rightVariant, id: 'right-fast', speed: 1 }
   ];
   const selection = { commandId: 'c-der', phrasingId: 'c-der-canonical', speed: 0.9 };
+  const command = session.find(c => c.id === selection.commandId);
 
-  const roger = selectAudioVariant(manifest, selection, () => 0);
-  const sarah = selectAudioVariant(manifest, selection, () => 0.999);
+  const roger = selectPlaybackVariant(manifest, command, selection.speed, false, [], () => 0);
+  const sarah = selectPlaybackVariant(manifest, command, selection.speed, false, [], () => 0.999);
   assert.equal(roger.voiceId, 'roger');
   assert.equal(sarah.voiceId, 'sarah');
   assert.ok(Object.isFrozen(roger));
-  assert.throws(() => selectAudioVariant(manifest, { ...selection, speed: 0.75 }, () => 0), /Audio unavailable/);
+  assert.throws(() => selectPlaybackVariant(manifest, command, 0.75, false, [], () => 0), /Audio unavailable/);
 });
 
 test('audio selection samples all playable phrasings at the requested speed', () => {
@@ -1065,10 +1065,11 @@ test('audio selection samples all playable phrasings at the requested speed', ()
     { ...rightVariant, id: 'right-alt-fast', phrasingId: 'c-der-alt-1', speed: 1 }
   ];
   const selection = { commandId: 'c-der', speed: 0.9 };
+  const command = session.find(c => c.id === selection.commandId);
 
-  assert.equal(selectAudioVariant(manifest, selection, () => 0).phrasingId, 'c-der-canonical');
-  assert.equal(selectAudioVariant(manifest, selection, () => 0.999).phrasingId, 'c-der-alt-1');
-  assert.throws(() => selectAudioVariant(manifest, { ...selection, speed: 0.75 }, () => 0), /Audio unavailable/);
+  assert.equal(selectPlaybackVariant(manifest, command, selection.speed, true, [], () => 0).phrasingId, 'c-der-canonical');
+  assert.equal(selectPlaybackVariant(manifest, command, selection.speed, true, [], () => 0.999).phrasingId, 'c-der-alt-1');
+  assert.throws(() => selectPlaybackVariant(manifest, command, 0.75, false, [], () => 0), /Audio unavailable/);
 });
 
 test('playback selection prefers recordings and creates a stable browser-speech descriptor only when needed', () => {
