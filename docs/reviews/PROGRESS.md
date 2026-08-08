@@ -16,7 +16,7 @@ Status values: `todo` / `in-progress` / `green` (tests pass, awaiting Jeffrey's 
 | B2 manifest/attempt indexes (code P5) | B | review-mechanical | — | todo | |
 | B3 end-session control (play P2) | B | review-mechanical | — | todo | |
 | B4 stratified mixed shuffle (play P4) | B | review-mechanical | — | todo | |
-| C attempts compaction (code P2) | C | attempts-compaction | — | todo | Sonnet 5 only |
+| C attempts compaction (code P2) | C | attempts-compaction | Claude Fable 5 | green | Kept-attempts approach, no schema bump; 620 tests green |
 | D spatial a11y labels (play P1) | D | a11y-labels | — | todo | After B merged; Ultra first, Sonnet fallback |
 | — SW state memoization (code P6) | not written | — | — | deferred | Sonnet, after the above |
 | — event delegation (code P8) | not written | — | — | deferred | Only with future feature work |
