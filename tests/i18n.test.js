@@ -28,6 +28,7 @@ const requiredKeys = [
   'setup.start.noCommands','setup.start.examinerAudio',
   'screen.setup','screen.loading','screen.prompt','screen.results','screen.mockTransition','mock.transition','mock.simulated',
   'mock.result.clean','mock.result.needs-practice','mock.result.nonOfficial','mock.review.title','mock.review.outcome','mock.review.response',
+  'results.hintNotice',
   'prompt.listen','prompt.progress','prompt.timer',
   'reveal.spanish','reveal.meaning','reveal.expected','reveal.vehicle','result.unaided','result.assisted','result.incorrect',
   'miss.hearing','miss.meaning','miss.mapping','miss.target','miss.accidental','miss.other',

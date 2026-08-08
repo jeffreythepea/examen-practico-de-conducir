@@ -209,6 +209,17 @@ test('app selects only supported surfaces and uses normalized actions, localized
   assert.match(source, /class="data-controls" role="group" aria-label="\$\{translate\(locale\(\), 'data\.management'\)\}"/);
 });
 
+test('results screen frames hint-heavy non-mock sessions with an assisted-answers notice', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  assert.match(
+    source,
+    /\$\{!isMock && summary\.counts\.assisted > summary\.counts\.unaided \? `<p class="notice">\$\{translate\(locale\(\), 'results\.hintNotice'\)\}<\/p>` : ''\}/
+  );
+  const i18nSource = await readFile(new URL('../src/i18n.js', import.meta.url), 'utf8');
+  assert.match(i18nSource, /'results\.hintNotice': '[^']+work toward answering from audio alone[^']+'/);
+  assert.match(i18nSource, /'results\.hintNotice': '[^']+intenta responder solo con el audio[^']+'/);
+});
+
 test('setup hides data-management actions behind a collapsed-by-default Settings disclosure', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
