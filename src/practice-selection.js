@@ -29,8 +29,9 @@ function groupByReadiness(commands, readinessRecords, now) {
     'ready': []
   };
 
+  const recordsByCommand = new Map(readinessRecords.map(record => [record.commandId, record]));
   for (const command of commands) {
-    const record = readinessRecords.find(r => r.commandId === command.id);
+    const record = recordsByCommand.get(command.id);
     const state = record?.state ?? 'not-tested';
 
     if (state === 'not-tested') {
