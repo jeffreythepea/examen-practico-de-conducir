@@ -1,5 +1,19 @@
 # Changelog
 
+## Correct post-answer road movement — complete
+
+- Added visual-only accepted-route movement after safely saved correct Learn
+  and Practice answers for junctions, four- and five-exit roundabouts, parking,
+  and voluntary stopping. The static reveal and the movement share one retained
+  route geometry.
+- Kept scoring, readiness, persistence, recorded audio, stable IDs, targets,
+  and the six-second pre-answer approach unchanged. Continue remains available
+  immediately during movement.
+- Kept incorrect answers, timeouts, audio failures, deferred Mock results,
+  unsupported surfaces, Road movement Off, and reduced-motion sessions static.
+- Passed physical iPad review on 2026-08-08, including immediate Continue,
+  static fallbacks, Mock withholding, and installed offline use.
+
 ## Simulated-exam continuity — in progress
 
 - Expanded the working catalog to 38 commands and 79 Spanish phrasings with

@@ -161,6 +161,22 @@ test('browser controller coordinates moving junction audio, rendering, animation
   assert.match(source, /road-camera-push/);
 });
 
+test('correct post-answer movement starts only after saved scoring and remains presentation-only', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const controller = source.slice(source.indexOf('function completeTrial(event)'), source.indexOf('function playFeedbackCue'));
+  const saveIndex = controller.indexOf('saveState(window.localStorage, state)');
+  const startIndex = controller.indexOf("type: 'POST_ANSWER_MOTION_STARTED'");
+  const renderIndex = controller.lastIndexOf('render()');
+
+  assert.ok(saveIndex >= 0 && startIndex > saveIndex, 'movement must start only after the scored state is saved');
+  assert.ok(renderIndex > startIndex, 'the saved movement state must be installed before reveal rendering');
+  assert.match(source, /postAnswerMotionView\(model\.postAnswerMotion, Date\.now\(\)\)/);
+  assert.match(source, /postAnswerMotion\s*\n\s*\}\)\}/);
+  assert.match(source, /attempt:\s*result\.attempt/);
+  assert.match(source, /reducedMotion/);
+  assert.doesNotMatch(controller, /await .*postAnswer|setTimeout\([^)]*postAnswer/);
+});
+
 test('daily-practice controls and SVG response targets preserve 44px touch minimums', async () => {
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(css, /\.surface-option[\s\S]*?min-height:\s*44px;/);

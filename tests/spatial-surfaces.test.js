@@ -82,6 +82,21 @@ test('junction targets remain inside the three photographed road mouths', () => 
   }
 });
 
+test('junction models retain one immutable correct route ending at the accepted road mouth', () => {
+  for (const action of ['turn-left', 'continue-forward', 'turn-right']) {
+    const model = generateSpatialSurface(command(action, 'junction-v2'), 42);
+    const accepted = model.targets.find(target => target.resultId === action);
+
+    assert.deepEqual(model.geometry.correctRoute, [
+      { x: 50, y: 100 },
+      { x: 50, y: 45 },
+      { x: accepted.x, y: accepted.y }
+    ]);
+    assert.ok(Object.isFrozen(model.geometry.correctRoute));
+    assert.ok(model.geometry.correctRoute.every(Object.isFrozen));
+  }
+});
+
 test('straight-ahead junction commands use the photographed center road across seed variation', () => {
   for (let seed = 0; seed < 64; seed += 1) {
     const model = generateSpatialSurface(command('continue-forward', 'junction-v2'), seed);
@@ -135,9 +150,18 @@ test('roundabout reveal routes stay on the photographed lane and finish at the s
       assert.ok(Math.abs(Math.hypot(join.x - circle.x, join.y - circle.y) - circle.radius) < 0.1,
         `${exitCount}-exit route ${ordinal} join must remain on the roundabout lane`);
 
+      const route = model.geometry.correctRoute;
+      assert.deepEqual(route[0], { x: 50, y: 100 });
+      assert.deepEqual(route.at(-1), { x: target.x, y: target.y });
+      assert.ok(route.length >= 7, 'roundabout route must retain enough lane points for smooth movement');
+      for (const point of route.slice(2, -1)) {
+        assert.ok(Math.abs(Math.hypot(point.x - circle.x, point.y - circle.y) - circle.radius) < 0.1,
+          `${exitCount}-exit route ${ordinal} movement point must remain on the roundabout lane`);
+      }
+
       const markup = renderSpatialSurface(model, 'en', { reveal: true });
-      assert.match(markup, new RegExp(`0 ${join.x} ${join.y} L ${target.x} ${target.y}`),
-        `${exitCount}-exit route ${ordinal} must connect the lane join to its exact target`);
+      assert.match(markup, new RegExp(`L ${join.x} ${join.y} L ${target.x} ${target.y}`),
+        `${exitCount}-exit route ${ordinal} must connect the retained lane join to its exact target`);
     }
   }
 });
@@ -221,6 +245,23 @@ test('road motion keeps each spatial photograph, route, and targets in one calib
   assert.match(roundaboutMarkup, /class="road-motion-scene"/);
   assert.match(roundaboutMarkup, /--road-motion-end-scale:1\.03/);
   assert.match(roundaboutMarkup, /--road-motion-origin-y:80%/);
+});
+
+test('correct post-answer movement stays decorative inside the calibrated spatial scene', () => {
+  const model = generateSpatialSurface(command('turn-right', 'junction-v2'), 42);
+  const markup = renderSpatialSurface(model, 'en', {
+    disabled: true,
+    reveal: true,
+    postAnswerMotion: {
+      phase: 'running', family: 'junction', progress: 0, moving: true,
+      durationMs: 1_300, elapsedMs: 0, remainingMs: 1_300,
+      route: model.geometry.correctRoute
+    }
+  });
+
+  assert.match(markup, /data-correct-route[\s\S]*class="post-answer-motion"[\s\S]*class="road-target"/);
+  assert.match(markup, /aria-hidden="true"[\s\S]*<animateMotion/);
+  assert.doesNotMatch(markup, /post-answer-motion[^>]*(?:button|tabindex|aria-live)/);
 });
 
 test('reveal marks the correct target, draws its route, and shows a localized result label', () => {

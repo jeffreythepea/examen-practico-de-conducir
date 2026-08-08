@@ -1,5 +1,6 @@
 import { createSurfaceModel, seededRandom } from './surface-model.js';
 import { drivingScene } from './driving-scenes.js';
+import { renderPostAnswerMotion } from './post-answer-motion-view.js';
 import {
   assertNonOverlappingTargets,
   jitterAngle,
@@ -107,6 +108,13 @@ export function generateSpatialSurface(command, seed, options = {}) {
     angle
   ));
   assertNonOverlappingTargets(targets);
+  const correctIndex = ordinal - 1;
+  const correctRoute = roundaboutRoute(
+    scene.routeCircle,
+    angles[correctIndex],
+    exitJoins[correctIndex],
+    targets[correctIndex]
+  );
 
   return createSurfaceModel({
     id: `roundabout-v2:${seed}`,
@@ -120,6 +128,7 @@ export function generateSpatialSurface(command, seed, options = {}) {
       exitCount,
       angles,
       exitJoins,
+      correctRoute,
       routeCircle: scene.routeCircle,
       sceneId: scene.sceneId
     },
@@ -142,8 +151,10 @@ export function renderSpatialSurface(model, locale, state = {}) {
   }
   const labels = locale === 'es' ? ROAD_LABELS.es : ROAD_LABELS.en;
   const surfaceId = `${model.family}-v2`;
-  const correctTarget = model.targets.find(target => target.resultId === model.expectedResult);
-  const route = state.reveal ? correctRoute(model, correctTarget) : '';
+  const route = state.reveal
+    ? `<path data-correct-route d="${escapeAttribute(svgRoadPath(model.geometry.correctRoute))}"/>`
+    : '';
+  const postAnswerMotion = renderPostAnswerMotion(state.postAnswerMotion);
   const targets = model.targets.map(target => roadTargetButton(target, labels, model.expectedResult, state)).join('');
   const resultLabel = state.reveal
     ? `<p class="surface-result-label">${escapeHtml(labels.prefix + labels[model.expectedResult])}</p>`
@@ -158,6 +169,7 @@ export function renderSpatialSurface(model, locale, state = {}) {
       ${roadDrawing(model)}
       ${route}
     </svg>
+    ${postAnswerMotion}
     ${targets}`;
   const roadMotion = validRoadMotion(state.motion);
   const renderedScene = roadMotion
@@ -209,6 +221,7 @@ function generateJunction(command, seed) {
     STAGE
   ));
   assertNonOverlappingTargets(targets);
+  const correctTarget = targets.find(target => target.resultId === command.acceptedResult);
 
   return createSurfaceModel({
     id: `junction-v2:${seed}`,
@@ -217,7 +230,15 @@ function generateJunction(command, seed) {
     seed,
     expectedResult: command.acceptedResult,
     targets,
-    geometry: { entry: 'bottom', sceneId: 'four-way-intersection-photo-v1' },
+    geometry: {
+      entry: 'bottom',
+      sceneId: 'four-way-intersection-photo-v1',
+      correctRoute: [
+        { x: 50, y: 100 },
+        { x: 50, y: 45 },
+        { x: correctTarget.x, y: correctTarget.y }
+      ]
+    },
     meta: { commandId: command.id }
   });
 }
@@ -271,18 +292,27 @@ function roadDrawing(model) {
     <path d="M 50 98 L 50 80" class="road-marking"/>`;
 }
 
-function correctRoute(model, target) {
-  if (model.family === 'junction') {
-    return `<path data-correct-route d="${svgRoadPath([{ x: 50, y: 100 }, { x: 50, y: 45 }, target])}"/>`;
+function roundaboutRoute(circle, exitAngle, exitJoin, target) {
+  const entryAngle = 90;
+  const angleDelta = exitAngle - entryAngle;
+  const segmentCount = Math.ceil(Math.abs(angleDelta) / 12);
+  const route = [
+    { x: 50, y: 100 },
+    polarPoint(circle.x, circle.y, circle.radius, entryAngle)
+  ];
+  for (let segment = 1; segment < segmentCount; segment += 1) {
+    route.push(polarPoint(
+      circle.x,
+      circle.y,
+      circle.radius,
+      entryAngle + angleDelta * segment / segmentCount
+    ));
   }
-
-  const index = model.targets.indexOf(target);
-  const angle = model.geometry.angles[index];
-  const ringPoint = model.geometry.exitJoins[index];
-  const circle = model.geometry.routeCircle;
-  const entryY = circle.y + circle.radius;
-  const largeArc = Math.abs(90 - angle) > 180 ? 1 : 0;
-  return `<path data-correct-route d="M 50 100 L ${circle.x} ${entryY} A ${circle.radius} ${circle.radius} 0 ${largeArc} 0 ${ringPoint.x} ${ringPoint.y} L ${target.x} ${target.y}"/>`;
+  route.push(
+    { x: exitJoin.x, y: exitJoin.y },
+    { x: target.x, y: target.y }
+  );
+  return route;
 }
 
 function roadTargetButton(target, labels, expectedResult, state) {

@@ -478,6 +478,26 @@ test('road motion wraps every photo-backed manoeuvre scene with its calibrated t
   }
 });
 
+test('parking and stopping accept one decorative correct-route movement layer', () => {
+  for (const [action, surfaceId, family] of [
+    ['park', 'parking-v1', 'parking'],
+    ['voluntary-stop', 'stopping-v1', 'stopping']
+  ]) {
+    const model = generateManoeuvreSurface(command(action, surfaceId), 12);
+    const markup = renderManoeuvreSurface(model, 'en', {
+      disabled: true,
+      reveal: true,
+      postAnswerMotion: {
+        phase: 'running', family, progress: 0.5, moving: true,
+        durationMs: 1_400, elapsedMs: 700, remainingMs: 700,
+        route: model.geometry.correctRoute
+      }
+    });
+    assert.match(markup, /data-correct-route[\s\S]*class="post-answer-motion"[\s\S]*class="manoeuvre-target"/);
+    assert.match(markup, /<animateMotion[^>]*begin="-700ms"/);
+  }
+});
+
 test('manoeuvre target styles preserve the target model dimensions and reveal states', async () => {
   const styles = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(styles, /\.manoeuvre-target\s*\{[^}]*position:\s*absolute[^}]*min-width:\s*44px[^}]*min-height:\s*44px/s);

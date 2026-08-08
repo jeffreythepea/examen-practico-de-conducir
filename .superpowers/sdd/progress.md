@@ -211,3 +211,88 @@ Simulated-exam continuity implementation checkpoint 38, 2026-08-07: the fenced p
 Simulated-exam continuity integration checkpoint 39, 2026-08-07: the delegated slices are integrated and remain uncommitted. Mock + Full mock now constructs a deterministic narrative route from the already-selected commands, orders selected prechecks before departure, inserts unscored skippable straight-driving bridges, persists and resumes an immutable continuity cursor, and advances transitions without creating attempts. `start-engine-v1` and the photo-backed `join-traffic-v1` response surfaces are active; the cleaned `roundabout-four-photo-v2` WebP is active while v1 remains as a rollback asset. The complete suite passes 584 tests with one expected skip for the 45 not-yet-recorded Spanish variants, and `git diff --check` is clean. A live 1180x820 Full Mock run confirmed the setup, session identity, cleaned four-exit photograph, and gameplay surfaces render at iPad-landscape dimensions; automated browser audio is unsuitable for listening acceptance. Release bookkeeping now distinguishes the working 38-command / 79-phrasing catalog and 1,185-clip target from the published 1,140-clip corpus. ElevenLabs generation made no changes because the `examen-practico-elevenlabs` Keychain item is unavailable to the current account/session; the exact generation workflow remains resumable once Jeffrey restores that Keychain entry. Remaining gates are generation of the 45 clips and atomic manifest update, release check/build, physical-iPad continuity/audio acceptance, and Jeffrey's commit/push decision. Untracked `tmp/` remains protected and unrelated.
 
 Simulated-exam continuity audio checkpoint 40, 2026-08-07: Jeffrey restored the 52-character `examen-practico-elevenlabs` Keychain entry. ElevenLabs confirmed that the key is valid but lacks the optional `user_read` permission; Text to Speech access succeeded. The resumable generator reused all 1,140 existing production variants, created exactly 45 new Spanish MP3s for `c-arr` and `c-incorp` across five examiners and three speeds, and atomically published a complete 1,185-entry manifest. Post-generation bookkeeping now records 38 commands / 79 phrasings / 1,185 recordings with zero missing. `npm run release:check` passes all 585 tests, builds a deterministic 1,244-asset / 46,249,794-byte runtime with package hash `346e48cf1eb0f5c75549134276e5fba5c1b02e2a9b2d780ee2f225e7578e0c3a`, reports `Recorded corpus complete: true`, and finishes with a clean diff check. `user_read` is not required for production TTS; enable it only for account/quota inspection, retain `voices_read` for future auditions, and enable Sound Effects only for the deferred ambience experiment. Remaining gates are physical-iPad continuity/audio acceptance and Jeffrey's commit/push decision. Untracked `tmp/` remains protected and unrelated.
+
+Simulated-exam continuity acceptance checkpoint 41, 2026-08-08: Jeffrey physically reviewed the published `e050e61` GitHub Pages build on the iPad and reported that the continuity release passed. This accepts the Full Mock narrative ordering, start-engine and join-traffic recordings/surfaces, unscored transitions, cleaned four-exit roundabout, persistence/resume behavior, complete five-examiner audio corpus, and iPad presentation as the current baseline. The release remains reproducible from the checkpoint-40 gate: 585/585 tests, package hash `346e48cf1eb0f5c75549134276e5fba5c1b02e2a9b2d780ee2f225e7578e0c3a`, 1,244 assets / 46,249,794 bytes, and 1,185/1,185 recorded variants. Solo E3 now begins as a separate reversible slice: correct post-answer movement for representative junction, roundabout, and parking/pull-over families, with no scoring changes, no crash depiction, and first-class reduced-motion behavior. Exact next action: complete the delegated design, route/geometry inventory, and sound/accessibility audit; then implement the smallest test-gated post-answer movement contract before expanding to other road families. `tmp/` remains protected and unrelated.
+## Checkpoint 42 — Solo E3 post-answer movement baseline (2026-08-08)
+
+- Jeffrey authorized autonomous work after physical-iPad acceptance of commit `e050e61`.
+- Approved the bounded correct-only movement design and plan in:
+  - `docs/superpowers/specs/2026-08-08-solo-e3-correct-post-answer-movement-design.md`
+  - `docs/superpowers/plans/2026-08-08-solo-e3-correct-post-answer-movement.md`
+- Baseline gate: `npm test` passes 585/585 before production integration.
+- First slice remains visual-only: junction, four/five-exit roundabout, parking,
+  and voluntary stopping. Incorrect, timeout, deferred Mock, Road movement Off,
+  and reduced-motion reveals remain static. Continue never waits.
+- Existing static correct-route geometry remains the source of truth; no scoring,
+  persistence schema, audio, catalog, credential, or asset changes are authorized.
+- Delegated pure contract and route-fixture audit use disjoint file fences. If an
+  agent is interrupted, resume the existing files and handoff rather than restart.
+
+## Checkpoint 43 — Retained route geometry green (2026-08-08)
+
+- `junction-v2` now retains immutable `geometry.correctRoute` points from the
+  photographed learner entry to the exact accepted road mouth.
+- Four- and five-exit `roundabout-v2` models retain sampled lane points derived
+  from their exact generated `routeCircle`, accepted `exitJoin`, and target.
+- Static reveal rendering consumes those retained points; parking and stopping
+  continue to use their existing reviewed template routes.
+- Focused spatial, manoeuvre, and independent route-fixture audit gate passes
+  40/40. No renderer animation, app lifecycle, scoring, persistence, audio,
+  catalog, or asset behavior changed at this checkpoint.
+- Mechanical rollback: revert the `correctRoute` additions/refactor in
+  `src/spatial-surfaces.js`, the focused expectations in
+  `tests/spatial-surfaces.test.js`, and remove the new fixture audit/handoff.
+
+## Checkpoint 44 — Solo E3 automated and browser review gate (2026-08-08)
+
+- Correct immediate Practice/Learn reveals now animate one decorative marker
+  along the exact retained accepted route for junctions, four/five-exit
+  roundabouts, parking, and voluntary stopping. The animation starts only
+  after the attempt and active session are saved; it never records, scores,
+  persists, or delays Continue.
+- Incorrect, timeout, audio-failure, deferred Mock, unsupported-family, Road
+  movement Off, and reduced-motion cases retain the prior static reveal.
+- Full automated gate passes 612/612. `npm run release:check` builds a complete
+  1,246-asset / 46,262,551-byte runtime with package hash
+  `62a964c672c28137ba7221755c52265c8d812546013173fba8d7b7e7cfd3a7f9` and
+  clean `git diff --check`.
+- Real-browser review at iPad-landscape proportions confirmed a four-exit
+  roundabout marker traverses the accepted lane, settles at the exact exit,
+  and exposes Continue immediately. A deliberately incorrect response and a
+  correct response with Road movement Off rendered no motion layer.
+- No catalog, command/phrasing/action/surface/target ID, interface copy, audio,
+  credential, dependency, network request, or persistence-schema change is in
+  this slice. The prior static reveal remains the mechanical rollback path.
+- Exact next gate: Jeffrey physically checks junction, both roundabout layouts,
+  parking, pull-over, immediate Continue, Road movement Off, Reduce Motion,
+  Mock withholding, and installed offline use on iPad. Do not perform release
+  bookkeeping, commit, or push before that acceptance.
+
+## Checkpoint 45 — Solo E3 physical-iPad acceptance (2026-08-08)
+
+- Jeffrey reported that the physical iPad review passed, accepting supported
+  correct-answer movement, immediate Continue, static fallback cases, Mock
+  withholding, and installed offline behavior.
+- README, active design, changelog, implementation spec, and plan now describe
+  this as the first bounded Solo E3 slice rather than full driving simulation.
+- The rollback boundary remains the two pure motion modules, retained route
+  exposure, renderer options, delimited CSS, controller hook, and focused tests;
+  removing them restores the accepted static `e050e61` reveal behavior without
+  any catalog, attempt, storage, audio, or asset migration.
+- Exact next action: rerun the complete release and credential audit, record its
+  reproducible package result, and stop for Jeffrey's commit/push decision.
+
+## Checkpoint 46 — Solo E3 release candidate complete (2026-08-08)
+
+- Final `npm run release:check` passes 612/612 tests, a clean diff check, the
+  repository/runtime credential-shaped-text audit, and the bilingual AI-voice
+  disclosure audit.
+- The deterministic offline package remains reproducible at 1,246 assets,
+  46,262,551 bytes, package hash
+  `62a964c672c28137ba7221755c52265c8d812546013173fba8d7b7e7cfd3a7f9`, and
+  `Recorded corpus complete: true` for all 1,185 Spanish recordings.
+- Automated, desktop-browser, and physical-iPad gates are complete. No required
+  implementation or review work remains in this bounded Solo E3 slice.
+- The working tree remains uncommitted. Exact next action is Jeffrey's explicit
+  commit/push decision; do not mix later Solo E3 ideas into this rollback-safe
+  release candidate.

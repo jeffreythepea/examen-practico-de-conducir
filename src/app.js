@@ -33,6 +33,11 @@ import {
   roadMotionView
 } from './road-motion.js';
 import { createOfflineClient } from './offline-client.js';
+import {
+  POST_ANSWER_MOTION_FAMILIES,
+  createPostAnswerMotion,
+  postAnswerMotionView
+} from './post-answer-motion.js';
 import { readinessForCatalog } from './readiness.js';
 import { renderLessonFlagEditor, renderReadinessView } from './readiness-view.js';
 import { sessionPresetById } from './session-presets.js';
@@ -76,12 +81,50 @@ const ROAD_MOTION_SURFACE_IDS = new Set([
   'parking-v1',
   'stopping-v1'
 ]);
+const POST_ANSWER_MOTION_FAMILY_SET = new Set(POST_ANSWER_MOTION_FAMILIES);
+const POST_ANSWER_MOTION_DURATIONS = Object.freeze({
+  junction: 1_300,
+  roundabout: 1_650,
+  parking: 1_450,
+  stopping: 1_350
+});
 
 export function promptControlsDisabled(model) {
   return model.screen !== 'prompt'
     || Boolean(model.initialAudioPending)
     || Boolean(model.replayPending)
     || !model.activeSurfaceModel;
+}
+
+export function createSavedPostAnswerMotion({
+  screenModel,
+  attempt,
+  roadMovement,
+  reducedMotion,
+  startedAt
+} = {}) {
+  const surface = screenModel?.activeSurfaceModel;
+  const family = surface?.family;
+  const eligible = screenModel?.screen === 'reveal'
+    && screenModel.correct === true
+    && screenModel.timeout !== true
+    && ['unaided', 'assisted'].includes(attempt?.outcome)
+    && screenModel.experience?.revealPolicy !== 'session-end'
+    && roadMovement === true
+    && reducedMotion !== true
+    && POST_ANSWER_MOTION_FAMILY_SET.has(family)
+    && Array.isArray(surface?.geometry?.correctRoute);
+  try {
+    return createPostAnswerMotion({
+      eligible,
+      family,
+      route: surface?.geometry?.correctRoute,
+      startedAt,
+      durationMs: POST_ANSWER_MOTION_DURATIONS[family]
+    });
+  } catch {
+    return createPostAnswerMotion();
+  }
 }
 
 export function feedbackCueForTransition(before, after, event) {
@@ -250,6 +293,15 @@ export function focusScreen(documentRef, { previousScreen, nextScreen }) {
 export function reduceScreen(model, event, { surfaceGenerator = generateSurface } = {}) {
   if (event.type === 'SET_LOCALE') {
     return { ...model, settings: { ...model.settings, locale: event.locale } };
+  }
+  if (event.type === 'POST_ANSWER_MOTION_STARTED' && model.screen === 'reveal') {
+    try {
+      const view = postAnswerMotionView(event.motion, event.motion?.startedAt ?? 0);
+      if (view.phase !== 'running') return model;
+    } catch {
+      return model;
+    }
+    return { ...model, postAnswerMotion: event.motion };
   }
   if (event.type === 'GO_TO_SETUP') {
     return resetTrial({ ...model, screen: 'setup', settings: model.settings, session: [] }, 0);
@@ -754,6 +806,7 @@ function resetTrial(model, index) {
     promptStartedAt: null,
     initialAudioPending: false,
     roadMotion: null,
+    postAnswerMotion: createPostAnswerMotion(),
     outcome: null,
     selectedResult: null,
     selectedTargetId: null,
@@ -1163,6 +1216,9 @@ async function bootstrap() {
     const motion = model.roadMotion
       ? roadMotionView(model.roadMotion, Date.now())
       : null;
+    const postAnswerMotion = model.postAnswerMotion
+      ? postAnswerMotionView(model.postAnswerMotion, Date.now())
+      : null;
     return `<section class="panel reveal" aria-labelledby="outcome-title">
       <p class="progress">${progressText()}</p>
       <h2 id="outcome-title" role="status" aria-live="polite" class="outcome ${model.outcome}" data-screen-focus tabindex="-1">${translate(locale(), `result.${model.outcome}`)}</h2>
@@ -1171,7 +1227,8 @@ async function bootstrap() {
           disabled: true,
           reveal: true,
           selectedTargetId: model.selectedTargetId,
-          motion
+          motion,
+          postAnswerMotion
         })}</div>
         <div class="gameplay-feedback">
           <dl class="answer-details">
@@ -1838,6 +1895,17 @@ async function bootstrap() {
           atTransition: nextStep?.kind === 'transition'
         });
       }
+      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+      model = reduceScreen(model, {
+        type: 'POST_ANSWER_MOTION_STARTED',
+        motion: createSavedPostAnswerMotion({
+          screenModel: model,
+          attempt: result.attempt,
+          roadMovement: state.settings.roadMovement,
+          reducedMotion,
+          startedAt: Date.now()
+        })
+      });
     }
     render();
     if (before.experience?.revealPolicy === 'session-end') {

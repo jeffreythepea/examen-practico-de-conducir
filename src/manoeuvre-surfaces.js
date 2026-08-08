@@ -1,5 +1,6 @@
 import { translate } from './i18n.js';
 import { drivingScene } from './driving-scenes.js';
+import { renderPostAnswerMotion } from './post-answer-motion-view.js';
 import { assertNonOverlappingTargets, svgRoadPath, targetBox } from './surface-geometry.js';
 import { createSurfaceModel, seededRandom } from './surface-model.js';
 
@@ -251,6 +252,7 @@ export function renderManoeuvreSurface(model, locale, state = {}) {
   const correctRoute = state.reveal && model.geometry.correctRoute
     ? `<path data-correct-route d="${escapeAttribute(svgRoadPath(model.geometry.correctRoute))}"/>`
     : '';
+  const postAnswerMotion = renderPostAnswerMotion(state.postAnswerMotion);
 
   const scene = model.geometry.sceneId ? drivingScene(model.geometry.sceneId) : null;
   const sceneImage = scene
@@ -261,6 +263,7 @@ export function renderManoeuvreSurface(model, locale, state = {}) {
         ${manoeuvreDrawing(model, Boolean(scene))}
         ${correctRoute}
       </svg>
+      ${postAnswerMotion}
       ${model.targets.map(target => targetButton(
         target,
         model,

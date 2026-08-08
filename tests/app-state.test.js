@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   captureFocusSnapshot,
+  createSavedPostAnswerMotion,
   effectiveSessionSettings,
   feedbackCueForTransition,
   focusScreen,
@@ -20,6 +21,7 @@ import {
   sessionIdentityData,
   sessionStartEligibility
 } from '../src/app.js';
+import { createPostAnswerMotion } from '../src/post-answer-motion.js';
 import { EXAMINERS, selectTodaysExaminer } from '../src/examiners.js';
 import { defaultState, loadState, saveState } from '../src/storage.js';
 import { renderSurfaceModel } from '../src/surfaces.js';
@@ -321,6 +323,69 @@ test('moving junction waits at approach end and freezes on answers and timeouts'
   assert.equal(timed.screen, 'reveal');
   assert.equal(timed.roadMotion.phase, 'waiting');
   assert.equal(timed.roadMotion.frozenProgress, 0.75);
+});
+
+test('saved correct immediate reveals alone qualify for bounded post-answer movement', () => {
+  const revealed = reduceScreen(promptModel(), {
+    type: 'SELECT_RESULT', selectedResult: 'turn-right', completedAt: 1_500
+  });
+  const correctAttempt = { outcome: 'unaided' };
+  const assistedAttempt = { outcome: 'assisted' };
+
+  for (const attempt of [correctAttempt, assistedAttempt]) {
+    const motion = createSavedPostAnswerMotion({
+      screenModel: revealed,
+      attempt,
+      roadMovement: true,
+      reducedMotion: false,
+      startedAt: 2_000
+    });
+    assert.equal(motion.phase, 'running');
+    assert.equal(motion.family, 'junction');
+    assert.notStrictEqual(motion.route, revealed.activeSurfaceModel.geometry.correctRoute);
+    assert.deepEqual(motion.route, revealed.activeSurfaceModel.geometry.correctRoute);
+  }
+
+  for (const override of [
+    { attempt: { outcome: 'incorrect' } },
+    { attempt: null },
+    { roadMovement: false },
+    { reducedMotion: true },
+    { screenModel: { ...revealed, screen: 'mock-transition' } },
+    { screenModel: { ...revealed, experience: { revealPolicy: 'session-end' } } },
+    { screenModel: { ...revealed, activeSurfaceModel: { family: 'overtake', geometry: revealed.activeSurfaceModel.geometry } } }
+  ]) {
+    const motion = createSavedPostAnswerMotion({
+      screenModel: revealed,
+      attempt: correctAttempt,
+      roadMovement: true,
+      reducedMotion: false,
+      startedAt: 2_000,
+      ...override
+    });
+    assert.equal(motion.phase, 'static');
+  }
+});
+
+test('post-answer motion reducer state survives locale rerender and clears on Continue', () => {
+  const revealed = reduceScreen(promptModel(), {
+    type: 'SELECT_RESULT', selectedResult: 'turn-right', completedAt: 1_500
+  });
+  const motion = createPostAnswerMotion({
+    eligible: true,
+    family: 'junction',
+    route: revealed.activeSurfaceModel.geometry.correctRoute,
+    startedAt: 2_000,
+    durationMs: 1_300
+  });
+  const started = reduceScreen(revealed, { type: 'POST_ANSWER_MOTION_STARTED', motion });
+  assert.strictEqual(started.postAnswerMotion, motion);
+  assert.strictEqual(reduceScreen(started, { type: 'SET_LOCALE', locale: 'es' }).postAnswerMotion, motion);
+  assert.equal(reduceScreen(started, { type: 'CONTINUE' }).postAnswerMotion.phase, 'static');
+  assert.strictEqual(
+    reduceScreen(promptModel(), { type: 'POST_ANSWER_MOTION_STARTED', motion }).postAnswerMotion.phase,
+    'static'
+  );
 });
 
 test('initial moving audio failure is unscored and all trial resets clear motion fields', () => {

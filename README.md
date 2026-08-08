@@ -5,7 +5,11 @@ An iPad-first static web app for daily practice of Spanish practical-driving-exa
 Photo-backed junction, roundabout, U-turn, overtaking, parking, and voluntary-
 stopping questions can use a six-second moving-road approach. Road movement
 defaults on and can be disabled in Practice setup; browsers requesting reduced
-motion automatically receive the existing static exercise.
+motion automatically receive the existing static exercise. In Learn and
+Practice, correct junction, roundabout, parking, and voluntary-stopping answers
+also trace the accepted route after scoring has been safely saved. Incorrect
+answers, Mock, Road movement Off, and reduced-motion sessions remain static,
+and Continue never waits for the route animation.
 
 ## Use on iPad
 

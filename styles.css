@@ -577,6 +577,62 @@ hr {
   stroke-width: 3;
 }
 
+/* post-answer-motion:begin */
+.post-answer-motion {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.post-answer-motion-graphic {
+  position: absolute;
+  inset: 0;
+  background: transparent !important;
+}
+
+.post-answer-motion-route {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: post-answer-route-draw var(--post-answer-motion-duration) linear both;
+  animation-delay: calc(-1 * var(--post-answer-motion-elapsed));
+}
+
+.post-answer-motion[data-post-answer-motion-phase="complete"] .post-answer-motion-route {
+  animation: none;
+  stroke-dashoffset: 0;
+}
+
+.post-answer-motion-marker {
+  fill: var(--gold);
+  stroke: var(--green-dark);
+  stroke-width: 1;
+}
+
+.road-motion-scene:has(.post-answer-motion) [data-correct-route],
+.surface-stage:has(> .post-answer-motion) [data-correct-route] {
+  opacity: 0.25;
+}
+
+@keyframes post-answer-route-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-answer-motion {
+    display: none;
+  }
+}
+/* post-answer-motion:end */
+
 .driving-photo-stage [data-correct-route],
 .driving-photo-stage .scenario-restriction,
 .driving-photo-stage .scenario-sign-post,

@@ -230,6 +230,17 @@ mastery reporting remain deferred until real practice shows that this limited
 motion improves transfer or response time. The current phrasing expansion
 deliberately varies playback while continuing to score the underlying action.
 
+Immediate Learn and Practice reveals add one bounded consequence after a saved
+correct answer: junctions, four- and five-exit roundabouts, parking, and
+voluntary stopping trace the same retained route used by the static reveal and
+move one decorative marker to the accepted target. The movement is purely
+presentational, never blocks Continue, and never changes scoring, readiness,
+session progress, or storage. Incorrect answers, timeouts, audio failures,
+deferred Mock results, unsupported families, Road movement Off, and reduced-
+motion preferences retain the prior static reveal. Physical iPad acceptance
+was completed on 2026-08-08; the complete behavior remains mechanically
+removable through the documented Solo E3 rollback boundary.
+
 ### Precheck surfaces
 
 - Use seven photo-backed, icon-first illustrative scenes rather than abstract
