@@ -250,6 +250,38 @@ test('a persistence failure keeps the session alive and surfaces a dismissible s
   assert.match(i18n, /'error\.persistence': 'El progreso no se pudo guardar en este dispositivo\. Considera Exportar copia\.'/);
 });
 
+test('End session is a small secondary control on the prompt and mock-transition screens, guarded by a confirm, that keeps scored attempts', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  const promptSection = source.slice(source.indexOf('function renderPrompt()'), source.indexOf('function renderReveal()'));
+  assert.match(promptSection, /<button type="button" data-action="end-session">\$\{translate\(locale\(\), 'session\.end'\)\}<\/button>/);
+
+  const mockTransitionSection = source.slice(source.indexOf('function renderMockTransition()'), source.indexOf('function renderResults()'));
+  const endSessionButtons = mockTransitionSection.match(/<button type="button" data-action="end-session">/g) ?? [];
+  assert.equal(endSessionButtons.length, 2, 'both the mock-transition-step branch and the plain branch must render End session');
+
+  assert.match(source, /'\[data-action="end-session"\]'\)\?\.addEventListener\('click', endSession\)/);
+  const bindPromptEvents = source.slice(source.indexOf('function bindPromptEvents()'), source.indexOf('function bindRevealEvents()'));
+  assert.match(bindPromptEvents, /'\[data-action="end-session"\]'\)\?\.addEventListener\('click', endSession\)/);
+  const bindMockTransitionEvents = source.slice(source.indexOf('function bindMockTransitionEvents()'), source.indexOf('function bindResultsEvents()'));
+  assert.match(bindMockTransitionEvents, /'\[data-action="end-session"\]'\)\?\.addEventListener\('click', endSession\)/);
+
+  const endSessionFn = source.slice(source.indexOf('function endSession()'), source.indexOf('async function playCurrentCommand()'));
+  assert.match(endSessionFn, /if \(!window\.confirm\(translate\(locale\(\), 'session\.endConfirm'\)\)\) return;/);
+  const confirmIndex = endSessionFn.indexOf('window.confirm');
+  for (const mutation of ['stopTimer()', 'player.cancel(', 'discardActiveSession(state)', "model = { screen: 'setup'", 'persistState()']) {
+    const index = endSessionFn.indexOf(mutation);
+    assert.ok(index > confirmIndex, `${mutation} must run only after the confirm check, so a decline leaves session state, timer, and audio untouched`);
+  }
+  assert.doesNotMatch(source.slice(0, source.indexOf('function endSession()')), /function discardActiveSession/, 'sanity: discardActiveSession is imported, not locally defined, so this slice technique is valid');
+
+  const i18n = await readFile(new URL('../src/i18n.js', import.meta.url), 'utf8');
+  assert.match(i18n, /'session\.end': 'End session'/);
+  assert.match(i18n, /'session\.endConfirm': 'End this session\? Progress on answered commands is kept\.'/);
+  assert.match(i18n, /'session\.end': 'Terminar sesión'/);
+  assert.match(i18n, /'session\.endConfirm': '¿Terminar esta sesión\? Se conserva el progreso de las órdenes respondidas\.'/);
+});
+
 test('setup hides data-management actions behind a collapsed-by-default Settings disclosure', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
