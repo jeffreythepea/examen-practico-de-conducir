@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildManifestIndex,
   captureFocusSnapshot,
   createSavedPostAnswerMotion,
   effectiveSessionSettings,
@@ -1378,6 +1379,39 @@ test('session Start eligibility distinguishes empty theme combinations from unav
   assert.deepEqual(sessionStartEligibility([command], [], {
     ...settings, examinerChoice: 'mixed'
   }, true, { year: 2026, month: 8, day: 6 }), { canStart: true, reason: null });
+});
+
+test('sessionStartEligibility and selectPlaybackVariant read from a prebuilt manifest index instead of rescanning the raw manifest', () => {
+  const command = { id: 'c-der', phase: 'driving', phrasings: [{ id: 'c-der-canonical', es: 'Gire a la derecha' }] };
+  const manifest = [
+    { id: 'c-der-roger', commandId: 'c-der', phrasingId: 'c-der-canonical', voiceId: 'roger', speed: 0.9 }
+  ];
+  const manifestIndex = buildManifestIndex(manifest);
+  const settings = { phase: 'driving', speed: 0.9, experienceMode: 'practice', examinerChoice: 'mixed', themeId: null };
+  const dateParts = { year: 2026, month: 8, day: 6 };
+
+  // Mutate the raw manifest so it no longer matches the (still-correct) prebuilt index.
+  manifest.length = 0;
+
+  assert.deepEqual(
+    sessionStartEligibility([command], manifest, settings, false, dateParts, manifestIndex),
+    { canStart: true, reason: null },
+    'must use the prebuilt index, not the now-emptied raw manifest array'
+  );
+  assert.equal(
+    selectPlaybackVariant(manifest, command, 0.9, false, [], () => 0, { manifestIndex }).id,
+    'c-der-roger',
+    'must use the prebuilt index, not the now-emptied raw manifest array'
+  );
+
+  // Omitting the index still works by building one from the (correct, unmutated) manifest.
+  const freshManifest = [
+    { id: 'c-der-roger', commandId: 'c-der', phrasingId: 'c-der-canonical', voiceId: 'roger', speed: 0.9 }
+  ];
+  assert.deepEqual(
+    sessionStartEligibility([command], freshManifest, settings, false, dateParts),
+    { canStart: true, reason: null }
+  );
 });
 
 test('prompt and reveal phrasing resolves from the retained audio variant', () => {

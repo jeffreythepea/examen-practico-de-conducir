@@ -8,9 +8,14 @@ function toUTCDateString(timestamp) {
   return new Date(timestamp).toISOString().slice(0, 10);
 }
 
-export function readinessForCommand(command, attempts, lessonFlags = [], now = Date.now()) {
-  const commandAttempts = attempts
-    .filter(attempt => attempt.commandId === command.id)
+export function readinessForCommand(
+  command,
+  attempts,
+  lessonFlags = [],
+  now = Date.now(),
+  { commandAttempts: prebuiltCommandAttempts, actionAttempts: prebuiltActionAttempts } = {}
+) {
+  const commandAttempts = (prebuiltCommandAttempts ?? attempts.filter(attempt => attempt.commandId === command.id))
     .toSorted((left, right) => right.timestamp - left.timestamp); // newest first
 
   let state;
@@ -61,7 +66,7 @@ export function readinessForCommand(command, attempts, lessonFlags = [], now = D
     .length;
 
   // Use masteryForAction for nextDueAt based on actionId
-  const mastery = masteryForAction(attempts, command.actionId);
+  const mastery = masteryForAction(prebuiltActionAttempts ?? attempts, command.actionId);
   const nextDueAt = mastery.nextDueAt ?? null;
 
   const record = Object.freeze({
@@ -81,9 +86,25 @@ export function readinessForCommand(command, attempts, lessonFlags = [], now = D
   return record;
 }
 
+function groupBy(items, keyFn) {
+  const index = new Map();
+  for (const item of items) {
+    const key = keyFn(item);
+    const bucket = index.get(key);
+    if (bucket) bucket.push(item);
+    else index.set(key, [item]);
+  }
+  return index;
+}
+
 export function readinessForCatalog(commands, attempts, lessonFlags = [], now = Date.now()) {
+  const attemptsByCommand = groupBy(attempts, attempt => attempt.commandId);
+  const attemptsByAction = groupBy(attempts, attempt => attempt.actionId);
   const records = commands.map(command =>
-    readinessForCommand(command, attempts, lessonFlags, now)
+    readinessForCommand(command, attempts, lessonFlags, now, {
+      commandAttempts: attemptsByCommand.get(command.id) ?? [],
+      actionAttempts: attemptsByAction.get(command.actionId) ?? []
+    })
   );
   return Object.freeze(records);
 }

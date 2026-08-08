@@ -13,7 +13,7 @@ Status values: `todo` / `in-progress` / `green` (tests pass, awaiting Jeffrey's 
 | A5 ms → seconds formatting (play P6) | A | review-trivial | Sonnet 5 (nemotron dispatch left one call site unfixed — 11 failing tests) | green | |
 | A6 CSP meta tag (code P7) | A | review-trivial | Sonnet 5 | green | Jeffrey: manual Safari/Chromium smoke after merge |
 | B1 saveState guard (code P1) | B | review-mechanical | Sonnet 5 | green | |
-| B2 manifest/attempt indexes (code P5) | B | review-mechanical | — | todo | |
+| B2 manifest/attempt indexes (code P5) | B | review-mechanical | Sonnet 5 | green | |
 | B3 end-session control (play P2) | B | review-mechanical | — | todo | |
 | B4 stratified mixed shuffle (play P4) | B | review-mechanical | — | todo | |
 | C attempts compaction (code P2) | C | attempts-compaction | Claude Fable 5 | green | Kept-attempts approach, no schema bump; 620 tests green |

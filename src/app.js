@@ -635,6 +635,21 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
   return model;
 }
 
+export function manifestIndexKey(commandId, speed) {
+  return `${commandId}|${speed}`;
+}
+
+export function buildManifestIndex(manifest) {
+  const index = new Map();
+  for (const variant of manifest) {
+    const key = manifestIndexKey(variant.commandId, variant.speed);
+    const bucket = index.get(key);
+    if (bucket) bucket.push(variant);
+    else index.set(key, [variant]);
+  }
+  return index;
+}
+
 export function selectPlaybackVariant(
   manifest,
   command,
@@ -645,13 +660,12 @@ export function selectPlaybackVariant(
   {
     examinerChoice = 'mixed',
     dateParts,
-    examinerRegistry = EXAMINERS
+    examinerRegistry = EXAMINERS,
+    manifestIndex
   } = {}
 ) {
-  const recorded = manifest.filter(variant =>
-    variant.commandId === command.id
-    && variant.speed === speed
-  );
+  const recorded = (manifestIndex ?? buildManifestIndex(manifest))
+    .get(manifestIndexKey(command.id, speed)) ?? [];
   const eligibleRecorded = filterVariantsForExaminer(recorded, examinerChoice, {
     dateParts,
     registry: examinerRegistry
@@ -750,7 +764,8 @@ export function sessionStartEligibility(
   manifest,
   settings,
   fallbackSupported,
-  dateParts
+  dateParts,
+  manifestIndex = buildManifestIndex(manifest)
 ) {
   const themed = settings.themeId === null
     ? commands
@@ -761,10 +776,7 @@ export function sessionStartEligibility(
   const experience = resolveSessionExperience(settings, dateParts);
   const examinerChoice = experience.resolvedExaminerId ?? 'mixed';
   const playable = pool.every(command => {
-    const recorded = manifest.filter(variant =>
-      variant.commandId === command.id
-      && variant.speed === settings.speed
-    );
+    const recorded = manifestIndex.get(manifestIndexKey(command.id, settings.speed)) ?? [];
     const eligible = filterVariantsForExaminer(recorded, examinerChoice);
     return eligible.length > 0
       || (examinerChoice === 'mixed' && recorded.length === 0 && fallbackSupported);
@@ -848,6 +860,7 @@ async function bootstrap() {
   let commands;
   let selectableCommands;
   let manifest;
+  let manifestIndex;
   let player;
   let feedbackPlayer;
   let offlineClient;
@@ -877,6 +890,7 @@ async function bootstrap() {
     ]);
     validateCatalog(commands);
     validateAudioManifest(manifest, commands);
+    manifestIndex = buildManifestIndex(manifest);
     selectableCommands = supportedCommands(commands, message => console.warn(message));
     const loaded = loadState(window.localStorage);
     recoveryError = loaded.recoveryError ?? '';
@@ -1024,7 +1038,8 @@ async function bootstrap() {
       manifest,
       effectiveSettings,
       player.supportsFallback(),
-      dateParts
+      dateParts,
+      manifestIndex
     );
     const startErrorKey = eligibility.reason === 'no-commands'
       ? 'setup.start.noCommands'
@@ -1693,7 +1708,8 @@ async function bootstrap() {
         Math.random,
         {
           examinerChoice: experience.resolvedExaminerId ?? 'mixed',
-          dateParts: sessionDateParts
+          dateParts: sessionDateParts,
+          manifestIndex
         }
       )
     }));
@@ -1782,7 +1798,7 @@ async function bootstrap() {
     let variant = model.variant ?? command.audioVariant;
     try {
       if (!variant) {
-        variant = selectPlaybackVariant(manifest, command, model.settings.speed, player.supportsFallback(), state.attempts);
+        variant = selectPlaybackVariant(manifest, command, model.settings.speed, player.supportsFallback(), state.attempts, Math.random, { manifestIndex });
       }
       const phrasing = resolvePhrasing(command, variant);
       const result = await player.play(
