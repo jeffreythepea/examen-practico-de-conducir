@@ -164,7 +164,7 @@ test('renders every evidence field and recent outcomes as text', () => {
   ]) assert.match(html, new RegExp(label));
   assert.match(html, /Incorrect/);
   assert.match(html, /Correct from audio/);
-  assert.match(html, /1,300 ms/);
+  assert.match(html, /1\.3 s/);
   assert.match(html, /data-lesson-flag-count="1"/);
 });
 
@@ -263,6 +263,16 @@ test('renders Spanish interface copy while preserving Spanish command language',
   assert.match(html, /Necesita práctica/);
   assert.match(html, /Gire a la derecha/);
   assert.match(html, /Practicar esta orden/);
+});
+
+test('ES locale cards show the Spanish command once, without a duplicate meaning row', () => {
+  const html = render({ locale: 'es' });
+  assert.doesNotMatch(html, /readiness-command-meaning/);
+});
+
+test('EN locale cards still render the meaning row alongside the Spanish command', () => {
+  const html = render({ locale: 'en' });
+  assert.match(html, /class="readiness-command-meaning"/);
 });
 
 test('does not mutate supplied arrays, records, or filter state', () => {

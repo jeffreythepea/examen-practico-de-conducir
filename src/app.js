@@ -1285,13 +1285,14 @@ async function bootstrap() {
         ? translate(locale(), `mock.result.${mockStatus}`)
         : translate(locale(), 'summary.unaidedPercent', { percent: summary.unaidedPercentage })}</p>
       ${isMock ? `<p class="notice">${translate(locale(), 'mock.result.nonOfficial')}</p>` : ''}
+      ${!isMock && summary.counts.assisted > summary.counts.unaided ? `<p class="notice">${translate(locale(), 'results.hintNotice')}</p>` : ''}
       <div class="result-counts">
         ${countCard('unaided', summary.counts.unaided)}
         ${countCard('assisted', summary.counts.assisted)}
         ${countCard('incorrect', summary.counts.incorrect)}
       </div>
       <dl class="summary-details">
-        <div><dt>${translate(locale(), 'summary.averageTime')}</dt><dd>${summary.averageResponseMs === null ? '—' : translate(locale(), 'summary.milliseconds', { milliseconds: Math.round(summary.averageResponseMs) })}</dd></div>
+        <div><dt>${translate(locale(), 'summary.averageTime')}</dt><dd>${summary.averageResponseMs === null ? '—' : translate(locale(), 'summary.milliseconds', { seconds: new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(summary.averageResponseMs / 1000) })}</dd></div>
         <div><dt>${translate(locale(), 'summary.replays')}</dt><dd>${summary.replayCount}</dd></div>
         <div><dt>${translate(locale(), 'summary.hints')}</dt><dd>${summary.hintCount}</dd></div>
       </dl>
@@ -1324,7 +1325,7 @@ async function bootstrap() {
           <p><strong>${translate(locale(), 'mock.review.outcome')}:</strong> ${translate(locale(), `result.${attempt.outcome}`)}</p>
           <p><strong>${translate(locale(), 'mock.review.response')}:</strong> ${attempt.responseMs === null
             ? '—'
-            : translate(locale(), 'summary.milliseconds', { milliseconds: Math.round(attempt.responseMs) })}</p>
+            : translate(locale(), 'summary.milliseconds', { seconds: new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(attempt.responseMs / 1000) })}</p>
           <p><strong>${translate(locale(), 'summary.replays')}:</strong> ${attempt.replays ?? 0}</p>
           ${attempt.outcome === 'incorrect' ? `<fieldset class="diagnosis">
             <legend>${translate(locale(), 'miss.title')}</legend>

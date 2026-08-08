@@ -158,7 +158,7 @@ function renderCommand({ command, record, flags, locale, t }) {
         <header class="readiness-command-header">
           <div>
             <p class="readiness-command-spanish" id="readiness-command-${commandId}" lang="es">${escapeHtml(spanish)}</p>
-            <p class="readiness-command-meaning" lang="${escapeAttribute(locale)}">${escapeHtml(meaning)}</p>
+            ${locale === 'en' ? `<p class="readiness-command-meaning" lang="${escapeAttribute(locale)}">${escapeHtml(meaning)}</p>` : ''}
           </div>
           <span class="readiness-state" data-state="${escapeAttribute(state)}">${escapeHtml(t(`readiness.state.${state}`))}</span>
         </header>
@@ -188,7 +188,7 @@ function renderEvidence(record, openFlagCount, locale, t) {
       </ol>`
     : escapeHtml(noData);
   const averageResponse = Number.isFinite(record?.averageResponseMs)
-    ? t('readiness.evidence.milliseconds', { milliseconds: new Intl.NumberFormat(locale).format(Math.round(record.averageResponseMs)) })
+    ? t('readiness.evidence.milliseconds', { seconds: new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(record.averageResponseMs / 1000) })
     : noData;
 
   const items = [
