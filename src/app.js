@@ -1195,6 +1195,7 @@ async function bootstrap() {
       <div class="prompt-meta">
         <p class="progress">${progressText()}</p>
         ${model.settings.timed ? `<p class="timer" data-timer>${timerText()}</p>` : ''}
+        <button type="button" data-action="end-session">${translate(locale(), 'session.end')}</button>
       </div>
       <div class="gameplay-layout prompt-layout">
         <div class="gameplay-copy">
@@ -1288,6 +1289,7 @@ async function bootstrap() {
         ${renderSessionIdentity()}
         ${renderContinuityTransition(transition, locale())}
         <p class="notice">${translate(locale(), 'mock.simulated')}</p>
+        <button type="button" data-action="end-session">${translate(locale(), 'session.end')}</button>
       </section>`;
     }
     return `<section class="panel mock-transition" aria-labelledby="mock-transition-title">
@@ -1296,6 +1298,7 @@ async function bootstrap() {
       <h2 id="mock-transition-title" data-screen-focus tabindex="-1">${translate(locale(), 'screen.mockTransition')}</h2>
       <p>${translate(locale(), 'mock.transition')}</p>
       <p class="notice">${translate(locale(), 'mock.simulated')}</p>
+      <button type="button" data-action="end-session">${translate(locale(), 'session.end')}</button>
     </section>`;
   }
 
@@ -1475,6 +1478,7 @@ async function bootstrap() {
   }
 
   function bindPromptEvents() {
+    app.querySelector('[data-action="end-session"]')?.addEventListener('click', endSession);
     app.querySelector('[data-action="replay"]')?.addEventListener('click', () => void replayAudio());
     app.querySelector('[data-action="show-spanish"]')?.addEventListener('click', () => {
       const event = { type: 'SHOW_SPANISH' };
@@ -1542,6 +1546,7 @@ async function bootstrap() {
   }
 
   function bindMockTransitionEvents() {
+    app.querySelector('[data-action="end-session"]')?.addEventListener('click', endSession);
     const step = currentContinuityStep(state.activeSession);
     if (step?.kind === 'transition') {
       let consumed = false;
@@ -1786,6 +1791,20 @@ async function bootstrap() {
     resumableSession = null;
     sessionRecoveryError = false;
     persistState();
+    render();
+  }
+
+  function endSession() {
+    if (!window.confirm(translate(locale(), 'session.endConfirm'))) return;
+    stopTimer();
+    player.cancel('end-session');
+    feedbackPlayer.stop();
+    state = discardActiveSession(state);
+    resumableSession = null;
+    sessionAttemptIds = [];
+    currentAttemptId = null;
+    persistState();
+    model = { screen: 'setup', settings: state.settings, session: [], index: 0 };
     render();
   }
 
