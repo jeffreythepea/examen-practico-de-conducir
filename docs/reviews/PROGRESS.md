@@ -6,8 +6,8 @@ Status values: `todo` / `in-progress` / `green` (tests pass, awaiting Jeffrey's 
 
 | Item | Prompt | Branch | Model used | Status | Notes |
 |---|---|---|---|---|---|
-| A1 sharp-less test skip (code P3) | A | review-trivial | — | todo | |
-| A2 dead code removal (code P4) | A | review-trivial | — | todo | |
+| A1 sharp-less test skip (code P3) | A | review-trivial | nemotron-3-super-120b-a12b | green | |
+| A2 dead code removal (code P4) | A | review-trivial | nemotron-3-super-120b-a12b | green | |
 | A3 results framing sentence (play P3) | A | review-trivial | — | todo | |
 | A4 ES duplicate meaning (play P5) | A | review-trivial | — | todo | |
 | A5 ms → seconds formatting (play P6) | A | review-trivial | — | todo | |
