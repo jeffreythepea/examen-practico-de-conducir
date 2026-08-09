@@ -8,7 +8,10 @@ export const POST_ANSWER_MOTION_FAMILIES = Object.freeze([
   'junction',
   'roundabout',
   'parking',
-  'stopping'
+  'stopping',
+  'u-turn',
+  'overtake',
+  'join-traffic'
 ]);
 
 const EVENT_TYPES = new Set(['ANIMATION_ENDED', 'FAILED']);

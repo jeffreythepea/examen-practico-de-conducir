@@ -353,7 +353,7 @@ test('saved correct immediate reveals alone qualify for bounded post-answer move
     { reducedMotion: true },
     { screenModel: { ...revealed, screen: 'mock-transition' } },
     { screenModel: { ...revealed, experience: { revealPolicy: 'session-end' } } },
-    { screenModel: { ...revealed, activeSurfaceModel: { family: 'overtake', geometry: revealed.activeSurfaceModel.geometry } } }
+    { screenModel: { ...revealed, activeSurfaceModel: { family: 'wheel', geometry: revealed.activeSurfaceModel.geometry } } }
   ]) {
     const motion = createSavedPostAnswerMotion({
       screenModel: revealed,

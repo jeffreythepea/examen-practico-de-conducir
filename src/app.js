@@ -83,11 +83,17 @@ const ROAD_MOTION_SURFACE_IDS = new Set([
   'stopping-v1'
 ]);
 const POST_ANSWER_MOTION_FAMILY_SET = new Set(POST_ANSWER_MOTION_FAMILIES);
+// Hand-tuned per family for a natural-feeling pace, informed by each family's
+// typical correctRoute path length (join-traffic's is a short lateral merge;
+// u-turn's loops back on itself and is by far the longest route of any family).
 const POST_ANSWER_MOTION_DURATIONS = Object.freeze({
   junction: 1_300,
   roundabout: 1_650,
   parking: 1_450,
-  stopping: 1_350
+  stopping: 1_350,
+  'join-traffic': 1_100,
+  overtake: 1_550,
+  'u-turn': 1_800
 });
 
 export function promptControlsDisabled(model) {
