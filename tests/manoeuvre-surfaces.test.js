@@ -245,7 +245,7 @@ test('every urban-photo choice is anchored to its visible curb, driveway, crossi
   const expectedBands = {
     'open-bay': [72, 76, 35, 39],
     'driveway-bay': [84, 88, 13, 17],
-    'hatched-bay': [38, 42, 48, 52],
+    'hatched-bay': [26, 30, 46, 50],
     'clear-curb-bay': [72, 76, 35, 39],
     'crosswalk-bay': [41, 45, 13, 17],
     'no-parking-bay': [83, 87, 84, 88],

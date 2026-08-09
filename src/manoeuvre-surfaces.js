@@ -102,7 +102,7 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       targets: [
         { id: 'open-bay', resultId: 'park', kind: 'legal-space', feature: 'open-bay', x: 74, y: 37 },
         { id: 'driveway-bay', resultId: 'blocked-access', kind: 'illegal-space', feature: 'driveway', explanationKey: 'surface.restricted.blockedAccess', x: 86, y: 15 },
-        { id: 'hatched-bay', resultId: 'marked-restriction', kind: 'illegal-space', feature: 'restricted-marking', explanationKey: 'surface.restricted.markedRestriction', x: 40, y: 50 }
+        { id: 'hatched-bay', resultId: 'marked-restriction', kind: 'illegal-space', feature: 'restricted-marking', explanationKey: 'surface.restricted.markedRestriction', x: 28, y: 48 }
       ]
     },
     {
