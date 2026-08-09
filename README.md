@@ -37,7 +37,7 @@ Learners may choose one of five neutral examiner characters, rotate with
 or select First drive, City circuit, Roundabout circuit, Manoeuvres, Precheck
 inspection, or Full mock themed drives.
 
-The app has no runtime dependency on Piso Asturiano and no backend. The source remains a plain static browser application; public releases use a deterministic build step to select and verify only runtime assets. Stage 2 is implemented with an action-matched response model and optional moving-road approaches on suitable realistic scenes. The current working catalog contains 38 commands and 79 Spanish phrasings, with its complete 1,185-recording corpus ready for integration. Deeper phrasing/voice mastery reporting, an instructor-validated sequential examination, and automatic difficulty progression remain deferred.
+The app has no runtime dependency on Piso Asturiano and no backend. The source remains a plain static browser application; public releases use a deterministic build step to select and verify only runtime assets. Stage 2 is implemented with an action-matched response model and optional moving-road approaches on suitable realistic scenes. The current working catalog contains 39 commands and 81 Spanish phrasings, with its complete 1,215-recording corpus ready for integration. Deeper phrasing/voice mastery reporting, an instructor-validated sequential examination, and automatic difficulty progression remain deferred.
 
 ## Readiness and targeted practice
 
@@ -102,7 +102,7 @@ The Task 7 browser automation limitation means export downloads and confirm-plus
 
 ## Audio provenance and disclosure
 
-The current working catalog has a complete 1,185-variant recorded corpus: 38 commands, 79 Spanish phrasings, five voices (Roger, Sarah, George, Matilda, and Eric), and provider-native speeds of 0.75x, 0.9x, and 1x. The prior five-voice expansion reused 456 recordings and added 684 to reach its then-complete 1,140-variant baseline; the continuity expansion added the final 45 recordings. Each trial randomly selects one playable phrasing/voice recording and retains it through replay, Show Spanish, reveal, and attempt logging. Browser speech remains the online fallback if a recording fails. Integrity and provider/model provenance are recorded in `data/audio-manifest.json`; the audition decision is in `references/audio-audition.md`.
+The current working catalog has a complete 1,215-variant recorded corpus: 39 commands, 81 Spanish phrasings, five voices (Roger, Sarah, George, Matilda, and Eric), and provider-native speeds of 0.75x, 0.9x, and 1x. The prior five-voice expansion reused 456 recordings and added 684 to reach its then-complete 1,140-variant baseline; the continuity expansion added the final 45 recordings; the c-cint (fasten seatbelt) expansion generated the final 30 recordings. Each trial randomly selects one playable phrasing/voice recording and retains it through replay, Show Spanish, reveal, and attempt logging. Browser speech remains the online fallback if a recording fails. Integrity and provider/model provenance are recorded in `data/audio-manifest.json`; the audition decision is in `references/audio-audition.md`.
 
 Audio generation is resumable and fail-closed. It checksum-verifies reusable published and recovery assets, checkpoints every new clip outside the browser-delivered tree, and replaces the published audio tree and manifest only after the complete staged corpus validates. An interrupted generation therefore does not create a partially published static corpus.
 
@@ -146,7 +146,7 @@ When finished, remove the variable from the shell with `unset ELEVENLABS_API_KEY
 ## Release checklist
 
 - Run the release check and confirm every test passes with no whitespace errors.
-- Confirm `data/audio-manifest.json` resolves to all 1,185 nonempty, integrity-matching assets before treating the 79-phrasing, five-voice corpus as release-ready.
+- Confirm `data/audio-manifest.json` resolves to all 1,215 nonempty, integrity-matching assets before treating the 81-phrasing, five-voice corpus as release-ready.
 - Exercise English and Spanish setup, playback, hint, response, reveal, results, export, and import in a supported browser.
 - Confirm the AI-generated-voice disclosure is visible in both locales.
 - Confirm no credentials or generated temporary files are included.

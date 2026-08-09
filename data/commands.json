@@ -34,6 +34,40 @@
     ]
   },
   {
+    "id": "c-cint",
+    "actionId": "fasten-seatbelt",
+    "category": "man",
+    "phase": "driving",
+    "responseType": "control-instruction",
+    "surfaceId": "seatbelt-v1",
+    "icon": "🔒",
+    "acceptedResult": "fasten-seatbelt",
+    "phrasings": [
+      {
+        "id": "c-cint-canonical",
+        "es": "Abróchese el cinturón de seguridad",
+        "en": "fasten your seatbelt",
+        "wording": "verbatim",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived/composite 2026-08-09",
+        "sourceText": "Abróchese el cinturón de seguridad",
+        "sourceDocument": "review-derived/composite 2026-08-09",
+        "provenanceNote": "review-derived/composite 2026-08-09; Jeffrey-approved examiner wording, absent from Fermín guide"
+      },
+      {
+        "id": "c-cint-supplementary-1",
+        "es": "Abróchese el cinturón",
+        "en": "fasten your seatbelt",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived/composite 2026-08-09",
+        "sourceText": "Abróchese el cinturón",
+        "sourceDocument": "review-derived/composite 2026-08-09",
+        "provenanceNote": "review-derived/composite 2026-08-09; Jeffrey-approved supplementary wording, absent from Fermín guide"
+      }
+    ]
+  },
+  {
     "id": "c-incorp",
     "actionId": "join-traffic",
     "category": "man",

@@ -317,7 +317,7 @@ export function renderYarisSurface(model, responseState = {}, locale, disabled =
   </div>`;
 }
 
-function renderHotspot(target, model, responseState, locale, reveal, disabledAttribute) {
+export function renderHotspot(target, model, responseState, locale, reveal, disabledAttribute) {
   const controlStates = responseState.controlStates ?? {};
   const currentState = Object.hasOwn(controlStates, target.id) ? controlStates[target.id] : target.initialState;
   const baseLabel = translate(locale, target.labelKey);

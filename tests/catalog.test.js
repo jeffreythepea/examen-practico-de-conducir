@@ -7,13 +7,13 @@ const commands = JSON.parse(await readFile(new URL('../data/commands.json', impo
 
 test('catalog contains the complete safe atomic command inventory', () => {
   assert.doesNotThrow(() => validateCatalog(commands));
-  assert.equal(commands.length, 38);
-  assert.equal(commands.reduce((total, command) => total + command.phrasings.length, 0), 79);
-  assert.equal(commandsForPhase(commands, 'driving').length, 20);
+  assert.equal(commands.length, 39);
+  assert.equal(commands.reduce((total, command) => total + command.phrasings.length, 0), 81);
+  assert.equal(commandsForPhase(commands, 'driving').length, 21);
   assert.equal(commandsForPhase(commands, 'precheck').length, 18);
-  assert.equal(commandsForPhase(commands, 'mixed').length, 38);
-  assert.equal(new Set(commands.map(command => command.id)).size, 38);
-  assert.equal(new Set(commands.map(command => command.actionId)).size, 38);
+  assert.equal(commandsForPhase(commands, 'mixed').length, 39);
+  assert.equal(new Set(commands.map(command => command.id)).size, 39);
+  assert.equal(new Set(commands.map(command => command.actionId)).size, 39);
   assert.equal(commands.some(command => command.id === 'c-pre-deposito-b'), false);
 });
 
