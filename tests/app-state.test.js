@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  ambienceEligible,
   buildManifestIndex,
   captureFocusSnapshot,
   createSavedPostAnswerMotion,
@@ -910,6 +911,36 @@ test('accepted answer transitions choose correct and incorrect feedback cues but
   const timeoutEvent = { type: 'TIMEOUT', completedAt: 9_000 };
   const timeoutAfter = reduceScreen(timeoutBefore, timeoutEvent);
   assert.equal(feedbackCueForTransition(timeoutBefore, timeoutAfter, timeoutEvent), null);
+});
+
+test('cabin ambience is eligible only mid-session, in Mock mode, with the setting on', () => {
+  const eligible = { screen: 'prompt', settings: { experienceMode: 'mock', ambience: true } };
+  assert.equal(ambienceEligible(eligible), true);
+
+  for (const screen of ['loading-audio', 'reveal', 'mock-transition']) {
+    assert.equal(ambienceEligible({ ...eligible, screen }), true);
+  }
+  for (const screen of ['setup', 'readiness', 'results']) {
+    assert.equal(ambienceEligible({ ...eligible, screen }), false);
+  }
+
+  assert.equal(
+    ambienceEligible({ ...eligible, settings: { experienceMode: 'practice', ambience: true } }),
+    false,
+    'Practice mode never gets ambience, even with the setting on'
+  );
+  assert.equal(
+    ambienceEligible({ ...eligible, settings: { experienceMode: 'learn', ambience: true } }),
+    false
+  );
+  assert.equal(
+    ambienceEligible({ ...eligible, settings: { experienceMode: 'mock', ambience: false } }),
+    false,
+    'Off by default: Mock mode alone is not enough without the setting'
+  );
+
+  assert.equal(ambienceEligible(null), false);
+  assert.equal(ambienceEligible({ screen: 'prompt' }), false);
 });
 
 test('Spanish-hint feedback occurs only for the first accepted reveal of trial-local text', () => {

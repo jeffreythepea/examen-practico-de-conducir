@@ -12,6 +12,15 @@ test('static shell exposes the localized application mount', async () => {
   assert.match(html, /This app needs JavaScript.*Esta aplicación necesita JavaScript/);
 });
 
+test('cabin ambience is wired to sync on every render and cut immediately on End session', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  assert.match(source, /import \{ createAmbiencePlayer, pickAmbienceClip \} from '\.\/ambience\.js';/);
+  assert.match(source, /ambiencePlayer = createAmbiencePlayer\(\{ AudioCtor: window\.Audio \}\)/);
+  assert.match(source, /function syncAmbience\(\) \{\s*\n\s*if \(ambienceEligible\(model\)\)/);
+  assert.match(source, /lastRenderedScreen = model\.screen;\s*\n\s*syncAmbience\(\);\s*\n\s*\}/);
+  assert.match(source, /feedbackPlayer\.stop\(\);\s*\n\s*ambiencePlayer\.stop\(\);/);
+});
+
 test('prompt and reveal expose one shared responsive gameplay layout', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
@@ -98,7 +107,7 @@ test('app shell persists setup settings and exposes atomic backup controls', asy
   assert.match(source, /from '\.\/audio\.js'/);
   assert.match(source, /selectControl\('feedbackSounds', 'setting\.feedbackSounds'/);
   assert.match(source, /selectControl\('roadMovement', 'setting\.roadMovement'/);
-  assert.match(source, /\['timed', 'feedbackSounds', 'roadMovement'\]\.includes\(setting\)/);
+  assert.match(source, /\['timed', 'feedbackSounds', 'roadMovement', 'ambience'\]\.includes\(setting\)/);
   assert.match(source, /roadMovement/);
   assert.match(source, /from '\.\/surfaces\.js'/);
   assert.match(source, /data\/commands\.json/);
