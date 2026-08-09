@@ -23,7 +23,7 @@ test('engine prechecks share one immutable photo scene with precisely audited an
   assert.deepEqual(
     Object.fromEntries(Object.entries(scene.targets).map(([id, target]) => [id, [target.x, target.y, target.iconKey]])),
     {
-      'engine-oil': [70.5, 71, 'oil'],
+      'engine-oil': [74.5, 72, 'oil'],
       coolant: [13.5, 37.5, 'coolant'],
       'brake-fluid': [63, 29, 'brake-fluid'],
       'battery-under-rear-right-seat': [74, 44.5, 'battery'],
@@ -121,7 +121,7 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
       headlightRing.targets['dipped-headlights'].x,
       headlightRing.targets['dipped-headlights'].y
     ],
-    [18.5, 39.5, 31, 48.5]
+    [14.7, 38.8, 26.3, 46.9]
   );
   assert.deepEqual(
     [
@@ -130,7 +130,7 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
       headlightRing.targets['dipped-headlights'].width,
       headlightRing.targets['dipped-headlights'].height
     ],
-    [8, 15, 8, 15],
+    [7, 15, 7, 15],
     'adjacent lighting targets must stay compact and non-overlapping'
   );
   assert.equal(headlightRing.targets['dipped-headlights'].labelPlacement.y, 76);

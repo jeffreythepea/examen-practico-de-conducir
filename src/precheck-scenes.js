@@ -34,8 +34,8 @@ export const PRECHECK_SCENES = deepFreeze({
     targets: {
       'engine-oil': {
         resultId: 'locate-oil-check',
-        x: 70.5,
-        y: 71,
+        x: 74.5,
+        y: 72,
         width: 12,
         height: 18,
         kind: 'fluid-location',
@@ -224,18 +224,18 @@ export const PRECHECK_SCENES = deepFreeze({
     reference: 'Generic manual hatchback headlight control ring — illustrative AI-generated photo',
     targets: {
       'position-lights': {
-        resultId: 'position-lights', x: 18.5, y: 39.5, width: 8, height: 15,
+        resultId: 'position-lights', x: 14.7, y: 38.8, width: 7, height: 15,
         kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.positionLights', labelPlacement: { x: 22, y: 70, width: 30 },
         stateKind: 'power', initialState: false, desiredState: true,
-        anchorDescription: 'Offset left while containing the native position-light symbol on the headlight ring'
+        anchorDescription: 'Centred on the position-light symbol (two outward-facing lamps) on the rotating ring, left of the dipped-headlight symbol'
       },
       'dipped-headlights': {
-        resultId: 'dipped-headlights', x: 31, y: 48.5, width: 8, height: 15,
+        resultId: 'dipped-headlights', x: 26.3, y: 46.9, width: 7, height: 15,
         kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.dippedHeadlights', labelPlacement: { x: 45, y: 76, width: 32 },
         stateKind: 'power', initialState: false, desiredState: true,
-        anchorDescription: 'Offset right while containing the native dipped-headlight symbol on the headlight ring'
+        anchorDescription: 'Centred on the dipped-headlight symbol (downward-pointing beam lamp) on the rotating ring, right of the position-light symbol'
       }
     }
   },
