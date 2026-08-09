@@ -28,6 +28,7 @@ test('registry contains every active model-aware ID and no removed legacy diagra
     'secure-yaris-v1',
     'option-grid-v1',
     'start-engine-v1',
+    'seatbelt-v1',
     ...YARIS_SURFACE_IDS
   ]);
   assert.equal(SUPPORTED_SURFACE_IDS.some(id => id.startsWith('yaris-manual-v1-')), false);
@@ -194,6 +195,7 @@ test('Task 7 atomically activates every eligible model-aware surface and exactly
     'c-detencion': 'option-grid-v1',
     'c-final': 'option-grid-v1',
     'c-arr': 'start-engine-v1',
+    'c-cint': 'seatbelt-v1',
     'c-incorp': 'join-traffic-v1'
   };
   for (const [id, surfaceId] of Object.entries(expectedDriving)) {
@@ -263,6 +265,8 @@ function completionEvents(model, correctTarget) {
       { type: 'submit-secure' }
     ];
   }
-  if (model.family === 'yaris') return [{ type: 'activate', targetId: correctTarget.id }];
+  if (model.family === 'yaris' || model.family === 'seatbelt') {
+    return [{ type: 'activate', targetId: correctTarget.id }];
+  }
   return [{ type: 'select-target', targetId: correctTarget.id }];
 }

@@ -1,14 +1,19 @@
 import { generateControlSurface, reduceControlResponse, renderControlSurface } from './control-surfaces.js';
 import { translate } from './i18n.js';
 import { generateManoeuvreSurface, renderManoeuvreSurface } from './manoeuvre-surfaces.js';
+import { PRECHECK_SCENES } from './precheck-scenes.js';
 import { generateSpatialSurface, renderSpatialSurface } from './spatial-surfaces.js';
+import { assertNonOverlappingTargets } from './surface-geometry.js';
 import { createSurfaceModel, seededRandom } from './surface-model.js';
 import {
   YARIS_SURFACE_IDS,
   generateYarisSurface,
   reduceYarisResponse,
+  renderHotspot,
   renderYarisSurface
 } from './yaris-surfaces.js';
+
+const SEATBELT_SCENE_ID = 'generic-seatbelt-buckle';
 
 export { YARIS_SURFACE_IDS } from './yaris-surfaces.js';
 
@@ -24,6 +29,7 @@ export const SUPPORTED_SURFACE_IDS = Object.freeze([
   'secure-yaris-v1',
   'option-grid-v1',
   'start-engine-v1',
+  'seatbelt-v1',
   ...YARIS_SURFACE_IDS
 ]);
 
@@ -72,6 +78,7 @@ export function generateSurface(command, seed) {
   if (YARIS_SURFACE_IDS.includes(command?.surfaceId)) return generateYarisSurface(command, seed);
   if (command?.surfaceId === 'option-grid-v1') return generateSemanticSurface(command, seed);
   if (command?.surfaceId === 'start-engine-v1') return generateStartEngineSurface(command, seed);
+  if (command?.surfaceId === 'seatbelt-v1') return generateSeatbeltSurface(command, seed);
   throw new Error(`Unsupported surface: ${command?.surfaceId}`);
 }
 
@@ -84,6 +91,7 @@ export function reduceSurfaceResponse(model, responseState = {}, event = {}) {
     return reduceControlResponse(model, responseState, event);
   }
   if (model?.family === 'yaris') return reduceYarisResponse(model, responseState, event);
+  if (model?.family === 'seatbelt') return reduceSeatbeltResponse(model, responseState, event);
   if (event.type !== 'select-target') return responseState;
   const target = model?.targets?.find(candidate => candidate.id === event.targetId);
   if (!target) return responseState;
@@ -117,7 +125,85 @@ export function renderSurfaceModel(model, responseState = {}, locale, options = 
     return renderYarisSurface(model, state, locale, Boolean(options.disabled));
   }
   if (model.family === 'semantic') return renderSemanticSurface(model, locale, state);
+  if (model.family === 'seatbelt') return renderSeatbeltSurface(model, state, locale, Boolean(options.disabled));
   throw new Error(`Unsupported surface model: ${model.family}`);
+}
+
+/**
+ * Generates the seatbelt precheck model. Photo-backed, single-tap-locate,
+ * distinct from the generic Yaris diagram contract system since this content
+ * carries no real Toyota manual citation (instructor-plausible provenance,
+ * see the scene's own `reference`/`provenance` fields).
+ */
+function generateSeatbeltSurface(command, seed) {
+  if (command?.actionId !== 'fasten-seatbelt' || command.acceptedResult !== 'fasten-seatbelt') {
+    throw new Error(`Unsupported seatbelt action: ${command?.actionId}`);
+  }
+  const scene = PRECHECK_SCENES[SEATBELT_SCENE_ID];
+  const targets = Object.entries(scene.targets).map(([id, hotspot]) => ({
+    id,
+    resultId: hotspot.resultId,
+    x: hotspot.x,
+    y: hotspot.y,
+    width: hotspot.width,
+    height: hotspot.height,
+    kind: hotspot.kind,
+    interaction: hotspot.interaction,
+    iconKey: hotspot.iconKey,
+    labelKey: hotspot.labelKey,
+    labelPlacement: hotspot.labelPlacement,
+    anchorDescription: hotspot.anchorDescription
+  }));
+  assertNonOverlappingTargets(targets);
+  return createSurfaceModel({
+    id: `seatbelt-v1:${seed}`,
+    family: 'seatbelt',
+    version: 1,
+    seed,
+    expectedResult: command.acceptedResult,
+    targets,
+    geometry: { sceneId: scene.id, photoAsset: scene.asset },
+    meta: {
+      commandId: command.id,
+      reference: scene.reference,
+      provenance: scene.provenance
+    }
+  });
+}
+
+function reduceSeatbeltResponse(model, responseState = {}, event = {}) {
+  if (model?.family !== 'seatbelt') throw new Error(`Unsupported seatbelt model: ${model?.family}`);
+  if (event.type !== 'activate') throw new Error(`Unsupported seatbelt event: ${event.type}`);
+  const target = model.targets.find(candidate => candidate.id === event.targetId);
+  if (!target) throw new Error(`Unknown seatbelt target: ${event.targetId}`);
+  return {
+    complete: true,
+    selectedResult: target.resultId,
+    selectedTargetId: target.id
+  };
+}
+
+function renderSeatbeltSurface(model, responseState, locale, disabled) {
+  const scene = PRECHECK_SCENES[model.geometry.sceneId];
+  const reveal = Boolean(responseState.reveal);
+  const disabledAttribute = disabled ? ' disabled' : '';
+  const controls = model.targets.map(target => renderHotspot(
+    target,
+    model,
+    responseState,
+    locale,
+    reveal,
+    disabledAttribute
+  )).join('');
+  const illustrationNote = `<p class="precheck-illustration-note">${escapeHtml(translate(locale, 'surface.precheck.illustrative'))}</p>`;
+  return `<div class="yaris-surface" data-response-mode="locate">
+    <p class="surface-instruction">${escapeHtml(translate(locale, 'surface.yaris.locateInstruction'))}</p>
+    ${illustrationNote}
+    <div class="surface-stage yaris-schematic precheck-photo-stage" data-surface="seatbelt-v1" data-scene="${escapeAttribute(scene.id)}">
+      <img class="precheck-photo" src="${escapeAttribute(scene.asset)}" alt="${escapeAttribute(translate(locale, scene.altKey))}">
+      ${controls}
+    </div>
+  </div>`;
 }
 
 function generateSemanticSurface(command, seed) {

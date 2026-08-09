@@ -430,14 +430,14 @@ test('active documentation records the complete five-voice audio corpus', async 
     readFile(resolve(ROOT, 'data/audio-manifest.json'), 'utf8').then(JSON.parse)
   ]);
 
-  assert.equal(manifest.length, 1185);
+  assert.equal(manifest.length, 1215);
   for (const [name, text] of [['README', readme], ['design', design]]) {
     const normalized = text.replace(/\s+/g, ' ');
-    assert.match(normalized, /38 commands?.{0,120}79.{0,120}phrasings?/i, `${name} must state the expanded catalog size`);
+    assert.match(normalized, /39 commands?.{0,120}81.{0,120}phrasings?/i, `${name} must state the expanded catalog size`);
     assert.match(normalized, /(?:five|5) voices/i, `${name} must state the voice count`);
     assert.match(normalized, /(?:456.{0,120}(?:reus|previous|existing)|(?:reus|previous|existing).{0,120}456)/i, `${name} must distinguish the reused corpus`);
     assert.match(normalized, /(?:684.{0,120}(?:added|generated|published)|(?:added|generated|published).{0,120}684)/i, `${name} must state the generation increment`);
-    assert.match(normalized, /(?:complete.{0,120}(?:1,185|1185).{0,120}(?:published|recorded)|complete.{0,120}(?:published|recorded).{0,120}(?:1,185|1185)|(?:1,185|1185).{0,120}(?:published|recorded).{0,120}(?:complete|integrity)|(?:published|recorded).{0,120}(?:1,185|1185).{0,120}(?:complete|integrity))/i, `${name} must state that the complete five-voice corpus is recorded`);
+    assert.match(normalized, /(?:complete.{0,120}(?:1,215|1215).{0,120}(?:published|recorded)|complete.{0,120}(?:published|recorded).{0,120}(?:1,215|1215)|(?:1,215|1215).{0,120}(?:published|recorded).{0,120}(?:complete|integrity)|(?:published|recorded).{0,120}(?:1,215|1215).{0,120}(?:complete|integrity))/i, `${name} must state that the complete five-voice corpus is recorded`);
   }
   assert.match(changelog, /22[^\n]*(?:phrasing|variant)/i);
   assert.match(changelog, /deferred[^\n]*B list/i);

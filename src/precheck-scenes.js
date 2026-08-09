@@ -25,6 +25,33 @@ const ICONS = Object.freeze({
 });
 
 export const PRECHECK_SCENES = deepFreeze({
+  'generic-seatbelt-buckle': {
+    id: 'generic-seatbelt-buckle',
+    asset: 'assets/precheck/generic-seatbelt-buckle.webp',
+    altKey: 'surface.precheck.scene.seatbeltBuckle',
+    provenance: 'generic-illustrative-photo',
+    reference: 'Generic manual hatchback driver seat and seatbelt — illustrative AI-generated photo',
+    targets: {
+      'seatbelt-buckle': {
+        resultId: 'fasten-seatbelt', x: 56.6, y: 86.9, width: 8, height: 15,
+        kind: 'seatbelt-buckle', interaction: 'locate', iconKey: 'native-symbol',
+        labelKey: 'surface.seatbelt.buckle', labelPlacement: { x: 56.6, y: 68, width: 30 },
+        anchorDescription: 'Centred on the seatbelt buckle release button on the driver seat'
+      },
+      'gear-lever': {
+        resultId: 'select-gear-lever', x: 73.9, y: 47.9, width: 10, height: 16,
+        kind: 'gear-selector', interaction: 'locate', iconKey: 'native-symbol',
+        labelKey: 'surface.seatbelt.gearLever', labelPlacement: { x: 73.9, y: 30, width: 28 },
+        anchorDescription: 'Centred on the manual gear-lever knob in the centre console'
+      },
+      'window-switches': {
+        resultId: 'operate-window-switches', x: 14, y: 38.1, width: 9, height: 15,
+        kind: 'window-switch-panel', interaction: 'locate', iconKey: 'native-symbol',
+        labelKey: 'surface.seatbelt.windowSwitches', labelPlacement: { x: 14, y: 20, width: 28 },
+        anchorDescription: 'Centred on the driver-door window-switch panel'
+      }
+    }
+  },
   'generic-engine-bay': {
     id: 'generic-engine-bay',
     asset: 'assets/precheck/generic-engine-bay.webp',
