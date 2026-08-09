@@ -30,6 +30,7 @@ export function defaultState() {
       timed: false,
       feedbackSounds: true,
       roadMovement: true,
+      ambience: false,
       length: 'medium',
       mode: 'recommended',
       experienceMode: 'practice',
@@ -154,6 +155,7 @@ function validateState(value) {
 function validateSettings(settings) {
   if (settings.feedbackSounds === undefined) settings.feedbackSounds = true;
   if (settings.roadMovement === undefined) settings.roadMovement = true;
+  if (settings.ambience === undefined) settings.ambience = false;
   if (!LOCALES.has(settings.locale)) throw new Error('Invalid settings.locale');
   if (!PHASES.has(settings.phase)) throw new Error('Invalid settings.phase');
   if (!SPEEDS.has(settings.speed)) throw new Error('Invalid settings.speed');
@@ -161,6 +163,7 @@ function validateSettings(settings) {
   if (typeof settings.timed !== 'boolean') throw new Error('Invalid settings.timed');
   if (typeof settings.feedbackSounds !== 'boolean') throw new Error('Invalid settings.feedbackSounds');
   if (typeof settings.roadMovement !== 'boolean') throw new Error('Invalid settings.roadMovement');
+  if (typeof settings.ambience !== 'boolean') throw new Error('Invalid settings.ambience');
   if (!LENGTHS.has(settings.length)) throw new Error('Invalid settings.length');
   if (!MODES.has(settings.mode)) throw new Error('Invalid settings.mode');
   if (!EXPERIENCE_MODES.has(settings.experienceMode)) throw new Error('Invalid settings.experienceMode');

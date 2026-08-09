@@ -18,6 +18,7 @@ import {
 } from './continuity-transition-view.js';
 import { commandsForPhase, validateCatalog } from './catalog.js';
 import { createFeedbackCuePlayer } from './feedback-audio.js';
+import { createAmbiencePlayer, pickAmbienceClip } from './ambience.js';
 import {
   EXAMINERS,
   examinerById,
@@ -143,6 +144,23 @@ export function feedbackCueForTransition(before, after, event) {
   if (after.outcome === 'incorrect') return 'incorrect';
   if (after.outcome === 'unaided' || after.outcome === 'assisted') return 'correct';
   return null;
+}
+
+const AMBIENCE_ACTIVE_SCREENS = Object.freeze(['loading-audio', 'prompt', 'reveal', 'mock-transition']);
+
+/**
+ * Cabin ambience is Mock-test-only and strictly opt-in: it plays only while a
+ * session is actually in progress, only in the simulated Mock experience, and
+ * only when the learner has turned it on. Any other screen, mode, or setting
+ * state stops it.
+ *
+ * @param {{ screen: string, settings: { experienceMode: string, ambience: boolean } }} model
+ * @returns {boolean}
+ */
+export function ambienceEligible(model) {
+  return AMBIENCE_ACTIVE_SCREENS.includes(model?.screen)
+    && model?.settings?.experienceMode === 'mock'
+    && model?.settings?.ambience === true;
 }
 
 export function mockResultStatus(attempts, expectedCount) {
@@ -869,6 +887,8 @@ async function bootstrap() {
   let manifestIndex;
   let player;
   let feedbackPlayer;
+  let ambiencePlayer;
+  let ambienceClipId = null;
   let offlineClient;
   let offlineState;
   let state;
@@ -919,6 +939,7 @@ async function bootstrap() {
     model = { screen: 'setup', settings: state.settings, session: [], index: 0 };
     player = createAudioPlayer({ AudioCtor: window.Audio, document });
     feedbackPlayer = createFeedbackCuePlayer();
+    ambiencePlayer = createAmbiencePlayer({ AudioCtor: window.Audio });
     offlineClient = createOfflineClient({ navigatorRef: navigator, windowRef: window });
     offlineState = offlineClient.getState();
     offlineClient.subscribe(nextState => {
@@ -1001,6 +1022,17 @@ async function bootstrap() {
     }
     focusScreen(document, { previousScreen, nextScreen: model.screen });
     lastRenderedScreen = model.screen;
+    syncAmbience();
+  }
+
+  function syncAmbience() {
+    if (ambienceEligible(model)) {
+      ambienceClipId ??= pickAmbienceClip();
+      ambiencePlayer.start(ambienceClipId);
+    } else {
+      ambiencePlayer.stop();
+      ambienceClipId = null;
+    }
   }
 
   function renderHeader() {
@@ -1083,6 +1115,9 @@ async function bootstrap() {
           ])}
           ${selectControl('roadMovement', 'setting.roadMovement', [
             [true, 'roadMovement.on'], [false, 'roadMovement.off']
+          ])}
+          ${selectControl('ambience', 'setting.ambience', [
+            [false, 'ambience.off'], [true, 'ambience.on']
           ])}
           ${selectControl('length', 'setting.length', [
             ['short', 'length.short'], ['medium', 'length.medium'], ['all', 'length.all']
@@ -1407,7 +1442,7 @@ async function bootstrap() {
       const setting = control.dataset.setting;
       const value = setting === 'speed'
         ? Number(control.value)
-        : ['timed', 'feedbackSounds', 'roadMovement'].includes(setting)
+        : ['timed', 'feedbackSounds', 'roadMovement', 'ambience'].includes(setting)
           ? control.value === 'true'
           : control.value;
       updateSettings({ [setting]: value });
@@ -1805,6 +1840,8 @@ async function bootstrap() {
     stopTimer();
     player.cancel('end-session');
     feedbackPlayer.stop();
+    ambiencePlayer.stop();
+    ambienceClipId = null;
     state = discardActiveSession(state);
     resumableSession = null;
     sessionAttemptIds = [];
@@ -2096,7 +2133,7 @@ function practiceMode(value) {
 }
 
 function resumableSettings(settings) {
-  const { phase, speed, hintPolicy, timed, feedbackSounds, roadMovement, length } = settings;
+  const { phase, speed, hintPolicy, timed, feedbackSounds, roadMovement, ambience, length } = settings;
   return {
     phase,
     speed,
@@ -2104,6 +2141,7 @@ function resumableSettings(settings) {
     timed,
     feedbackSounds,
     roadMovement,
+    ambience,
     length,
     mode: practiceMode(settings.mode)
   };
