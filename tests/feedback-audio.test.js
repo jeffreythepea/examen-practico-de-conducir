@@ -27,6 +27,24 @@ test('feedback cues expose an exact bounded synthesized vocabulary', () => {
   }
 });
 
+test('incorrect cue reads as an uneven multi-pop sputter, not a flat buzzer', () => {
+  const tones = CUE_DEFINITIONS.incorrect;
+  assert.ok(tones.length >= 3, 'a single or double tone reads as a buzzer, not a stumble');
+
+  const frequencies = tones.map(tone => tone.frequency);
+  assert.ok(new Set(frequencies).size > 1, 'pitch should jitter rather than repeat one tone');
+
+  const gaps = [];
+  for (let index = 1; index < tones.length; index += 1) {
+    const previous = tones[index - 1];
+    gaps.push(tones[index].start - (previous.start + previous.duration));
+  }
+  assert.ok(gaps.every(gap => gap > 0), 'pops should be separated by silence, not overlap into one tone');
+
+  const last = tones.at(-1);
+  assert.ok(last.start + last.duration <= 0.4, 'the whole sputter should stay brief');
+});
+
 test('disabled, busy, and unsupported cues fail closed without creating audio state', async () => {
   let contexts = 0;
   const player = createFeedbackCuePlayer({

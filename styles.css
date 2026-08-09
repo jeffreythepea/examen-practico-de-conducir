@@ -1519,6 +1519,26 @@ dd {
 .outcome.assisted { color: #7c5a0f; }
 .outcome.incorrect { color: var(--red); }
 
+/* wrong-answer-bump:begin */
+.panel.reveal:has(.outcome.incorrect) .gameplay-surface {
+  animation: wrong-answer-bump 360ms ease-out;
+}
+
+@keyframes wrong-answer-bump {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-6px, 2px); }
+  45% { transform: translate(5px, -2px); }
+  70% { transform: translate(-3px, 1px); }
+  100% { transform: translate(0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel.reveal:has(.outcome.incorrect) .gameplay-surface {
+    animation: none;
+  }
+}
+/* wrong-answer-bump:end */
+
 .diagnosis {
   margin: 1.25rem 0;
   border: 1px solid var(--line);

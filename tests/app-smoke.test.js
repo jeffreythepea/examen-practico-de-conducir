@@ -38,6 +38,31 @@ test('the shared gameplay layout becomes two columns only in wide landscape', as
   assert.match(landscapeCss, /\.gameplay-surface \.surface-stage\s*\{[^}]*width:\s*min\(100%,\s*60vh\);/s);
 });
 
+test('wrong answers get a brief, reduced-motion-safe bump distinct from the reveal outcome color', async () => {
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.match(css, /wrong-answer-bump:begin/);
+  assert.match(
+    css,
+    /\.panel\.reveal:has\(\.outcome\.incorrect\) \.gameplay-surface\s*\{[^}]*animation:\s*wrong-answer-bump\s+\d+ms/
+  );
+  const keyframeMatch = css.match(/@keyframes wrong-answer-bump\s*\{([\s\S]*?)\n\}/);
+  assert.ok(keyframeMatch, 'wrong-answer-bump keyframes must exist');
+  assert.match(keyframeMatch[1], /0%\s*\{\s*transform:\s*translate\(0,\s*0\);?\s*\}/);
+  assert.match(keyframeMatch[1], /100%\s*\{\s*transform:\s*translate\(0,\s*0\);?\s*\}/);
+
+  const reducedMotionStart = css.indexOf('@media (prefers-reduced-motion: reduce)', css.indexOf('wrong-answer-bump:begin'));
+  const bumpEnd = css.indexOf('wrong-answer-bump:end');
+  assert.ok(reducedMotionStart >= 0 && reducedMotionStart < bumpEnd, 'reduced-motion override must live inside this block');
+  const reducedMotionBlock = css.slice(reducedMotionStart, bumpEnd);
+  assert.match(
+    reducedMotionBlock,
+    /\.panel\.reveal:has\(\.outcome\.incorrect\) \.gameplay-surface\s*\{\s*animation:\s*none;\s*\}/
+  );
+
+  assert.match(css, /wrong-answer-bump:end/);
+});
+
 test('all setup controls receive a 44px-capable layout', async () => {
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(css, /button,\s*\na\s*\{[\s\S]*?min-height:\s*44px;/);

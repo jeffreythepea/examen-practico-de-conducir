@@ -5,9 +5,13 @@ export const CUE_DEFINITIONS = deepFreeze({
     { frequency: 523.25, type: 'sine', start: 0, duration: 0.18, gain: 0.16 },
     { frequency: 659.25, type: 'sine', start: 0.11, duration: 0.28, gain: 0.14 }
   ],
+  // An uneven, stumbling "sputter" rather than a flat buzzer: four short, irregularly
+  // spaced pops of falling, jittery pitch, alternating harsh waveforms.
   incorrect: [
-    { frequency: 145, type: 'sawtooth', start: 0, duration: 0.34, gain: 0.09 },
-    { frequency: 112, type: 'square', start: 0.08, duration: 0.30, gain: 0.035 }
+    { frequency: 96, type: 'sawtooth', start: 0, duration: 0.07, gain: 0.10 },
+    { frequency: 68, type: 'square', start: 0.10, duration: 0.05, gain: 0.07 },
+    { frequency: 82, type: 'sawtooth', start: 0.18, duration: 0.07, gain: 0.09 },
+    { frequency: 52, type: 'square', start: 0.28, duration: 0.09, gain: 0.06 }
   ],
   'spanish-hint': [
     { frequency: 880, type: 'sine', start: 0, duration: 0.10, gain: 0.11 },
