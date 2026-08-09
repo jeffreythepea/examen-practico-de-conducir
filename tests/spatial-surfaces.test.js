@@ -247,7 +247,7 @@ test('road motion keeps each spatial photograph, route, and targets in one calib
   assert.match(roundaboutMarkup, /--road-motion-origin-y:80%/);
 });
 
-test('correct post-answer movement stays decorative inside the calibrated spatial scene', () => {
+test('correct post-answer movement stays decorative inside the calibrated spatial scene, replacing the static route line', () => {
   const model = generateSpatialSurface(command('turn-right', 'junction-v2'), 42);
   const markup = renderSpatialSurface(model, 'en', {
     disabled: true,
@@ -259,9 +259,11 @@ test('correct post-answer movement stays decorative inside the calibrated spatia
     }
   });
 
-  assert.match(markup, /data-correct-route[\s\S]*class="post-answer-motion"[\s\S]*class="road-target"/);
+  assert.match(markup, /class="post-answer-motion"[\s\S]*class="road-target"/);
   assert.match(markup, /aria-hidden="true"[\s\S]*<animateMotion/);
   assert.doesNotMatch(markup, /post-answer-motion[^>]*(?:button|tabindex|aria-live)/);
+  // "car only, no trail" — the static ghost route is dropped once the car glyph is eligible.
+  assert.doesNotMatch(markup, /data-correct-route/);
 });
 
 test('reveal marks the correct target, draws its route, and shows a localized result label', () => {

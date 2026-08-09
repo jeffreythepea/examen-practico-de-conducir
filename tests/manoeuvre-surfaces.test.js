@@ -478,7 +478,7 @@ test('road motion wraps every photo-backed manoeuvre scene with its calibrated t
   }
 });
 
-test('parking and stopping accept one decorative correct-route movement layer', () => {
+test('parking and stopping show the car-glyph movement layer instead of the static route line once eligible', () => {
   for (const [action, surfaceId, family] of [
     ['park', 'parking-v1', 'parking'],
     ['voluntary-stop', 'stopping-v1', 'stopping']
@@ -493,8 +493,14 @@ test('parking and stopping accept one decorative correct-route movement layer', 
         route: model.geometry.correctRoute
       }
     });
-    assert.match(markup, /data-correct-route[\s\S]*class="post-answer-motion"[\s\S]*class="manoeuvre-target"/);
+    assert.match(markup, /class="post-answer-motion"[\s\S]*class="manoeuvre-target"/);
     assert.match(markup, /<animateMotion[^>]*begin="-700ms"/);
+    // "car only, no trail" — the static ghost route is dropped once the car glyph is eligible.
+    assert.doesNotMatch(markup, /data-correct-route/);
+
+    const fallback = renderManoeuvreSurface(model, 'en', { disabled: true, reveal: true });
+    assert.match(fallback, /data-correct-route/);
+    assert.doesNotMatch(fallback, /class="post-answer-motion"/);
   }
 });
 

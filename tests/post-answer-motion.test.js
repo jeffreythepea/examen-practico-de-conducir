@@ -24,7 +24,10 @@ test('exports the reviewed immutable first-slice vocabulary', () => {
     'junction',
     'roundabout',
     'parking',
-    'stopping'
+    'stopping',
+    'u-turn',
+    'overtake',
+    'join-traffic'
   ]);
   assert.equal(Object.isFrozen(POST_ANSWER_MOTION_PHASES), true);
   assert.equal(Object.isFrozen(POST_ANSWER_MOTION_FAMILIES), true);
@@ -105,7 +108,7 @@ test('accepts every reviewed family without inspecting scoring fields', () => {
 });
 
 test('rejects unsupported eligible families', () => {
-  for (const family of [undefined, null, '', 'overtake', 'u-turn', 'Junction']) {
+  for (const family of [undefined, null, '', 'wheel', 'yaris', 'Junction']) {
     assert.throws(
       () => createPostAnswerMotion({
         eligible: true,

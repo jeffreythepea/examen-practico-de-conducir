@@ -151,10 +151,12 @@ export function renderSpatialSurface(model, locale, state = {}) {
   }
   const labels = locale === 'es' ? ROAD_LABELS.es : ROAD_LABELS.en;
   const surfaceId = `${model.family}-v2`;
-  const route = state.reveal
+  const postAnswerMotion = renderPostAnswerMotion(state.postAnswerMotion);
+  // The car glyph is the whole route indicator once it's eligible to animate;
+  // the static line is only a fallback for ineligible/reduced-motion cases.
+  const route = state.reveal && !postAnswerMotion
     ? `<path data-correct-route d="${escapeAttribute(svgRoadPath(model.geometry.correctRoute))}"/>`
     : '';
-  const postAnswerMotion = renderPostAnswerMotion(state.postAnswerMotion);
   const targets = model.targets.map(target => roadTargetButton(target, labels, model.expectedResult, state)).join('');
   const resultLabel = state.reveal
     ? `<p class="surface-result-label">${escapeHtml(labels.prefix + labels[model.expectedResult])}</p>`

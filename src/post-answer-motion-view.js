@@ -3,18 +3,32 @@ const ACTIVE_FAMILIES = Object.freeze([
   'junction',
   'roundabout',
   'parking',
-  'stopping'
+  'stopping',
+  'u-turn',
+  'overtake',
+  'join-traffic'
 ]);
 const MAX_DURATION_MS = 10_000;
 const EPSILON = 0.001;
+
+// Small top-down car silhouette, nose pointing along local +x (the reference
+// direction animateMotion's rotate="auto" aligns to the path tangent).
+const CAR_BODY_PATH = 'M -2.4 -1.1 L 0.8 -1.1 Q 2.4 -1.1 2.4 0 Q 2.4 1.1 0.8 1.1 L -2.4 1.1 Q -2.9 1.1 -2.9 0 Q -2.9 -1.1 -2.4 -1.1 Z';
+const CAR_WINDSHIELD_PATH = 'M 0.1 -0.7 L 1.1 -0.4 Q 1.5 0 1.1 0.4 L 0.1 0.7 Z';
 
 /**
  * Render neutral, decorative post-answer movement geometry.
  * Invalid or static input intentionally produces no markup.
  *
+ * preserveAspectRatio="none" here must match the main scene SVG's own
+ * preserveAspectRatio for every family this renders (manoeuvre-surfaces.js,
+ * spatial-surfaces.js both stretch to fill their driving-photo-stage). Without
+ * it, this overlay pillarboxes instead of stretching and the same {x,y} route
+ * data lands at a different pixel position than the route it's tracing.
+ *
  * @param {{
  *   phase: 'static'|'running'|'complete',
- *   family: 'junction'|'roundabout'|'parking'|'stopping'|null,
+ *   family: 'junction'|'roundabout'|'parking'|'stopping'|'u-turn'|'overtake'|'join-traffic'|null,
  *   progress: number,
  *   moving: boolean,
  *   durationMs: number,
@@ -33,14 +47,16 @@ export function renderPostAnswerMotion(viewModel) {
   const route = routePath(model.route);
   const endpoint = model.route.at(-1);
   const marker = model.phase === 'running'
-    ? `<circle class="post-answer-motion-marker" cx="0" cy="0" r="2" vector-effect="non-scaling-stroke">
-        <animateMotion path="${route}" dur="${number(model.durationMs)}ms" begin="-${number(model.elapsedMs)}ms" fill="freeze" calcMode="linear"></animateMotion>
-      </circle>`
-    : `<circle class="post-answer-motion-marker" cx="${number(endpoint.x)}" cy="${number(endpoint.y)}" r="2" vector-effect="non-scaling-stroke"></circle>`;
+    ? `<g class="post-answer-motion-marker">
+        ${carGlyph()}
+        <animateMotion path="${route}" dur="${number(model.durationMs)}ms" begin="-${number(model.elapsedMs)}ms" fill="freeze" calcMode="linear" rotate="auto"></animateMotion>
+      </g>`
+    : `<g class="post-answer-motion-marker" transform="translate(${number(endpoint.x)} ${number(endpoint.y)}) rotate(${number(finalHeadingDegrees(model.route))})">
+        ${carGlyph()}
+      </g>`;
 
   return `<span class="post-answer-motion" data-post-answer-motion-phase="${model.phase}" data-post-answer-motion-family="${model.family}" data-post-answer-motion-moving="${model.moving}" aria-hidden="true" style="${timingStyle(model)}">
-    <svg class="post-answer-motion-graphic" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
-      <path class="post-answer-motion-route" d="${route}" pathLength="1" fill="none" vector-effect="non-scaling-stroke"></path>
+    <svg class="post-answer-motion-graphic" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
       ${marker}
     </svg>
   </span>`;
@@ -84,6 +100,16 @@ function bounded(value, minimum, maximum) {
     && Number.isFinite(value)
     && value >= minimum
     && value <= maximum;
+}
+
+function carGlyph() {
+  return `<path d="${CAR_BODY_PATH}" vector-effect="non-scaling-stroke"></path><path d="${CAR_WINDSHIELD_PATH}" fill="var(--green-dark)" vector-effect="non-scaling-stroke"></path>`;
+}
+
+function finalHeadingDegrees(route) {
+  const to = route.at(-1);
+  const from = route.at(-2);
+  return Math.atan2(to.y - from.y, to.x - from.x) * (180 / Math.PI);
 }
 
 function routePath(route) {

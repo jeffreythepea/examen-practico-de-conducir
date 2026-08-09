@@ -249,10 +249,12 @@ export function renderManoeuvreSurface(model, locale, state = {}) {
   const resultLabel = state.reveal
     ? `<p class="surface-result-label">${escapeHtml(translate(locale, usesRoadTargets ? 'surface.correctRoute' : 'surface.correctSpace'))}</p>`
     : '';
-  const correctRoute = state.reveal && model.geometry.correctRoute
+  const postAnswerMotion = renderPostAnswerMotion(state.postAnswerMotion);
+  // The car glyph is the whole route indicator once it's eligible to animate;
+  // the static line is only a fallback for ineligible/reduced-motion cases.
+  const correctRoute = state.reveal && model.geometry.correctRoute && !postAnswerMotion
     ? `<path data-correct-route d="${escapeAttribute(svgRoadPath(model.geometry.correctRoute))}"/>`
     : '';
-  const postAnswerMotion = renderPostAnswerMotion(state.postAnswerMotion);
 
   const scene = model.geometry.sceneId ? drivingScene(model.geometry.sceneId) : null;
   const sceneImage = scene

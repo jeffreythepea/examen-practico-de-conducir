@@ -594,36 +594,10 @@ hr {
   background: transparent !important;
 }
 
-.post-answer-motion-route {
-  fill: none;
-  stroke: var(--gold);
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: post-answer-route-draw var(--post-answer-motion-duration) linear both;
-  animation-delay: calc(-1 * var(--post-answer-motion-elapsed));
-}
-
-.post-answer-motion[data-post-answer-motion-phase="complete"] .post-answer-motion-route {
-  animation: none;
-  stroke-dashoffset: 0;
-}
-
 .post-answer-motion-marker {
   fill: var(--gold);
   stroke: var(--green-dark);
-  stroke-width: 1;
-}
-
-.road-motion-scene:has(.post-answer-motion) [data-correct-route],
-.surface-stage:has(> .post-answer-motion) [data-correct-route] {
-  opacity: 0.25;
-}
-
-@keyframes post-answer-route-draw {
-  to { stroke-dashoffset: 0; }
+  stroke-width: 0.4;
 }
 
 @media (prefers-reduced-motion: reduce) {

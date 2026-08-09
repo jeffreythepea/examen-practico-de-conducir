@@ -33,7 +33,7 @@ test('static and malformed views fail closed with no markup', () => {
     [],
     {},
     view({ phase: 'future' }),
-    view({ family: 'overtake' }),
+    view({ family: 'wheel' }),
     view({ progress: Number.NaN }),
     view({ progress: -0.01 }),
     view({ moving: 'true' }),
@@ -60,17 +60,19 @@ test('renders one neutral decorative running route with stable metadata', () => 
   assert.match(markup, /--post-answer-motion-elapsed:600ms/);
   assert.match(markup, /--post-answer-motion-remaining:600ms/);
   assert.match(markup, /aria-hidden="true"/);
-  assert.match(markup, /<svg[^>]*viewBox="0 0 100 100"[^>]*aria-hidden="true"[^>]*focusable="false"/);
-  assert.match(markup, /<path class="post-answer-motion-route" d="M 50 94 L 50 60 L 84 42" pathLength="1"/);
-  assert.match(markup, /<circle class="post-answer-motion-marker" cx="0" cy="0"/);
-  assert.match(markup, /<animateMotion path="M 50 94 L 50 60 L 84 42" dur="1200ms" begin="-600ms" fill="freeze" calcMode="linear"/);
+  assert.match(markup, /<svg[^>]*viewBox="0 0 100 100"[^>]*preserveAspectRatio="none"[^>]*aria-hidden="true"[^>]*focusable="false"/);
+  assert.match(markup, /<g class="post-answer-motion-marker">/);
+  assert.match(markup, /<path d="M -2\.4 -1\.1[^"]*"/);
+  assert.match(markup, /<animateMotion path="M 50 94 L 50 60 L 84 42" dur="1200ms" begin="-600ms" fill="freeze" calcMode="linear" rotate="auto"\/?>/);
 
   assert.doesNotMatch(markup, /button|tabindex|role=|aria-live|aria-label/i);
   assert.doesNotMatch(markup, /correct|incorrect|accepted|rejected|target|result/i);
   assert.doesNotMatch(markup, />\s*[^<\s][^<]*</);
+  // "car only, no trail" — the path itself is never drawn, only the moving glyph.
+  assert.doesNotMatch(markup, /post-answer-motion-route/);
 });
 
-test('complete views place the same neutral marker at the route endpoint', () => {
+test('complete views place the same neutral marker, oriented along the route\'s final heading, at the route endpoint', () => {
   const markup = renderPostAnswerMotion(view({
     phase: 'complete',
     progress: 1,
@@ -82,17 +84,48 @@ test('complete views place the same neutral marker at the route endpoint', () =>
   assert.match(markup, /data-post-answer-motion-phase="complete"/);
   assert.match(markup, /data-post-answer-motion-moving="false"/);
   assert.match(markup, /--post-answer-motion-progress:1/);
-  assert.match(markup, /<circle class="post-answer-motion-marker" cx="84" cy="42"/);
+  // final segment is (50,60) -> (84,42): atan2(-18, 34) ≈ -27.8973 degrees
+  assert.match(markup, /<g class="post-answer-motion-marker" transform="translate\(84 42\) rotate\(-27\.8973\)">/);
   assert.doesNotMatch(markup, /animateMotion/);
 });
 
-test('accepts every frozen first-slice family without mutating the view', () => {
-  for (const family of ['junction', 'roundabout', 'parking', 'stopping']) {
+const ALL_FAMILIES = ['junction', 'roundabout', 'parking', 'stopping', 'u-turn', 'overtake', 'join-traffic'];
+
+test('accepts every frozen family without mutating the view', () => {
+  for (const family of ALL_FAMILIES) {
     const input = view({ family });
     const snapshot = structuredClone(input);
     assert.notEqual(renderPostAnswerMotion(input), '');
     assert.deepEqual(input, snapshot);
   }
+});
+
+test('scales its coordinate space the same way as the photo-backed scene it overlays', () => {
+  // Every family this renders for uses a driving-photo-stage (3:2) scene, whose main
+  // SVG stretches its 0-100 viewBox with preserveAspectRatio="none" (manoeuvre-surfaces.js,
+  // spatial-surfaces.js). Without the same attribute here, this overlay's SVG falls back
+  // to the default "xMidYMid meet" and pillarboxes instead of stretching, so an identical
+  // {x,y} point lands at a different pixel position than the route it's meant to trace.
+  for (const family of ALL_FAMILIES) {
+    const markup = renderPostAnswerMotion(view({ family }));
+    assert.match(markup, /<svg class="post-answer-motion-graphic" viewBox="0 0 100 100" preserveAspectRatio="none"/);
+  }
+});
+
+test('orients the completed marker to the final segment heading at shallow and sharp turns', () => {
+  const shallow = renderPostAnswerMotion(view({
+    phase: 'complete', progress: 1, moving: false, elapsedMs: 1_200, remainingMs: 0,
+    route: [{ x: 10, y: 50 }, { x: 90, y: 52 }]
+  }));
+  // nearly straight, slightly downward: atan2(2, 80) ≈ 1.4321 degrees
+  assert.match(shallow, /rotate\(1\.4321\)/);
+
+  const sharp = renderPostAnswerMotion(view({
+    phase: 'complete', progress: 1, moving: false, elapsedMs: 1_200, remainingMs: 0,
+    route: [{ x: 50, y: 90 }, { x: 50, y: 80 }, { x: 20, y: 20 }]
+  }));
+  // final leg doubles back up and to the left: atan2(-60, -30) ≈ -116.5651 degrees
+  assert.match(sharp, /rotate\(-116\.5651\)/);
 });
 
 test('timing and phase contradictions fail closed', () => {
@@ -109,8 +142,8 @@ test('post-answer movement CSS is calibrated, noninteractive, and reduced-motion
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(css, /post-answer-motion:begin/);
   assert.match(css, /\.post-answer-motion\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?pointer-events:\s*none;/);
-  assert.match(css, /\.post-answer-motion-route\s*\{[\s\S]*?stroke-dasharray:\s*1;[\s\S]*?animation:/);
   assert.match(css, /\.post-answer-motion-marker\s*\{[\s\S]*?fill:\s*var\(--gold\)/);
+  assert.doesNotMatch(css, /post-answer-motion-route|post-answer-route-draw/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.post-answer-motion\s*\{[\s\S]*?display:\s*none;/);
   assert.match(css, /post-answer-motion:end/);
 });
