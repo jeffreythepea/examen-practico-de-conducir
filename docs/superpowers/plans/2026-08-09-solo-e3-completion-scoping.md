@@ -112,37 +112,58 @@ commands, on top of today's plain state-label toggle
 
 ## G4 — Start/seatbelt: new command + target
 
-**Direction (2026-08-09):** split from vehicle cue polish (G3) — new content, not a
-render tweak.
+**Important finding (2026-08-09):** this isn't a gap that was simply never built —
+`references/fermin-practical-test-commands-2020.md` documents that `c-cint` ("Póngase
+el cinturón" / put on the seatbelt) and `c-arr` ("Arranque el motor" / start the
+engine) existed in an earlier provisional command set and were **deliberately
+excluded** because Jeffrey's actual source material (the Autoescuela Fermín student
+guide) doesn't contain them — the same provenance discipline that gives every other
+command in `data/commands.json` a `sourcePage`/`sourceText` citation.
 
-**Gap:** no "fasten seatbelt" or "start the engine" command/target exists anywhere
-today. `secure-yaris-v1` only covers securing the vehicle at the end of a drive
-(engine stop, parking brake, gear) — there's no beginning-of-drive equivalent.
+**Direction (2026-08-09), given that finding:**
+1. **Provenance tier** — add them anyway, but as lower-tier content. The catalog
+   already supports this: some phrasings carry `"validation": "instructor-plausible"`
+   or `"review-derived"` rather than a guide citation (e.g. `c-est`'s supplementary
+   phrasings). `c-cint`/`c-arr` should use that same tier, explicitly *not* claiming
+   guide verification — `wording`/`validation`/`sourceText` fields should read
+   honestly (e.g. `"validation": "instructor-plausible"`, a `provenanceNote` similar to
+   the 2026-07-20 review-derived entries), not be dressed up to look guide-sourced.
+2. **Grouping** — two separate commands (`c-cint`, `c-arr`), each independent with its
+   own phrasing/provenance/single-target surface — not combined into one multi-step
+   command like `c-inmov`.
+3. **Surface style** — photo-based, matching the visual style of the other precheck
+   surfaces (not the icon-driven `secure-yaris-v1` pattern).
 
-**Needs deciding before implementation:**
-1. **Surface placement** — a new pre-drive checklist surface (mirroring
-   `secure-yaris-v1`'s shape but for start-up), or folded into an existing dashboard/
-   cabin scene (e.g. `yaris-dashboard-v2`)? Given `secure-yaris-v1`'s family is
-   `secure-manual`, a natural parallel would be a `start-manual` family with its own
-   surface — but worth checking whether reusing the existing Yaris cabin photo assets
-   (rather than sourcing new ones) is possible first.
-2. **Scope** — is this one combined action ("prepare to drive": seatbelt + start
-   together) or two separate commands (start the engine; fasten the seatbelt)? The
-   real driving test treats them as related but distinct checks.
-3. **Command catalog work** — new command ID(s), Spanish phrasing with provenance,
-   bilingual copy, and (per `AGENTS.md`) recorded/AI-voice command audio — this is
-   real content work, similar in shape to any other new command, not just a code change.
+**New blocker this direction creates:** a photo-based surface needs a new AI-generated
+illustrative photo (or photos) — same asset category as the existing
+`assets/precheck/generic-*.webp` images. There's no image-generation tooling in this
+repo (`scripts/` only has `optimize-runtime-images.mjs`, which post-processes existing
+images, not a generation pipeline) and none available in this session — **this needs
+Jeffrey to generate the photo(s), the same way G2 needs him to generate ambience audio
+via ElevenLabs.** Two separate commands don't necessarily need two separate photos —
+worth generating one "driver's seat / ignition area" illustrative photo depicting both
+the seatbelt buckle and the ignition/start switch if they'd plausibly appear together
+in one shot, similar to how `generic-lighting-stalk` already serves three targets from
+one photo. Once a photo exists, target-coordinate calibration can reuse the same
+manual-calibration approach used for F3 (a click-to-place tool against the real image).
 
-**Recommend:** scope this as its own small planning pass once G1-G3 direction is
-underway, since it has genuine open product questions (placement, one command vs. two)
-that are worth a focused decision rather than folding into this doc's assumptions.
+**Command catalog work still needed regardless of asset status:** command IDs
+(`c-cint`, `c-arr`), Spanish phrasing text, EN translation, and — per `AGENTS.md` —
+recorded or AI-voice command audio for each. This is real content work Jeffrey needs
+to be involved in (phrasing wording is his call, not something to invent unreviewed).
+
+**Status:** scoped, blocked on Jeffrey producing (a) the illustrative photo(s) and (b)
+the actual Spanish phrasing text for `c-cint`/`c-arr` to use as instructor-plausible
+content. Not ready to implement until at least the phrasing text exists — the surface
+target work depends on it (target `resultId`s tie back to the command's
+`acceptedResult`).
 
 ## Suggested build order
 
-1. **G1** (wrong-choice bump + sputter) — self-contained, no dependencies, ready to
-   scope into implementation now.
-2. **G3** (vehicle cue polish) — self-contained, no dependencies, ready now.
+1. **G1** (wrong-choice bump + sputter) — done, `feature/g1-wrong-choice-consequence`.
+2. **G3** (vehicle cue polish) — done, `feature/g3-vehicle-cue-polish`.
 3. **G2** (ambience light pass) — blocked on Jeffrey generating/approving clips via
    ElevenLabs; code can be scaffolded in parallel but needs real assets to finish.
-4. **G4** (start/seatbelt) — needs its own short scoping/decision pass first (surface
-   placement, one command vs. two) before implementation.
+4. **G4** (start/seatbelt) — blocked on Jeffrey producing phrasing text and an
+   illustrative photo; scoping itself is done (provenance tier, grouping, and surface
+   style all decided above).

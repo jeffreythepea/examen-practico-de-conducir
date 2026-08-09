@@ -316,6 +316,27 @@ test('control styles keep wheel and securing controls touch-sized and inset from
   assert.match(styles, /\.secure-control-button\[aria-pressed="true"\]/);
 });
 
+test('operating the parking brake or engine stop plays a brief, reduced-motion-safe cue', async () => {
+  const styles = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.match(styles, /vehicle-cue-secure:begin/);
+  assert.match(
+    styles,
+    /\.secure-control-button\[data-target="parking-brake"\]\[aria-pressed="true"\] \.parking-brake-lever::before\s*\{[^}]*animation:\s*parking-brake-pull\s+\d+ms/
+  );
+  assert.match(
+    styles,
+    /\.secure-control-button\[data-target="engine-stop"\]\[aria-pressed="true"\] \.engine-stop-icon\s*\{[^}]*animation:\s*engine-power-down\s+\d+ms/
+  );
+  assert.match(styles, /@keyframes parking-brake-pull\s*\{/);
+  assert.match(styles, /@keyframes engine-power-down\s*\{/);
+
+  const blockStart = styles.indexOf('vehicle-cue-secure:begin');
+  const blockEnd = styles.indexOf('vehicle-cue-secure:end');
+  const block = styles.slice(blockStart, blockEnd);
+  assert.match(block, /@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]*?animation:\s*none;/);
+});
+
 test('reduced-motion preference disables steering-wheel interpolation', async () => {
   const styles = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(

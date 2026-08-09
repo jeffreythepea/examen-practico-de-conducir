@@ -346,7 +346,7 @@ function renderHotspot(target, model, responseState, locale, reveal, disabledAtt
     : '';
 
   const icon = target.iconKey ? renderPrecheckIcon(target.iconKey) : '';
-  return `<button class="yaris-hotspot${target.iconKey ? ' precheck-photo-hotspot' : ''}" type="button" data-control-event="activate" data-target="${escapeAttribute(target.id)}"${selectedAttributes} aria-label="${escapeAttribute(accessibleLabel)}"${pressed}${current}${disabledAttribute} style="--hotspot-x:${target.x}%;--hotspot-y:${target.y}%;--hotspot-width:${target.width}%;--hotspot-height:${target.height}%">${icon}${marker}</button>${visibleLabel}`;
+  return `<button class="yaris-hotspot${target.iconKey ? ' precheck-photo-hotspot' : ''}" type="button" data-control-event="activate" data-target="${escapeAttribute(target.id)}" data-kind="${escapeAttribute(target.kind)}"${selectedAttributes} aria-label="${escapeAttribute(accessibleLabel)}"${pressed}${current}${disabledAttribute} style="--hotspot-x:${target.x}%;--hotspot-y:${target.y}%;--hotspot-width:${target.width}%;--hotspot-height:${target.height}%">${icon}${marker}</button>${visibleLabel}`;
 }
 
 function stateLabelKey(stateKind, state) {

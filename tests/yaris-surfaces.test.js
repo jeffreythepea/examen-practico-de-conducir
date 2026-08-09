@@ -294,6 +294,16 @@ test('renderer keeps visible labels hidden until reveal while exposing localized
   assert.equal((spanish.match(/ disabled/g) ?? []).length, model.targets.length);
 });
 
+test('every hotspot exposes its kind so per-kind operation cues can target it in CSS', () => {
+  const indicator = generateYarisSurface(byId('c-intermitente'), 3);
+  const indicatorMarkup = renderYarisSurface(indicator, {}, 'en', false);
+  assert.match(indicatorMarkup, /data-target="indicator"[^>]*data-kind="stalk-movement"/);
+
+  const demist = generateYarisSurface(byId('c-pre-desempanar-delantera'), 5);
+  const demistMarkup = renderYarisSurface(demist, {}, 'en', false);
+  assert.match(demistMarkup, /data-target="front-demist"[^>]*data-kind="climate-button"/);
+});
+
 test('reveal adds localized accessible labels for both correct and wrong selections', () => {
   const model = generateYarisSurface(byId('c-pre-aceite'), 5);
   const correct = renderYarisSurface(model, {
@@ -329,6 +339,28 @@ test('Yaris hotspot styles enforce 44px controls, normalized placement, and shap
   assert.match(styles, /\.yaris-hotspot\[data-selection-state="wrong"\][^{]*\{[^}]*border-style:\s*dashed/s);
   assert.match(styles, /\.surface-stage\.yaris-schematic\s*\{[^}]*overflow:\s*hidden/s);
   assert.match(styles, /\.yaris-hotspot-label\s*\{[^}]*top:\s*var\(--label-y\)[^}]*left:\s*var\(--label-x\)[^}]*width:\s*var\(--label-width\)[^}]*transform:\s*translate\(-50%,\s*-50%\)/s);
+});
+
+test('operated stalk-movement and climate-button hotspots get a brief, reduced-motion-safe cue', async () => {
+  const styles = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.match(styles, /vehicle-cue-yaris:begin/);
+  assert.match(
+    styles,
+    /\.yaris-hotspot\[data-kind="stalk-movement"\]\[aria-pressed="true"\]\s*\{[^}]*animation:\s*stalk-movement-blink\s+\d+ms/
+  );
+  assert.match(
+    styles,
+    /\.yaris-hotspot\[data-kind="climate-button"\]\[aria-pressed="true"\]\s*\{[^}]*animation:\s*climate-button-clear\s+\d+ms/
+  );
+  assert.match(styles, /@keyframes stalk-movement-blink\s*\{/);
+  assert.match(styles, /@keyframes climate-button-clear\s*\{/);
+
+  const blockStart = styles.indexOf('vehicle-cue-yaris:begin');
+  const blockEnd = styles.indexOf('vehicle-cue-yaris:end');
+  const block = styles.slice(blockStart, blockEnd);
+  assert.match(block, /@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]*?animation:\s*none;/);
+  assert.match(block, /stalk-movement"\]\[aria-pressed="true"\],\s*\n\s*\.yaris-hotspot\[data-kind="climate-button"\]/);
 });
 
 test('v2 diagram IDs are exported and every precheck is atomically activated', () => {

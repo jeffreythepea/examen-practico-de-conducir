@@ -980,6 +980,35 @@ hr {
   background: rgb(31 106 74 / 18%);
 }
 
+/* vehicle-cue-yaris:begin */
+.yaris-hotspot[data-kind="stalk-movement"][aria-pressed="true"] {
+  animation: stalk-movement-blink 550ms ease-in-out;
+}
+
+@keyframes stalk-movement-blink {
+  0%, 100% { filter: brightness(1); }
+  25%, 75% { filter: brightness(1.9); }
+  50% { filter: brightness(1); }
+}
+
+.yaris-hotspot[data-kind="climate-button"][aria-pressed="true"] {
+  animation: climate-button-clear 650ms ease-out;
+}
+
+@keyframes climate-button-clear {
+  0% { box-shadow: 0 0 0 0 rgb(255 255 255 / 0%); }
+  40% { box-shadow: 0 0 0 10px rgb(255 255 255 / 55%); }
+  100% { box-shadow: 0 0 0 0 rgb(255 255 255 / 0%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yaris-hotspot[data-kind="stalk-movement"][aria-pressed="true"],
+  .yaris-hotspot[data-kind="climate-button"][aria-pressed="true"] {
+    animation: none;
+  }
+}
+/* vehicle-cue-yaris:end */
+
 .yaris-hotspot[aria-current="true"] {
   border-style: solid;
   border-color: var(--gold);
@@ -1353,6 +1382,35 @@ hr {
   font-size: 1.5rem;
   font-weight: 900;
 }
+
+/* vehicle-cue-secure:begin */
+.secure-control-button[data-target="parking-brake"][aria-pressed="true"] .parking-brake-lever::before {
+  animation: parking-brake-pull 480ms ease-out;
+}
+
+@keyframes parking-brake-pull {
+  0% { transform: rotate(-18deg); }
+  55% { transform: rotate(-52deg); }
+  100% { transform: rotate(-18deg); }
+}
+
+.secure-control-button[data-target="engine-stop"][aria-pressed="true"] .engine-stop-icon {
+  animation: engine-power-down 500ms ease-in-out;
+}
+
+@keyframes engine-power-down {
+  0% { opacity: 1; transform: scale(1); }
+  45% { opacity: 0.45; transform: scale(0.86); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .secure-control-button[data-target="parking-brake"][aria-pressed="true"] .parking-brake-lever::before,
+  .secure-control-button[data-target="engine-stop"][aria-pressed="true"] .engine-stop-icon {
+    animation: none;
+  }
+}
+/* vehicle-cue-secure:end */
 
 .manual-slope-context {
   display: flex;
