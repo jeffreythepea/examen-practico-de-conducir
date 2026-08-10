@@ -1,4 +1,5 @@
 import { validateStoredActiveSession } from './active-session.js';
+import { validateCompletions } from './collection.js';
 import { CHALLENGE_IDS } from './challenges.js';
 import { EXAMINER_CHOICE_IDS } from './examiners.js';
 import { validateLessonFlag } from './lesson-flags.js';
@@ -45,7 +46,8 @@ export function defaultState() {
     actionProgress: {},
     lessonFlags: [],
     activeSession: null,
-    personalBests: {}
+    personalBests: {},
+    completions: []
   };
 }
 
@@ -149,6 +151,8 @@ function validateState(value) {
   validateLessonFlags(state.lessonFlags);
   if (state.personalBests === undefined) state.personalBests = {};
   validatePersonalBests(state.personalBests);
+  if (state.completions === undefined) state.completions = [];
+  state.completions = validateCompletions(state.completions);
   if (state.activeSession !== null) {
     state.activeSession = validateStoredActiveSession(state.activeSession);
     const attemptIds = new Set(state.attempts.map(attempt => attempt.id));
