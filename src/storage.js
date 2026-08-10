@@ -1,4 +1,5 @@
 import { validateStoredActiveSession } from './active-session.js';
+import { CHALLENGE_IDS } from './challenges.js';
 import { EXAMINER_CHOICE_IDS } from './examiners.js';
 import { validateLessonFlag } from './lesson-flags.js';
 import { SESSION_PRESET_IDS } from './session-presets.js';
@@ -18,6 +19,7 @@ const OUTCOME_WEIGHTS = Object.freeze({ unaided: 1, assisted: 0.5, incorrect: 0 
 const EXPERIENCE_MODES = new Set(SESSION_PRESET_IDS);
 const EXAMINER_CHOICES = new Set(EXAMINER_CHOICE_IDS);
 const THEMES = new Set([null, ...THEME_IDS]);
+const CHALLENGES_OR_NULL = new Set([null, ...CHALLENGE_IDS]);
 
 export function defaultState() {
   return {
@@ -35,7 +37,8 @@ export function defaultState() {
       mode: 'recommended',
       experienceMode: 'practice',
       examinerChoice: 'mixed',
-      themeId: null
+      themeId: null,
+      challengeId: null
     },
     attempts: [],
     actionProgress: {},
@@ -156,6 +159,7 @@ function validateSettings(settings) {
   if (settings.feedbackSounds === undefined) settings.feedbackSounds = true;
   if (settings.roadMovement === undefined) settings.roadMovement = true;
   if (settings.ambience === undefined) settings.ambience = false;
+  if (settings.challengeId === undefined) settings.challengeId = null;
   if (!LOCALES.has(settings.locale)) throw new Error('Invalid settings.locale');
   if (!PHASES.has(settings.phase)) throw new Error('Invalid settings.phase');
   if (!SPEEDS.has(settings.speed)) throw new Error('Invalid settings.speed');
@@ -169,6 +173,7 @@ function validateSettings(settings) {
   if (!EXPERIENCE_MODES.has(settings.experienceMode)) throw new Error('Invalid settings.experienceMode');
   if (!EXAMINER_CHOICES.has(settings.examinerChoice)) throw new Error('Invalid settings.examinerChoice');
   if (!THEMES.has(settings.themeId)) throw new Error('Invalid settings.themeId');
+  if (!CHALLENGES_OR_NULL.has(settings.challengeId)) throw new Error('Invalid settings.challengeId');
 }
 
 function validateLessonFlags(flags) {

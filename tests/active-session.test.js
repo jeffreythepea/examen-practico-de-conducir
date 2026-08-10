@@ -65,7 +65,7 @@ test('active session serializes stable command and audio variant IDs but no live
   assert.equal(value.version, 3);
   assert.deepEqual(value.experience, {
     modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
-    themeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+    themeId: null, challengeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
   });
   assert.deepEqual(Object.keys(value.items[0]).sort(), ['commandId', 'phrasingId', 'speed', 'voiceId']);
   assert.equal(JSON.stringify(value).includes('activeSurfaceModel'), false);
@@ -205,7 +205,7 @@ test('version-1 sessions normalize immutably to the compatibility Practice and M
   assert.equal(migrated.version, 3);
   assert.deepEqual(migrated.experience, {
     modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
-    themeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+    themeId: null, challengeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
   });
   assert.deepEqual(legacy, before);
   assert.deepEqual(migrated.items, current.items);
@@ -238,7 +238,7 @@ test('experience snapshots reject unknown or preset-inconsistent values', () => 
 
   const mockExperience = {
     modeId: 'mock', examinerChoice: 'mixed', resolvedExaminerId: null,
-    themeId: null, replayPolicy: 'none', revealPolicy: 'session-end', simulated: true
+    themeId: null, challengeId: null, replayPolicy: 'none', revealPolicy: 'session-end', simulated: true
   };
   assert.throws(() => session({ experience: mockExperience }), /settings\.speed for experience/);
   assert.throws(() => session({
@@ -255,7 +255,7 @@ test('Today and fixed examiner snapshots enforce one resolved examiner voice whi
   const roger = EXAMINERS.find(({ id }) => id === 'roger');
   const fixedExperience = {
     modeId: 'practice', examinerChoice: 'roger', resolvedExaminerId: 'roger',
-    themeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+    themeId: null, challengeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
   };
   const fixedItems = session().items.map(item => ({ ...item, voiceId: roger.voiceId }));
   assert.doesNotThrow(() => session({ items: fixedItems, experience: fixedExperience }));
@@ -280,7 +280,7 @@ test('resolution rejects commands outside the snapshotted theme', () => {
 test('completed Mock snapshots remain valid and preserve session-end policy', () => {
   const experience = {
     modeId: 'mock', examinerChoice: 'mixed', resolvedExaminerId: null,
-    themeId: 'full-mock', replayPolicy: 'none', revealPolicy: 'session-end', simulated: true
+    themeId: 'full-mock', challengeId: null, replayPolicy: 'none', revealPolicy: 'session-end', simulated: true
   };
   const completed = session({
     nextIndex: 2,

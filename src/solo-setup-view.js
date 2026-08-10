@@ -1,3 +1,4 @@
+import { CHALLENGES, CHALLENGE_IDS } from './challenges.js';
 import { EXAMINERS, EXAMINER_CHOICE_IDS, selectTodaysExaminer } from './examiners.js';
 import { SESSION_PRESETS, SESSION_PRESET_IDS } from './session-presets.js';
 import { SESSION_THEMES } from './session-themes.js';
@@ -10,6 +11,7 @@ export function renderSoloSetupView({
   selectedPresetId,
   selectedExaminerChoiceId,
   selectedThemeId = null,
+  selectedChallengeId = null,
   dateParts
 } = {}) {
   if (!LOCALES.has(locale)) throw new Error(`Unsupported locale: ${String(locale)}`);
@@ -23,6 +25,9 @@ export function renderSoloSetupView({
   if (selectedThemeId !== null && !SESSION_THEMES.some(theme => theme.id === selectedThemeId)) {
     throw new Error(`Unknown theme: ${String(selectedThemeId)}`);
   }
+  if (selectedChallengeId !== null && !CHALLENGE_IDS.includes(selectedChallengeId)) {
+    throw new Error(`Unknown challenge: ${String(selectedChallengeId)}`);
+  }
 
   const today = selectTodaysExaminer(dateParts);
   return `
@@ -30,6 +35,7 @@ export function renderSoloSetupView({
       ${renderExperienceChoices({ t, selectedPresetId })}
       ${renderExaminerChoices({ t, selectedExaminerChoiceId, today })}
       ${renderThemeChoices({ t, selectedThemeId })}
+      ${renderChallengeChoices({ t, selectedChallengeId })}
     </section>
   `;
 }
@@ -126,6 +132,40 @@ function renderThemeChoices({ t, selectedThemeId }) {
           groupName: 'theme-choice',
           action: 'select-theme',
           dataName: 'theme',
+          t
+        })).join('')}
+      </div>
+    </fieldset>
+  `;
+}
+
+function renderChallengeChoices({ t, selectedChallengeId }) {
+  const challengeChoices = [
+    {
+      id: 'none',
+      title: t('challenge.none.title'),
+      description: t('challenge.none.description'),
+      selected: selectedChallengeId === null,
+      visualToken: 'none'
+    },
+    ...CHALLENGES.map(challenge => ({
+      id: challenge.id,
+      title: t(challenge.titleKey),
+      description: t(challenge.descriptionKey),
+      selected: challenge.id === selectedChallengeId,
+      visualToken: challenge.id
+    }))
+  ];
+
+  return `
+    <fieldset class="solo-choice-group challenge-choices">
+      <legend>${html(t('challenge.heading'))}</legend>
+      <div class="solo-choice-grid">
+        ${challengeChoices.map(challenge => choice({
+          ...challenge,
+          groupName: 'challenge-choice',
+          action: 'select-challenge',
+          dataName: 'challenge',
           t
         })).join('')}
       </div>

@@ -1177,6 +1177,7 @@ test('session experience resolves Today once from injected local date parts and 
 
   assert.deepEqual(today, {
     modeId: 'practice',
+    challengeId: null,
     examinerChoice: 'today',
     resolvedExaminerId: selectTodaysExaminer(dateParts).id,
     themeId: 'city-circuit',
@@ -1204,7 +1205,7 @@ test('session identity presents stable mode, theme, and examiner metadata withou
 
   const mixed = sessionIdentityData({
     modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
-    themeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+    themeId: null, challengeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
   });
   assert.equal(mixed.themeTitleKey, 'theme.adaptive.title');
   assert.equal(mixed.examinerTitleKey, 'examiner.mixed.title');
@@ -1245,7 +1246,7 @@ test('effective session settings preserve visible Practice controls and apply on
 
 test('Mock blocks replay and Spanish hints, withholds reveal, and advances through a neutral frame', () => {
   const experience = Object.freeze({
-    modeId: 'mock', examinerChoice: 'mixed', resolvedExaminerId: null, themeId: null,
+    modeId: 'mock', examinerChoice: 'mixed', resolvedExaminerId: null, themeId: null, challengeId: null,
     replayPolicy: 'none', revealPolicy: 'session-end', simulated: true
   });
   const mockSettings = { ...settings, speed: 1, hintPolicy: 'unavailable', timed: true };

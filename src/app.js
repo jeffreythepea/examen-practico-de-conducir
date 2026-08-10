@@ -40,6 +40,7 @@ import {
   postAnswerMotionView
 } from './post-answer-motion.js';
 import { compactAttempts } from './attempt-compaction.js';
+import { challengeById, evaluateCleanSession } from './challenges.js';
 import { readinessForCatalog } from './readiness.js';
 import { renderLessonFlagEditor, renderReadinessView } from './readiness-view.js';
 import { sessionPresetById } from './session-presets.js';
@@ -164,12 +165,7 @@ export function ambienceEligible(model) {
 }
 
 export function mockResultStatus(attempts, expectedCount) {
-  if (!Array.isArray(attempts) || !Number.isSafeInteger(expectedCount) || expectedCount < 1) {
-    return 'needs-practice';
-  }
-  return attempts.length === expectedCount && attempts.every(attempt => attempt.outcome === 'unaided')
-    ? 'clean'
-    : 'needs-practice';
+  return evaluateCleanSession(attempts, expectedCount);
 }
 
 export function nextSurfaceSeed(cryptoRef = globalThis.crypto) {
@@ -719,7 +715,9 @@ export function selectPlaybackVariant(
 }
 
 export function resolveSessionExperience(settings, dateParts) {
-  const preset = sessionPresetById(settings?.experienceMode);
+  const challengeId = settings?.challengeId ?? null;
+  const challenge = challengeId === null ? null : challengeById(challengeId);
+  const preset = sessionPresetById(challenge ? challenge.basePresetId : settings?.experienceMode);
   const examinerChoice = settings?.examinerChoice;
   const resolvedExaminerId = examinerChoice === 'mixed'
     ? null
@@ -728,25 +726,28 @@ export function resolveSessionExperience(settings, dateParts) {
       : examinerById(examinerChoice).id;
   return Object.freeze({
     modeId: preset.id,
+    challengeId,
     examinerChoice,
     resolvedExaminerId,
     themeId: settings?.themeId ?? null,
-    replayPolicy: preset.replayPolicy,
-    revealPolicy: preset.revealPolicy,
+    replayPolicy: challenge?.overrides.replayPolicy ?? preset.replayPolicy,
+    revealPolicy: challenge?.overrides.revealPolicy ?? preset.revealPolicy,
     simulated: preset.simulated
   });
 }
 
 export function sessionIdentityData(experience) {
   const preset = sessionPresetById(experience?.modeId);
+  const challenge = experience?.challengeId ? challengeById(experience.challengeId) : null;
   const theme = experience?.themeId === null
     ? null
     : SESSION_THEMES.find(candidate => candidate.id === experience?.themeId);
   if (experience?.themeId !== null && !theme) throw new Error(`Unknown theme: ${String(experience?.themeId)}`);
+  const modeTitleKey = challenge?.titleKey ?? preset.titleKey;
 
   if (experience?.examinerChoice === 'mixed') {
     return Object.freeze({
-      modeTitleKey: preset.titleKey,
+      modeTitleKey,
       themeTitleKey: theme?.titleKey ?? 'theme.adaptive.title',
       examinerTitleKey: 'examiner.mixed.title',
       examinerDescriptionKey: 'examiner.mixed.description',
@@ -756,7 +757,7 @@ export function sessionIdentityData(experience) {
 
   const examiner = examinerById(experience?.resolvedExaminerId);
   return Object.freeze({
-    modeTitleKey: preset.titleKey,
+    modeTitleKey,
     themeTitleKey: theme?.titleKey ?? 'theme.adaptive.title',
     examinerTitleKey: examiner.nameKey,
     examinerDescriptionKey: examiner.descriptionKey,
@@ -765,6 +766,11 @@ export function sessionIdentityData(experience) {
 }
 
 export function effectiveSessionSettings(settings) {
+  const challengeId = settings?.challengeId ?? null;
+  if (challengeId !== null) {
+    const challenge = challengeById(challengeId);
+    return Object.freeze({ ...settings, ...(challenge.overrides.settings ?? {}) });
+  }
   const preset = sessionPresetById(settings?.experienceMode);
   if (preset.id === 'practice') return Object.freeze({ ...settings });
   return Object.freeze({
@@ -1094,6 +1100,7 @@ async function bootstrap() {
         selectedPresetId: state.settings.experienceMode,
         selectedExaminerChoiceId: state.settings.examinerChoice,
         selectedThemeId: state.settings.themeId,
+        selectedChallengeId: state.settings.challengeId,
         dateParts
       })}
       <details class="advanced-practice-disclosure" ${state.settings.experienceMode === 'practice' ? '' : 'data-preset-owned="true"'}>
@@ -1348,6 +1355,8 @@ async function bootstrap() {
     const summary = summarizeSession(attempts, model.session);
     const isMock = model.experience?.revealPolicy === 'session-end';
     const mockStatus = isMock ? mockResultStatus(attempts, model.session.length) : null;
+    const challengeId = model.experience?.challengeId ?? null;
+    const challengeStatus = challengeId ? evaluateCleanSession(attempts, model.session.length) : null;
     return `<section class="panel results" aria-labelledby="results-title">
       <h2 id="results-title" role="status" aria-live="polite" aria-describedby="results-headline" data-screen-focus tabindex="-1">${translate(locale(), 'screen.results')}</h2>
       ${renderSessionIdentity()}
@@ -1355,6 +1364,7 @@ async function bootstrap() {
         ? translate(locale(), `mock.result.${mockStatus}`)
         : translate(locale(), 'summary.unaidedPercent', { percent: summary.unaidedPercentage })}</p>
       ${isMock ? `<p class="notice">${translate(locale(), 'mock.result.nonOfficial')}</p>` : ''}
+      ${challengeId ? `<p class="notice">${translate(locale(), `challenge.result.${challengeStatus}`)}</p>` : ''}
       ${!isMock && summary.counts.assisted > summary.counts.unaided ? `<p class="notice">${translate(locale(), 'results.hintNotice')}</p>` : ''}
       <div class="result-counts">
         ${countCard('unaided', summary.counts.unaided)}
@@ -1436,6 +1446,11 @@ async function bootstrap() {
     app.querySelectorAll('[data-action="select-theme"]').forEach(control => {
       control.addEventListener('change', () => updateSettings({
         themeId: control.value === 'adaptive' ? null : control.value
+      }));
+    });
+    app.querySelectorAll('[data-action="select-challenge"]').forEach(control => {
+      control.addEventListener('change', () => updateSettings({
+        challengeId: control.value === 'none' ? null : control.value
       }));
     });
     app.querySelectorAll('[data-setting]').forEach(control => control.addEventListener('change', () => {

@@ -88,7 +88,8 @@ test('creates fresh version 4 defaults with recommended practice and an empty le
       mode: 'recommended',
       experienceMode: 'practice',
       examinerChoice: 'mixed',
-      themeId: null
+      themeId: null,
+      challengeId: null
     },
     attempts: [],
     actionProgress: {},
@@ -196,7 +197,7 @@ test('schema 3 migration is additive, immutable, and idempotent', () => {
     version: 3,
     experience: {
       modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
-      themeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+      themeId: null, challengeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
     }
   });
   assert.deepEqual(legacy, before);
@@ -219,7 +220,7 @@ test('schema 4 round-trips an active-session-v3 continuity cursor without attemp
     },
     experience: {
       modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
-      themeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+      themeId: null, challengeId: null, replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
     },
     continuity: {
       nextRouteStepIndex: 0,

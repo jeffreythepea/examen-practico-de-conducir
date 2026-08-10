@@ -1,3 +1,4 @@
+import { challengeById, CHALLENGE_IDS } from './challenges.js';
 import { EXAMINERS, EXAMINER_CHOICE_IDS, examinerById } from './examiners.js';
 import { SESSION_PRESET_IDS, sessionPresetById } from './session-presets.js';
 import { SESSION_THEMES, THEME_IDS } from './session-themes.js';
@@ -11,6 +12,7 @@ const EXPERIENCE_MODES = new Set(SESSION_PRESET_IDS);
 const EXAMINER_CHOICES = new Set(EXAMINER_CHOICE_IDS);
 const EXAMINER_IDS = new Set(EXAMINERS.map(({ id }) => id));
 const THEMES = new Set([null, ...THEME_IDS]);
+const CHALLENGES_OR_NULL = new Set([null, ...CHALLENGE_IDS]);
 const TARGET_KINDS = new Set([
   'recommended', 'needs-practice', 'not-tested', 'lesson-flags', 'not-ready', 'command', 'free'
 ]);
@@ -20,6 +22,7 @@ const COMPATIBILITY_EXPERIENCE = Object.freeze({
   examinerChoice: 'mixed',
   resolvedExaminerId: null,
   themeId: null,
+  challengeId: null,
   replayPolicy: 'unlimited',
   revealPolicy: 'immediate',
   simulated: false
@@ -129,17 +132,29 @@ function validateContinuity(continuity, items, nextIndex) {
 
 function validateExperience(experience, settings) {
   record(experience, 'activeSession.experience');
+  if (experience.challengeId === undefined) experience.challengeId = null;
   if (!EXPERIENCE_MODES.has(experience.modeId)) throw new Error('Invalid activeSession.experience.modeId');
   if (!EXAMINER_CHOICES.has(experience.examinerChoice)) throw new Error('Invalid activeSession.experience.examinerChoice');
   if (!THEMES.has(experience.themeId)) throw new Error('Invalid activeSession.experience.themeId');
+  if (!CHALLENGES_OR_NULL.has(experience.challengeId)) throw new Error('Invalid activeSession.experience.challengeId');
 
   const preset = sessionPresetById(experience.modeId);
-  if (experience.replayPolicy !== preset.replayPolicy) throw new Error('Invalid activeSession.experience.replayPolicy');
-  if (experience.revealPolicy !== preset.revealPolicy) throw new Error('Invalid activeSession.experience.revealPolicy');
+  const challenge = experience.challengeId === null ? null : challengeById(experience.challengeId);
+  if (challenge && challenge.basePresetId !== experience.modeId) {
+    throw new Error('Invalid activeSession.experience.challengeId for modeId');
+  }
+  const expectedReplayPolicy = challenge?.overrides.replayPolicy ?? preset.replayPolicy;
+  const expectedRevealPolicy = challenge?.overrides.revealPolicy ?? preset.revealPolicy;
+  if (experience.replayPolicy !== expectedReplayPolicy) throw new Error('Invalid activeSession.experience.replayPolicy');
+  if (experience.revealPolicy !== expectedRevealPolicy) throw new Error('Invalid activeSession.experience.revealPolicy');
   if (experience.simulated !== preset.simulated) throw new Error('Invalid activeSession.experience.simulated');
   if (experience.modeId !== 'practice') {
     for (const field of ['speed', 'hintPolicy', 'timed']) {
       if (settings[field] !== preset.settings[field]) throw new Error(`Invalid activeSession.settings.${field} for experience`);
+    }
+  } else if (challenge) {
+    for (const field of Object.keys(challenge.overrides.settings ?? {})) {
+      if (settings[field] !== challenge.overrides.settings[field]) throw new Error(`Invalid activeSession.settings.${field} for experience`);
     }
   }
 
