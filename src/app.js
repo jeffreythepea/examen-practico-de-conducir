@@ -379,10 +379,7 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       continuityActive: event.continuityActive === true
     }, event.index);
   }
-  if (event.type === 'AUDIO_STARTED'
-      && event.motionEnabled === true
-      && model.screen === 'loading-audio'
-      && ROAD_MOTION_SURFACE_IDS.has(model.session[model.index]?.surfaceId)) {
+  if (event.type === 'AUDIO_STARTED' && model.screen === 'loading-audio') {
     let generated;
     try {
       generated = generateSurfaceWithRetries(
@@ -393,8 +390,9 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
     } catch {
       return model;
     }
-    const sceneId = generated.model?.geometry?.sceneId;
-    if (!generated.model || !roadMotionProfile(sceneId)) return model;
+    if (!generated.model) return model;
+    const sceneId = generated.model.geometry?.sceneId;
+    const motionEligible = event.motionEnabled === true && Boolean(roadMotionProfile(sceneId));
     return {
       ...model,
       screen: 'prompt',
@@ -407,11 +405,13 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       replays: 0,
       promptStartedAt: null,
       initialAudioPending: true,
-      roadMotion: createRoadMotion({
-        enabled: true,
-        startedAt: event.startedAt,
-        sceneId
-      }),
+      roadMotion: motionEligible
+        ? createRoadMotion({
+          enabled: true,
+          startedAt: event.startedAt,
+          sceneId
+        })
+        : null,
       outcome: null,
       selectedResult: null,
       responseMs: null,
@@ -424,18 +424,19 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
   }
   if (event.type === 'AUDIO_COMPLETED'
       && model.screen === 'prompt'
-      && model.initialAudioPending
-      && model.roadMotion) {
+      && model.initialAudioPending) {
     return {
       ...model,
       variant: event.variant ? Object.freeze({ ...event.variant }) : model.variant,
       audioError: null,
       promptStartedAt: event.completedAt,
       initialAudioPending: false,
-      roadMotion: reduceRoadMotion(model.roadMotion, {
-        type: 'AUDIO_COMPLETED',
-        at: event.completedAt
-      })
+      roadMotion: model.roadMotion
+        ? reduceRoadMotion(model.roadMotion, {
+          type: 'AUDIO_COMPLETED',
+          at: event.completedAt
+        })
+        : null
     };
   }
   if (['AUDIO_COMPLETED', 'TRIAL_AUDIO_ENDED'].includes(event.type) && model.screen === 'loading-audio') {
@@ -2109,7 +2110,7 @@ async function bootstrap() {
         { text: phrasing.es, speed: variant.speed },
         {
           onStarted: () => {
-            if (operation !== audioOperation || !movingRoadEnabled(command)) return;
+            if (operation !== audioOperation) return;
             const before = model;
             try {
               model = reduceScreen(model, {
@@ -2117,7 +2118,7 @@ async function bootstrap() {
                 variant,
                 startedAt: Date.now(),
                 seed: nextSurfaceSeed(),
-                motionEnabled: true
+                motionEnabled: movingRoadEnabled(command)
               });
             } catch {
               model = before;

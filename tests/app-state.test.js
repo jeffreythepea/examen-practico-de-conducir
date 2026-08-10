@@ -241,27 +241,46 @@ test('every approved photo-backed road family starts one generic locked motion l
   }
 });
 
-test('moving junction eligibility and generation failure preserve the existing static audio path', () => {
+test('audio start shows every surface early, with motion only where eligible', () => {
   const junctionLoading = reduceScreen(setupModel(), { type: 'START_SESSION', session });
-  assert.strictEqual(reduceScreen(junctionLoading, {
+  const staticJunction = reduceScreen(junctionLoading, {
     type: 'AUDIO_STARTED',
     variant: rightVariant,
     startedAt: 1_000,
     seed: 123,
     motionEnabled: false
-  }), junctionLoading);
+  });
+  assert.equal(staticJunction.screen, 'prompt');
+  assert.ok(staticJunction.activeSurfaceModel);
+  assert.equal(staticJunction.initialAudioPending, true);
+  assert.equal(staticJunction.roadMotion, null);
+  assert.equal(staticJunction.promptStartedAt, null);
 
   const controlLoading = reduceScreen(setupModel(), {
     type: 'START_SESSION',
     session: [wheelCommand]
   });
-  assert.strictEqual(reduceScreen(controlLoading, {
+  const staticControl = reduceScreen(controlLoading, {
     type: 'AUDIO_STARTED',
     variant: rightVariant,
     startedAt: 1_000,
     seed: 123,
     motionEnabled: true
-  }), controlLoading);
+  });
+  assert.equal(staticControl.screen, 'prompt');
+  assert.ok(staticControl.activeSurfaceModel);
+  assert.equal(staticControl.initialAudioPending, true);
+  assert.equal(staticControl.roadMotion, null, 'a surface without a motion profile never gets road motion');
+
+  const completed = reduceScreen(staticControl, {
+    type: 'AUDIO_COMPLETED',
+    variant: rightVariant,
+    completedAt: 2_000
+  });
+  assert.equal(completed.screen, 'prompt');
+  assert.equal(completed.initialAudioPending, false);
+  assert.equal(completed.promptStartedAt, 2_000);
+  assert.equal(completed.roadMotion, null);
 
   const failed = reduceScreen(junctionLoading, {
     type: 'AUDIO_STARTED',
