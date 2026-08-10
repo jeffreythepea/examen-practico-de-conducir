@@ -6,7 +6,13 @@ const CORRECT_OUTCOMES = new Set(['unaided', 'assisted']);
 const DIRECTION_GAIN = 0.35;
 const INTRO_SCALE = 1.22;
 const INTRO_LEAN_DEGREES = 2;
-const INTRO_DURATION_MS = 900;
+// Two beats: approach push toward the junction, then the perspective turn.
+const INTRO_DURATION_MS = 1400;
+const YAW_GAIN = 1.1;
+const YAW_MIN_DEGREES = 8;
+const YAW_MAX_DEGREES = 16;
+// Fraction of dx the cruise photo starts counter-offset by before settling.
+const SETTLE_GAIN = 0.25;
 
 /**
  * First-person "drive into the chosen road" intro for a cruise transition.
@@ -21,7 +27,7 @@ const INTRO_DURATION_MS = 900;
  *   motionEnabled: boolean,
  *   nextStepKind: string|null
  * }} input
- * @returns {Readonly<{ sceneId: string, asset: string, dx: number, dy: number, scale: number, rotate: number, durationMs: number }>|null}
+ * @returns {Readonly<{ sceneId: string, asset: string, dx: number, dy: number, scale: number, rotate: number, yawDeg: number, settleDx: number, durationMs: number }>|null}
  */
 export function turnThroughIntro({
   surfaceModel,
@@ -50,6 +56,10 @@ export function turnThroughIntro({
 
   const dx = round((target.x - 50) * DIRECTION_GAIN);
   const dy = round((target.y - 50) * DIRECTION_GAIN);
+  const yawMagnitude = Math.min(
+    YAW_MAX_DEGREES,
+    Math.max(YAW_MIN_DEGREES, Math.abs(dx) * YAW_GAIN)
+  );
   return Object.freeze({
     sceneId,
     asset: scene.asset,
@@ -57,6 +67,8 @@ export function turnThroughIntro({
     dy,
     scale: INTRO_SCALE,
     rotate: dx === 0 ? 0 : dx > 0 ? -INTRO_LEAN_DEGREES : INTRO_LEAN_DEGREES,
+    yawDeg: dx === 0 ? 0 : round(dx > 0 ? -yawMagnitude : yawMagnitude),
+    settleDx: round(-dx * SETTLE_GAIN),
     durationMs: INTRO_DURATION_MS
   });
 }

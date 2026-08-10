@@ -36,7 +36,9 @@ test('produces a frozen intro toward the chosen road on a correct answer', () =>
     dy: 0,
     scale: 1.22,
     rotate: -2,
-    durationMs: 900
+    yawDeg: -13.48,
+    settleDx: -3.06,
+    durationMs: 1400
   });
 });
 
@@ -59,6 +61,37 @@ test('direction follows the chosen target: left, right, straight', () => {
   assert.equal(straight.dx, 0);
   assert.equal(straight.rotate, 0);
   assert.ok(straight.dy < 0);
+});
+
+test('yaw mirrors left/right and stays flat straight-ahead', () => {
+  const left = intro({ selectedTargetId: 'left' });
+  const right = intro({ selectedTargetId: 'right' });
+  assert.ok(left.yawDeg > 0);
+  assert.ok(right.yawDeg < 0);
+  assert.equal(left.yawDeg, -right.yawDeg);
+  assert.equal(intro({ selectedTargetId: 'straight' }).yawDeg, 0);
+});
+
+test('yaw magnitude clamps at both ends', () => {
+  const nearCentre = {
+    ...JUNCTION_MODEL,
+    targets: [{ id: 'nudge', resultId: 'turn-right', kind: 'road', x: 53, y: 50, width: 18, height: 18 }]
+  };
+  assert.equal(Math.abs(intro({ surfaceModel: nearCentre, selectedTargetId: 'nudge' }).yawDeg), 8);
+  const farEdge = {
+    ...JUNCTION_MODEL,
+    targets: [{ id: 'edge', resultId: 'turn-right', kind: 'road', x: 100, y: 50, width: 18, height: 18 }]
+  };
+  assert.equal(Math.abs(intro({ surfaceModel: farEdge, selectedTargetId: 'edge' }).yawDeg), 16);
+});
+
+test('cruise settle opposes the pan and is 0 straight-ahead', () => {
+  const left = intro({ selectedTargetId: 'left' });
+  const right = intro({ selectedTargetId: 'right' });
+  assert.ok(left.settleDx > 0);
+  assert.ok(right.settleDx < 0);
+  assert.equal(right.settleDx, -3.06);
+  assert.equal(intro({ selectedTargetId: 'straight' }).settleDx, 0);
 });
 
 test('roundabout exits pan toward the exit anchor', () => {
