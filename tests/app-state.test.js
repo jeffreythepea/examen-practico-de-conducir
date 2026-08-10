@@ -1394,21 +1394,21 @@ test('Full Mock continuity synchronizes transition, command, and completed route
   });
   let model = reduceScreen(
     setupModel(),
-    { type: 'START_SESSION', session, experience, atTransition: true }
+    { type: 'START_SESSION', session, experience, stepKind: 'transition' }
   );
   assert.equal(model.screen, 'mock-transition');
   assert.equal(model.index, 0);
 
-  model = reduceScreen(model, { type: 'CONTINUITY_SYNC', index: 0, atTransition: false });
+  model = reduceScreen(model, { type: 'CONTINUITY_SYNC', index: 0 });
   assert.equal(model.screen, 'loading-audio');
   assert.equal(model.index, 0);
 
   model = { ...model, screen: 'mock-transition' };
-  model = reduceScreen(model, { type: 'CONTINUITY_SYNC', index: 1, atTransition: true });
+  model = reduceScreen(model, { type: 'CONTINUITY_SYNC', index: 1, stepKind: 'transition' });
   assert.equal(model.screen, 'mock-transition');
   assert.equal(model.index, 1);
 
-  model = reduceScreen(model, { type: 'CONTINUITY_SYNC', index: 2, atTransition: false });
+  model = reduceScreen(model, { type: 'CONTINUITY_SYNC', index: 2 });
   assert.equal(model.screen, 'results');
   assert.equal(model.index, 2);
 });
@@ -1417,12 +1417,12 @@ test('immediate-reveal Continue can enter a continuity transition before the nex
   const revealed = reduceScreen(promptModel(), { type: 'TIMEOUT', completedAt: 5_000 });
   assert.equal(revealed.screen, 'reveal');
 
-  const atTransition = reduceScreen(revealed, { type: 'CONTINUE', atTransition: true });
+  const atTransition = reduceScreen(revealed, { type: 'CONTINUE', stepKind: 'transition' });
   assert.equal(atTransition.screen, 'mock-transition');
   assert.equal(atTransition.index, 1);
   assert.equal(atTransition.selectedResult, null);
 
-  const synced = reduceScreen(atTransition, { type: 'CONTINUITY_SYNC', index: 1, atTransition: false });
+  const synced = reduceScreen(atTransition, { type: 'CONTINUITY_SYNC', index: 1 });
   assert.equal(synced.screen, 'loading-audio');
   assert.equal(synced.index, 1);
 
@@ -1434,22 +1434,103 @@ test('immediate-reveal Continue can enter a continuity transition before the nex
 test('a trailing continuity transition after the last reveal still reaches results', () => {
   let model = reduceScreen(promptModel(), { type: 'TIMEOUT', completedAt: 5_000 });
   model = { ...model, index: model.session.length - 1 };
-  model = reduceScreen(model, { type: 'CONTINUE', atTransition: true });
+  model = reduceScreen(model, { type: 'CONTINUE', stepKind: 'transition' });
   assert.equal(model.screen, 'mock-transition');
   assert.equal(model.index, model.session.length);
 
   model = reduceScreen(model, {
-    type: 'CONTINUITY_SYNC', index: model.session.length, atTransition: false
+    type: 'CONTINUITY_SYNC', index: model.session.length
   });
   assert.equal(model.screen, 'results');
 });
 
 test('resuming Full Mock continuity can restore an unscored transition', () => {
   const model = reduceScreen(setupModel(), {
-    type: 'RESUME_SESSION', session, index: 1, atTransition: true
+    type: 'RESUME_SESSION', session, index: 1, stepKind: 'transition'
   });
   assert.equal(model.screen, 'mock-transition');
   assert.equal(model.index, 1);
+});
+
+test('Continue can enter a silent null event whose straight tap confirms and records nothing', () => {
+  const revealed = reduceScreen(promptModel(), { type: 'TIMEOUT', completedAt: 5_000 });
+  const entered = reduceScreen(revealed, {
+    type: 'CONTINUE', stepKind: 'null-event', seed: 123, startedAt: 9_000, motionEnabled: true
+  });
+  assert.equal(entered.screen, 'null-event');
+  assert.equal(entered.index, 1);
+  assert.equal(entered.initialAudioPending, false);
+  assert.equal(entered.variant, null, 'no audio variant is ever selected for a null event');
+  assert.equal(entered.nullEvent.state, 'active');
+  assert.equal(entered.activeSurfaceModel.family, 'junction');
+  assert.equal(entered.activeSurfaceModel.expectedResult, 'continue-forward');
+  assert.equal(entered.roadMotion.phase, 'approaching-interactive');
+  assert.equal(entered.roadMotion.sceneId, 'four-way-intersection-photo-v1');
+
+  const straight = entered.activeSurfaceModel.targets.find(target => target.resultId === 'continue-forward');
+  const confirmed = reduceScreen(entered, {
+    type: 'NULL_EVENT_SELECT', targetId: straight.id, completedAt: 10_000
+  });
+  assert.equal(confirmed.screen, 'null-event');
+  assert.equal(confirmed.nullEvent.state, 'correct');
+  assert.equal(confirmed.nullEvent.selectedTargetId, straight.id);
+  assert.equal(confirmed.roadMotion.phase, 'waiting');
+  assert.equal(confirmed.outcome, null, 'a null event never becomes a scored attempt');
+  assert.equal(confirmed.selectedResult, null);
+
+  const synced = reduceScreen(confirmed, { type: 'CONTINUITY_SYNC', index: 1 });
+  assert.equal(synced.screen, 'loading-audio');
+  assert.equal(synced.index, 1);
+  assert.equal(synced.nullEvent, null);
+});
+
+test('null-event wrong taps correct gently, settle once, and the approach end hints', () => {
+  const revealed = reduceScreen(promptModel(), { type: 'TIMEOUT', completedAt: 5_000 });
+  const entered = reduceScreen(revealed, {
+    type: 'CONTINUE', stepKind: 'null-event', seed: 123, startedAt: 9_000, motionEnabled: false
+  });
+  assert.equal(entered.roadMotion, null, 'static null events run without road motion');
+
+  const wrongTarget = entered.activeSurfaceModel.targets.find(target => target.resultId !== 'continue-forward');
+  const corrected = reduceScreen(entered, {
+    type: 'NULL_EVENT_SELECT', targetId: wrongTarget.id, completedAt: 10_000
+  });
+  assert.equal(corrected.nullEvent.state, 'incorrect');
+  assert.strictEqual(
+    reduceScreen(corrected, { type: 'NULL_EVENT_SELECT', targetId: wrongTarget.id, completedAt: 10_500 }),
+    corrected,
+    'a settled null event ignores further taps'
+  );
+
+  const hinted = reduceScreen(entered, { type: 'NULL_EVENT_HINT' });
+  assert.equal(hinted.nullEvent.state, 'hint');
+  assert.equal(
+    reduceScreen(hinted, { type: 'NULL_EVENT_SELECT', targetId: wrongTarget.id, completedAt: 11_000 }).nullEvent.state,
+    'incorrect',
+    'the hint still requires a tap'
+  );
+  assert.strictEqual(reduceScreen(corrected, { type: 'NULL_EVENT_HINT' }), corrected);
+});
+
+test('continuity sync and resume can land on a null event without touching audio state', () => {
+  let model = reduceScreen(setupModel(), {
+    type: 'START_SESSION', session, stepKind: 'transition'
+  });
+  assert.equal(model.screen, 'mock-transition');
+  model = reduceScreen(model, {
+    type: 'CONTINUITY_SYNC', index: 0, stepKind: 'null-event', seed: 123, startedAt: 9_000, motionEnabled: true
+  });
+  assert.equal(model.screen, 'null-event');
+  assert.equal(model.index, 0);
+  assert.equal(model.initialAudioPending, false);
+  assert.equal(model.nullEvent.state, 'active');
+
+  const resumed = reduceScreen(setupModel(), {
+    type: 'RESUME_SESSION', session, index: 1, stepKind: 'null-event', seed: 123, startedAt: 9_000, motionEnabled: false
+  });
+  assert.equal(resumed.screen, 'null-event');
+  assert.equal(resumed.index, 1);
+  assert.equal(resumed.nullEvent.state, 'active');
 });
 
 test('Mock result status is clean only when every expected response is unaided', () => {

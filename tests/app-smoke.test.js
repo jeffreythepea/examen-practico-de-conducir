@@ -197,6 +197,21 @@ test('browser controller coordinates moving junction audio, rendering, animation
   assert.match(source, /road-camera-push/);
 });
 
+test('null events render silently with live targets and never reach attempt recording', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /function renderNullEvent\(\)/);
+  const view = source.slice(source.indexOf('function renderNullEvent()'), source.indexOf('function renderResults()'));
+  assert.doesNotMatch(view, /data-action="replay"|show-spanish|data-timer/);
+  assert.match(view, /prompt\.listen/, 'silence keeps the standard examiner framing');
+  assert.match(view, /nullEvent\.neutral/, 'mock mode withholds correct/incorrect framing');
+
+  const binder = source.slice(source.indexOf('function bindNullEventEvents()'), source.indexOf('function bindResultsEvents()'));
+  assert.match(binder, /NULL_EVENT_SELECT/);
+  assert.match(binder, /advanceContinuityTransition/);
+  assert.doesNotMatch(binder, /recordAttempt|completeTrial|dispatchSurfaceEvent/);
+});
+
 test('correct post-answer movement starts only after saved scoring and remains presentation-only', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
   const controller = source.slice(source.indexOf('function completeTrial(event)'), source.indexOf('function playFeedbackCue'));
@@ -292,9 +307,11 @@ test('End session is a small secondary control on the prompt and mock-transition
   const promptSection = source.slice(source.indexOf('function renderPrompt()'), source.indexOf('function renderReveal()'));
   assert.match(promptSection, /<button type="button" data-action="end-session">\$\{translate\(locale\(\), 'session\.end'\)\}<\/button>/);
 
-  const mockTransitionSection = source.slice(source.indexOf('function renderMockTransition()'), source.indexOf('function renderResults()'));
+  const mockTransitionSection = source.slice(source.indexOf('function renderMockTransition()'), source.indexOf('function renderNullEvent()'));
   const endSessionButtons = mockTransitionSection.match(/<button type="button" data-action="end-session">/g) ?? [];
   assert.equal(endSessionButtons.length, 2, 'both the mock-transition-step branch and the plain branch must render End session');
+  const nullEventSection = source.slice(source.indexOf('function renderNullEvent()'), source.indexOf('function renderResults()'));
+  assert.match(nullEventSection, /<button type="button" data-action="end-session">\$\{translate\(locale\(\), 'session\.end'\)\}<\/button>/);
 
   assert.match(source, /'\[data-action="end-session"\]'\)\?\.addEventListener\('click', endSession\)/);
   const bindPromptEvents = source.slice(source.indexOf('function bindPromptEvents()'), source.indexOf('function bindRevealEvents()'));

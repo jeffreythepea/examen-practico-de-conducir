@@ -38,6 +38,7 @@ import {
 import { setDocumentLocale, translate } from './i18n.js';
 import { createLessonFlag, updateLessonFlag } from './lesson-flags.js';
 import {
+  ROAD_APPROACH_MS,
   createRoadMotion,
   reduceRoadMotion,
   roadMotionProfile,
@@ -82,6 +83,16 @@ import { selectCoverageAwareVariant } from './variant-coverage.js';
 
 export const MISS_REASONS = Object.freeze(['hearing', 'meaning', 'mapping', 'target', 'accidental', 'other']);
 export const TRIAL_TIME_MS = 8_000;
+// C: a null event is a silent junction — no command, no audio, never a scored
+// attempt. The synthetic command exists only to drive the junction surface
+// generator toward the straight-ahead target; it never reaches recordAttempt.
+export const NULL_EVENT_COMMAND = Object.freeze({
+  id: 'null-event',
+  actionId: 'continue-forward',
+  acceptedResult: 'continue-forward',
+  surfaceId: 'junction-v2'
+});
+export const NULL_EVENT_DWELL_MS = 1_600;
 const SURFACE_RETRY_INCREMENT = 0x9e3779b9;
 const RESULT_ONLY_SURFACE_FAMILIES = Object.freeze([
   'junction',
@@ -164,7 +175,7 @@ export function feedbackCueForTransition(before, after, event) {
   return null;
 }
 
-const AMBIENCE_ACTIVE_SCREENS = Object.freeze(['loading-audio', 'prompt', 'reveal', 'mock-transition']);
+const AMBIENCE_ACTIVE_SCREENS = Object.freeze(['loading-audio', 'prompt', 'reveal', 'mock-transition', 'null-event']);
 
 /**
  * Cabin ambience is strictly opt-in: it plays only while a session is actually
@@ -353,6 +364,40 @@ export function focusScreen(documentRef, { previousScreen, nextScreen }) {
   return true;
 }
 
+function enterNullEventScreen(model, index, event, surfaceGenerator) {
+  const base = resetTrial({ ...model, screen: 'null-event' }, index);
+  let generated;
+  try {
+    generated = generateSurfaceWithRetries(
+      NULL_EVENT_COMMAND,
+      event.seed ?? nextSurfaceSeed(),
+      surfaceGenerator
+    );
+  } catch (error) {
+    generated = { model: null, error };
+  }
+  const sceneId = generated.model?.geometry?.sceneId;
+  const motionEligible = event.motionEnabled === true && Boolean(roadMotionProfile(sceneId));
+  return {
+    ...base,
+    activeSurfaceModel: generated.model,
+    surfaceError: generated.error?.message ?? null,
+    nullEvent: { state: 'active', selectedTargetId: null },
+    // No audio ever plays here, so the approach starts already interactive —
+    // the locked phase only exists to wait for command audio.
+    roadMotion: motionEligible
+      ? reduceRoadMotion(
+        createRoadMotion({
+          enabled: true,
+          startedAt: event.startedAt ?? 0,
+          sceneId
+        }),
+        { type: 'AUDIO_COMPLETED', at: event.startedAt ?? 0 }
+      )
+      : null
+  };
+}
+
 export function reduceScreen(model, event, { surfaceGenerator = generateSurface } = {}) {
   if (event.type === 'SET_LOCALE') {
     return { ...model, settings: { ...model.settings, locale: event.locale } };
@@ -370,27 +415,34 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
     return resetTrial({ ...model, screen: 'setup', settings: model.settings, session: [] }, 0);
   }
   if (event.type === 'START_SESSION') {
-    return resetTrial({
+    const base = {
       ...model,
-      screen: event.atTransition ? 'mock-transition' : 'loading-audio',
       session: [...event.session],
       experience: event.experience ?? model.experience ?? null,
       continuityActive: event.continuityActive === true
+    };
+    if (event.stepKind === 'null-event') return enterNullEventScreen(base, 0, event, surfaceGenerator);
+    return resetTrial({
+      ...base,
+      screen: event.stepKind === 'transition' ? 'mock-transition' : 'loading-audio'
     }, 0);
   }
   if (event.type === 'RESUME_SESSION') {
     if (!Array.isArray(event.session) || !Number.isSafeInteger(event.index)
         || event.index < 0 || event.index > event.session.length) return model;
-    const screen = event.atTransition
-      ? 'mock-transition'
-      : event.index === event.session.length ? 'results' : 'loading-audio';
-    return resetTrial({
+    const base = {
       ...model,
-      screen,
       session: [...event.session],
       experience: event.experience ?? model.experience ?? null,
       continuityActive: event.continuityActive === true
-    }, event.index);
+    };
+    if (event.stepKind === 'null-event' && event.index < event.session.length) {
+      return enterNullEventScreen(base, event.index, event, surfaceGenerator);
+    }
+    const screen = event.stepKind === 'transition'
+      ? 'mock-transition'
+      : event.index === event.session.length ? 'results' : 'loading-audio';
+    return resetTrial({ ...base, screen }, event.index);
   }
   if (['SCENE_STARTED', 'AUDIO_STARTED'].includes(event.type) && model.screen === 'loading-audio') {
     const continuingTrial = event.type === 'AUDIO_STARTED' && Boolean(model.activeSurfaceModel);
@@ -675,7 +727,7 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
     });
   }
   if (event.type === 'ROAD_APPROACH_ENDED'
-      && model.screen === 'prompt'
+      && ['prompt', 'null-event'].includes(model.screen)
       && model.roadMotion) {
     const roadMotion = reduceRoadMotion(model.roadMotion, {
       type: 'APPROACH_ENDED',
@@ -689,7 +741,10 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
   }
   if (event.type === 'CONTINUE' && model.screen === 'reveal') {
     const nextIndex = model.index + 1;
-    if (event.atTransition) return resetTrial({ ...model, screen: 'mock-transition' }, nextIndex);
+    if (event.stepKind === 'transition') return resetTrial({ ...model, screen: 'mock-transition' }, nextIndex);
+    if (event.stepKind === 'null-event' && nextIndex < model.session.length) {
+      return enterNullEventScreen(model, nextIndex, event, surfaceGenerator);
+    }
     if (nextIndex >= model.session.length) return resetTrial({ ...model, screen: 'results' }, nextIndex);
     return resetTrial({ ...model, screen: 'loading-audio' }, nextIndex);
   }
@@ -698,14 +753,38 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
     if (nextIndex >= model.session.length) return resetTrial({ ...model, screen: 'results' }, nextIndex);
     return resetTrial({ ...model, screen: 'loading-audio' }, nextIndex);
   }
-  if (event.type === 'CONTINUITY_SYNC' && model.screen === 'mock-transition') {
+  if (event.type === 'CONTINUITY_SYNC' && ['mock-transition', 'null-event'].includes(model.screen)) {
     if (!Number.isSafeInteger(event.index) || event.index < 0 || event.index > model.session.length) {
       return model;
     }
-    const screen = event.atTransition
+    if (event.stepKind === 'null-event' && event.index < model.session.length) {
+      return enterNullEventScreen(model, event.index, event, surfaceGenerator);
+    }
+    const screen = event.stepKind === 'transition'
       ? 'mock-transition'
       : event.index === model.session.length ? 'results' : 'loading-audio';
     return resetTrial({ ...model, screen }, event.index);
+  }
+  if (event.type === 'NULL_EVENT_SELECT'
+      && model.screen === 'null-event'
+      && model.activeSurfaceModel
+      && ['active', 'hint'].includes(model.nullEvent?.state)) {
+    const target = model.activeSurfaceModel.targets.find(candidate => candidate.id === event.targetId);
+    if (!target) return model;
+    const correct = target.resultId === model.activeSurfaceModel.expectedResult;
+    const roadMotion = model.roadMotion && Number.isFinite(event.completedAt)
+      ? reduceRoadMotion(model.roadMotion, { type: 'ANSWERED', at: event.completedAt })
+      : model.roadMotion;
+    return {
+      ...model,
+      nullEvent: { state: correct ? 'correct' : 'incorrect', selectedTargetId: target.id },
+      roadMotion
+    };
+  }
+  if (event.type === 'NULL_EVENT_HINT'
+      && model.screen === 'null-event'
+      && model.nullEvent?.state === 'active') {
+    return { ...model, nullEvent: { ...model.nullEvent, state: 'hint' } };
   }
   return model;
 }
@@ -903,7 +982,8 @@ function resetTrial(model, index) {
     missReason: null,
     allowedMissReasons: [],
     replayPending: false,
-    replayOperationId: null
+    replayOperationId: null,
+    nullEvent: null
   };
 }
 
@@ -1033,6 +1113,17 @@ async function bootstrap() {
       && !reducedMotion;
   }
 
+  // Continuity step fields for screen events; the seed/motion/startedAt trio
+  // only matters when the step is a null event, and is harmless otherwise.
+  function continuityStepEventFields(step) {
+    return {
+      stepKind: step?.kind,
+      seed: nextSurfaceSeed(),
+      startedAt: Date.now(),
+      motionEnabled: movingRoadEnabled(NULL_EVENT_COMMAND)
+    };
+  }
+
   function persistState() {
     try {
       saveState(window.localStorage, state);
@@ -1066,7 +1157,9 @@ async function bootstrap() {
             ? renderReveal()
             : model.screen === 'mock-transition'
               ? renderMockTransition()
-              : renderResults();
+              : model.screen === 'null-event'
+                ? renderNullEvent()
+                : renderResults();
     app.innerHTML = `${renderHeader()}${screen}`;
     bindCommonEvents();
     if (model.screen === 'title') bindTitleEvents();
@@ -1077,6 +1170,7 @@ async function bootstrap() {
     if (model.screen === 'prompt') bindPromptEvents();
     if (model.screen === 'reveal') bindRevealEvents();
     if (model.screen === 'mock-transition') bindMockTransitionEvents();
+    if (model.screen === 'null-event') bindNullEventEvents();
     if (model.screen === 'results') bindResultsEvents();
     refreshTimerText();
     if (previousScreen === model.screen) {
@@ -1491,6 +1585,42 @@ async function bootstrap() {
     </section>`;
   }
 
+  function renderNullEvent() {
+    // A silent junction: standard prompt framing (silence is the test), no
+    // audio controls, targets live immediately.
+    const isMock = model.experience?.revealPolicy === 'session-end';
+    const nullState = model.nullEvent?.state ?? 'active';
+    const answered = ['correct', 'incorrect'].includes(nullState);
+    const noticeKey = answered
+      ? (isMock ? 'nullEvent.neutral' : `nullEvent.${nullState}`)
+      : nullState === 'hint' ? 'nullEvent.hint' : null;
+    const motion = model.roadMotion
+      ? roadMotionView(model.roadMotion, Date.now())
+      : null;
+    return `<section class="panel prompt null-event" aria-labelledby="prompt-title">
+      ${renderSessionIdentity()}
+      <div class="prompt-meta">
+        <p class="progress">${continuityProgressText()}</p>
+        <button type="button" data-action="end-session">${translate(locale(), 'session.end')}</button>
+      </div>
+      <div class="gameplay-layout prompt-layout">
+        <div class="gameplay-copy">
+          <h2 id="prompt-title" data-screen-focus tabindex="-1">${translate(locale(), 'screen.prompt')}</h2>
+          <p>${translate(locale(), 'prompt.listen')}</p>
+          ${noticeKey ? `<p class="notice" role="status">${translate(locale(), noticeKey)}</p>` : ''}
+        </div>
+        ${model.activeSurfaceModel
+          ? `<div class="gameplay-surface">${renderSurfaceModel(model.activeSurfaceModel, {}, locale(), {
+              disabled: answered,
+              reveal: answered && !isMock,
+              selectedTargetId: answered ? model.nullEvent.selectedTargetId : null,
+              motion
+            })}</div>`
+          : ''}
+      </div>
+    </section>`;
+  }
+
   function renderResults() {
     const attempts = state.attempts.filter(attempt => sessionAttemptIds.includes(attempt.id));
     const summary = summarizeSession(attempts, model.session);
@@ -1811,7 +1941,7 @@ async function bootstrap() {
       currentAttemptId = null;
       model = reduceScreen(model, {
         type: 'CONTINUE',
-        atTransition: currentContinuityStep(state.activeSession)?.kind === 'transition'
+        ...continuityStepEventFields(currentContinuityStep(state.activeSession))
       });
       if (model.screen === 'results') settleSessionEnd();
       render();
@@ -1848,6 +1978,51 @@ async function bootstrap() {
       render();
       if (model.screen === 'loading-audio') void playCurrentCommand();
     }, 600);
+  }
+
+  function bindNullEventEvents() {
+    app.querySelector('[data-action="end-session"]')?.addEventListener('click', endSession);
+    const step = currentContinuityStep(state.activeSession);
+    const advance = () => {
+      if (model.screen !== 'null-event') return;
+      if (currentContinuityStep(state.activeSession)?.id !== step?.id) return;
+      advanceContinuityTransition();
+    };
+    if (!model.activeSurfaceModel) {
+      window.setTimeout(advance, 600);
+      return;
+    }
+    if (['correct', 'incorrect'].includes(model.nullEvent?.state)) {
+      window.setTimeout(advance, NULL_EVENT_DWELL_MS);
+      return;
+    }
+    app.querySelectorAll('.road-target').forEach(button => button.addEventListener('click', () => {
+      const before = model;
+      model = reduceScreen(model, {
+        type: 'NULL_EVENT_SELECT',
+        targetId: button.dataset.target,
+        completedAt: Date.now()
+      });
+      if (model !== before) render();
+    }));
+    const showHint = () => {
+      if (model.screen !== 'null-event') return;
+      const before = model;
+      model = reduceScreen(model, { type: 'NULL_EVENT_HINT' });
+      if (model !== before) render();
+    };
+    const runningScene = app.querySelector('.road-motion-scene[data-road-motion-running="true"]');
+    if (runningScene) {
+      runningScene.addEventListener('animationend', event => {
+        if (event.animationName !== 'road-camera-push') return;
+        const before = model;
+        model = reduceScreen(model, { type: 'ROAD_APPROACH_ENDED', completedAt: Date.now() });
+        if (model !== before) render();
+        showHint();
+      }, { once: true });
+    } else if (model.nullEvent?.state === 'active') {
+      window.setTimeout(showHint, ROAD_APPROACH_MS);
+    }
   }
 
   function bindResultsEvents() {
@@ -2048,7 +2223,7 @@ async function bootstrap() {
         type: 'START_SESSION',
         session,
         experience,
-        atTransition: currentContinuityStep(activeSession)?.kind === 'transition',
+        ...continuityStepEventFields(currentContinuityStep(activeSession)),
         continuityActive: Boolean(activeSession.continuity)
       }
     );
@@ -2067,7 +2242,7 @@ async function bootstrap() {
         session: resumableSession.sessionItems,
         index: resumableSession.index,
         experience: resumableSession.experience,
-        atTransition: currentContinuityStep(state.activeSession)?.kind === 'transition',
+        ...continuityStepEventFields(currentContinuityStep(state.activeSession)),
         continuityActive: Boolean(state.activeSession?.continuity)
       }
     );
@@ -2084,7 +2259,7 @@ async function bootstrap() {
     model = reduceScreen(model, {
       type: 'CONTINUITY_SYNC',
       index: advanced.nextIndex,
-      atTransition: nextStep?.kind === 'transition'
+      ...continuityStepEventFields(nextStep)
     });
     if (model.screen === 'results') settleSessionEnd();
     render();
@@ -2261,7 +2436,7 @@ async function bootstrap() {
         model = reduceScreen(model, {
           type: 'CONTINUITY_SYNC',
           index: continuityIndex,
-          atTransition: nextStep?.kind === 'transition'
+          ...continuityStepEventFields(nextStep)
         });
         if (model.screen === 'results') settleSessionEnd();
       }
