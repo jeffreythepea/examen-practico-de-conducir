@@ -17,6 +17,7 @@ import {
   renderContinuityTransition
 } from './continuity-transition-view.js';
 import { commandsForPhase, validateCatalog } from './catalog.js';
+import { computeConfusionPairs, confusionDrillCommandIds } from './confusion-pairs.js';
 import { createFeedbackCuePlayer } from './feedback-audio.js';
 import { createAmbiencePlayer, pickAmbienceClip } from './ambience.js';
 import {
@@ -67,7 +68,7 @@ import {
   renderSurfaceModel,
   supportedCommands
 } from './surfaces.js';
-import { createAttemptId, createSession, recordAttempt, summarizeSession } from './training.js';
+import { SESSION_LENGTHS, createAttemptId, createSession, recordAttempt, summarizeSession } from './training.js';
 import { selectCoverageAwareVariant } from './variant-coverage.js';
 
 export const MISS_REASONS = Object.freeze(['hearing', 'meaning', 'mapping', 'target', 'accidental', 'other']);
@@ -1080,21 +1081,30 @@ async function bootstrap() {
   function renderSetup() {
     const dateParts = localDateParts(new Date());
     const effectiveSettings = effectiveSessionSettings(state.settings);
-    const themed = effectiveSettings.themeId === null
-      ? selectableCommands
-      : eligibleCommandsForTheme(selectableCommands, effectiveSettings.themeId);
-    const pool = commandsForPhase(themed, effectiveSettings.phase);
-    const eligibility = sessionStartEligibility(
-      selectableCommands,
-      manifest,
-      effectiveSettings,
-      player.supportsFallback(),
-      dateParts,
-      manifestIndex
-    );
-    const startErrorKey = eligibility.reason === 'no-commands'
-      ? 'setup.start.noCommands'
-      : 'setup.start.examinerAudio';
+    const isConfusionPairs = effectiveSettings.challengeId === 'confusion-pairs';
+    const pool = isConfusionPairs
+      ? confusionDrillSelection(effectiveSettings)
+      : commandsForPhase(
+        effectiveSettings.themeId === null
+          ? selectableCommands
+          : eligibleCommandsForTheme(selectableCommands, effectiveSettings.themeId),
+        effectiveSettings.phase
+      );
+    const eligibility = isConfusionPairs
+      ? Object.freeze({ canStart: pool.length > 0, reason: pool.length > 0 ? null : 'no-commands' })
+      : sessionStartEligibility(
+        selectableCommands,
+        manifest,
+        effectiveSettings,
+        player.supportsFallback(),
+        dateParts,
+        manifestIndex
+      );
+    const startErrorKey = isConfusionPairs
+      ? 'challenge.confusionPairs.unavailable'
+      : eligibility.reason === 'no-commands'
+        ? 'setup.start.noCommands'
+        : 'setup.start.examinerAudio';
     return `<section class="panel" aria-labelledby="setup-title">
       <h2 id="setup-title" data-screen-focus tabindex="-1">${translate(locale(), 'screen.setup')}</h2>
       ${recoveryError ? `<p class="notice" role="alert">${translate(locale(), 'error.recovery')}</p>` : ''}
@@ -1776,21 +1786,39 @@ async function bootstrap() {
     render();
   }
 
+  function confusionDrillSelection(sessionSettings) {
+    const phaseFiltered = sessionSettings.phase === 'mixed'
+      ? selectableCommands
+      : selectableCommands.filter(command => command.phase === sessionSettings.phase);
+    const pairs = computeConfusionPairs(state.attempts, phaseFiltered);
+    const ids = confusionDrillCommandIds(pairs, phaseFiltered, SESSION_LENGTHS[sessionSettings.length]);
+    return ids.map(id => phaseFiltered.find(command => command.id === id)).filter(Boolean);
+  }
+
   function startSession(target = null, selectionPhase = state.settings.phase) {
     sessionAttemptIds = [];
     const practiceTarget = target ?? { kind: state.settings.mode === 'free' ? 'free' : 'recommended' };
-    const sessionSettings = effectiveSessionSettings(state.settings);
+    const isConfusionPairs = state.settings.challengeId === 'confusion-pairs';
+    const baseSessionSettings = effectiveSessionSettings(state.settings);
+    // Confusion pairs picks its own commands from confusion history, not a
+    // theme, so it always runs untethered from whatever theme is selected —
+    // otherwise a resumed session could contain commands outside that theme.
+    const sessionSettings = isConfusionPairs
+      ? { ...baseSessionSettings, themeId: null }
+      : baseSessionSettings;
     const sessionDateParts = localDateParts(new Date());
     const experience = resolveSessionExperience(sessionSettings, sessionDateParts);
-    const selectedCommands = createSession(selectableCommands, {
-      phase: selectionPhase,
-      length: sessionSettings.length,
-      mode: sessionSettings.mode,
-      themeId: sessionSettings.themeId,
-      target: practiceTarget,
-      attempts: state.attempts,
-      lessonFlags: state.lessonFlags
-    });
+    const selectedCommands = isConfusionPairs
+      ? confusionDrillSelection(sessionSettings)
+      : createSession(selectableCommands, {
+        phase: selectionPhase,
+        length: sessionSettings.length,
+        mode: sessionSettings.mode,
+        themeId: sessionSettings.themeId,
+        target: practiceTarget,
+        attempts: state.attempts,
+        lessonFlags: state.lessonFlags
+      });
     if (selectedCommands.length === 0) {
       if (model.screen === 'readiness') {
         readinessFilters = { ...readinessFilters, noticeKey: 'readiness.empty.target' };
