@@ -36,15 +36,29 @@ export function createFeedbackCuePlayer({ contextFactory = defaultContextFactory
 
     try {
       context ??= contextFactory();
-      if (!context || context.state === 'closed') return false;
-      if (context.state === 'suspended') await context.resume();
-      if (context.state !== undefined && context.state !== 'running') return false;
+      if (!context || context.state === 'closed') {
+        context = null;
+        return false;
+      }
+      // iPadOS WebKit parks the context in a non-standard 'interrupted' state
+      // after other audio (the command mp3) takes the session; resume from any
+      // non-running state, not just 'suspended'.
+      if (context.state !== undefined && context.state !== 'running') {
+        await context.resume();
+      }
+      if (context.state !== undefined && context.state !== 'running') {
+        // A dead context would silently eat every future cue; drop it so the
+        // next cue attempt (inside a tap gesture) can create a fresh one.
+        context = null;
+        return false;
+      }
 
       const baseTime = context.currentTime;
       for (const tone of CUE_DEFINITIONS[cue]) scheduleTone(context, tone, baseTime, activeOscillators);
       return true;
     } catch {
       stop();
+      context = null;
       return false;
     }
   }

@@ -80,6 +80,22 @@ test('valid cues schedule their complete definition and stop clears active oscil
   context.oscillators.forEach(oscillator => assert.ok(oscillator.stopCalls >= 2));
 });
 
+test('an iPadOS-interrupted context is resumed and a dead one is replaced next cue', async () => {
+  const interrupted = createFakeContext({ state: 'interrupted' });
+  const player = createFeedbackCuePlayer({ contextFactory: () => interrupted });
+  assert.equal(await player.play('correct'), true, 'resume from the non-standard interrupted state');
+  assert.ok(interrupted.oscillators.length > 0);
+
+  const stuck = createFakeContext({ state: 'interrupted', resumeRejects: true });
+  const fresh = createFakeContext({ state: 'running' });
+  const contexts = [stuck, fresh];
+  const recovering = createFeedbackCuePlayer({ contextFactory: () => contexts.shift() });
+  assert.equal(await recovering.play('correct'), false);
+  assert.equal(stuck.oscillators.length, 0);
+  assert.equal(await recovering.play('correct'), true, 'a dead context is dropped, not reused');
+  assert.ok(fresh.oscillators.length > 0);
+});
+
 test('context construction and resume failures are non-throwing', async () => {
   const unavailable = createFeedbackCuePlayer({ contextFactory: () => { throw new Error('blocked'); } });
   assert.equal(await unavailable.play('correct', { enabled: true }), false);
