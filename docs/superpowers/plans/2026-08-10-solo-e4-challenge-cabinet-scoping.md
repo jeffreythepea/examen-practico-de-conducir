@@ -96,9 +96,16 @@ Roughly increasing cost, per the direction above:
    attempts carry no sessionId to reconstruct comparable prior sessions from;
    the "no schema change" assumption above didn't hold. Browser-verified with
    a live 5-command run.
-4. **Five examiners**, **Perfect roundabouts** — not started; medium; shared
-   "full coverage of set S" mechanism, then two thin challenge configs on top
-   of it.
+4. **Perfect roundabouts**, **Five examiners** — done, `feature/e4-audio-only-one-listen`.
+   Perfect roundabouts needed no new mechanism — the roundabout-circuit theme's
+   pool is exactly its 5 target commands, so themeId+length overrides already
+   guarantee coverage. Five examiners needed real new logic
+   (`assignExaminerRotation` in `examiners.js`, wired into `startSession`) since
+   voice assignment happens per-command, not via a settings override. Also
+   generalized the active-session validator's challenge-field check (built for
+   Control check's themeId) into a small set of "lives on experience, not
+   settings" fields — the five-examiners regression test confirms it actually
+   catches the equivalent mistake this time. Both browser-verified live.
 5. **Brisk examiner** — not started; medium; code-only, no blocker now that
    `speed: 1` is the accepted stand-in.
 6. **Confusion pairs** — not started; largest; needs new attempt-level
