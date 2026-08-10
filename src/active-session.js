@@ -13,6 +13,9 @@ const EXAMINER_CHOICES = new Set(EXAMINER_CHOICE_IDS);
 const EXAMINER_IDS = new Set(EXAMINERS.map(({ id }) => id));
 const THEMES = new Set([null, ...THEME_IDS]);
 const CHALLENGES_OR_NULL = new Set([null, ...CHALLENGE_IDS]);
+// These challenge-settings-override fields actually live on activeSession.experience,
+// not activeSession.settings, so they need their own comparison branch below.
+const EXPERIENCE_LEVEL_OVERRIDE_FIELDS = new Set(['themeId', 'examinerChoice']);
 const TARGET_KINDS = new Set([
   'recommended', 'needs-practice', 'not-tested', 'lesson-flags', 'not-ready', 'command', 'free'
 ]);
@@ -154,9 +157,9 @@ function validateExperience(experience, settings) {
     }
   } else if (challenge) {
     for (const field of Object.keys(challenge.overrides.settings ?? {})) {
-      if (field === 'themeId') {
-        if (experience.themeId !== challenge.overrides.settings.themeId) {
-          throw new Error('Invalid activeSession.experience.themeId for challenge');
+      if (EXPERIENCE_LEVEL_OVERRIDE_FIELDS.has(field)) {
+        if (experience[field] !== challenge.overrides.settings[field]) {
+          throw new Error(`Invalid activeSession.experience.${field} for challenge`);
         }
         continue;
       }

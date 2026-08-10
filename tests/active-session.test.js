@@ -279,6 +279,42 @@ test('Control check snapshots require the precheck-inspection theme override, no
   }), /themeId for challenge/);
 });
 
+test('Perfect roundabouts snapshots require both the roundabout theme and the forced short length', () => {
+  const roundaboutsExperience = {
+    modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
+    themeId: 'roundabout-circuit', challengeId: 'perfect-roundabouts',
+    replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+  };
+  assert.doesNotThrow(() => session({
+    experience: roundaboutsExperience,
+    settings: { ...settings, length: 'short' }
+  }));
+  assert.throws(() => session({
+    experience: { ...roundaboutsExperience, themeId: null },
+    settings: { ...settings, length: 'short' }
+  }), /themeId for challenge/);
+  assert.throws(() => session({
+    experience: roundaboutsExperience,
+    settings: { ...settings, length: 'medium' }
+  }), /settings\.length for experience/);
+});
+
+test('Five examiners snapshots require the Mixed examiner override, not a fixed examiner', () => {
+  const fiveExaminersExperience = {
+    modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
+    themeId: null, challengeId: 'five-examiners',
+    replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+  };
+  assert.doesNotThrow(() => session({
+    experience: fiveExaminersExperience,
+    settings: { ...settings, length: 'short' }
+  }));
+  assert.throws(() => session({
+    experience: { ...fiveExaminersExperience, examinerChoice: 'roger', resolvedExaminerId: 'roger' },
+    settings: { ...settings, length: 'short' }
+  }), /examinerChoice for challenge/);
+});
+
 test('resolution rejects commands outside the snapshotted theme', () => {
   const experience = {
     modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,

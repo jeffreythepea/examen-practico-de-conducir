@@ -130,6 +130,32 @@ export function filterVariantsForExaminer(variants, choiceId, {
   return cloneAndFreeze(variants.filter(variant => variant?.voiceId === examiner.voiceId));
 }
 
+/**
+ * Returns `count` examiner IDs guaranteed to be a full shuffled rotation of
+ * the registry before repeating — so a 5-command session gets each examiner
+ * exactly once (the Five examiners challenge's coverage guarantee), and any
+ * count beyond the registry size cycles through fresh reshuffled rotations
+ * rather than clustering repeats.
+ */
+export function assignExaminerRotation(count, rng = Math.random, registry = EXAMINERS) {
+  if (!Number.isSafeInteger(count) || count < 0) throw new Error('Invalid examiner rotation count');
+  const examiners = registry === EXAMINERS ? registry : validateExaminerRegistry(registry);
+  const assignment = [];
+  while (assignment.length < count) {
+    assignment.push(...fisherYatesShuffle(examiners.map(({ id }) => id), rng));
+  }
+  return Object.freeze(assignment.slice(0, count));
+}
+
+function fisherYatesShuffle(items, rng) {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(rng() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+}
+
 export function missingExaminerVoiceIds(variants, registry = EXAMINERS) {
   if (!Array.isArray(variants)) throw new Error('Invalid audio variants');
   const examiners = registry === EXAMINERS ? registry : validateExaminerRegistry(registry);

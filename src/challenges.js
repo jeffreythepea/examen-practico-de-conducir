@@ -1,3 +1,4 @@
+import { EXAMINER_CHOICE_IDS } from './examiners.js';
 import { SESSION_PRESET_IDS, applySessionPreset } from './session-presets.js';
 import { THEME_IDS } from './session-themes.js';
 
@@ -5,7 +6,8 @@ const HINT_POLICIES = new Set(['available', 'shown', 'unavailable']);
 const REPLAY_POLICIES = new Set(['unlimited', 'none']);
 const REVEAL_POLICIES = new Set(['immediate', 'session-end']);
 const PASS_RULES = new Set(['clean', 'no-miss']);
-const OVERRIDE_SETTING_FIELDS = new Set(['hintPolicy', 'themeId']);
+const LENGTHS = new Set(['short', 'medium', 'all']);
+const OVERRIDE_SETTING_FIELDS = new Set(['hintPolicy', 'themeId', 'length', 'examinerChoice']);
 
 const RAW_CHALLENGES = [
   {
@@ -44,6 +46,26 @@ const RAW_CHALLENGES = [
     descriptionKey: 'challenge.personalBest.description',
     basePresetId: 'practice',
     passRule: 'clean'
+  },
+  {
+    id: 'perfect-roundabouts',
+    titleKey: 'challenge.perfectRoundabouts.title',
+    descriptionKey: 'challenge.perfectRoundabouts.description',
+    basePresetId: 'practice',
+    passRule: 'clean',
+    overrides: {
+      settings: { themeId: 'roundabout-circuit', length: 'short' }
+    }
+  },
+  {
+    id: 'five-examiners',
+    titleKey: 'challenge.fiveExaminers.title',
+    descriptionKey: 'challenge.fiveExaminers.description',
+    basePresetId: 'practice',
+    passRule: 'clean',
+    overrides: {
+      settings: { length: 'short', examinerChoice: 'mixed' }
+    }
   }
 ];
 
@@ -69,6 +91,12 @@ function validateOverrides(overrides) {
     }
     if ('themeId' in overrides.settings && !THEME_IDS.includes(overrides.settings.themeId)) {
       throw new Error('Invalid challenge theme override');
+    }
+    if ('length' in overrides.settings && !LENGTHS.has(overrides.settings.length)) {
+      throw new Error('Invalid challenge length override');
+    }
+    if ('examinerChoice' in overrides.settings && !EXAMINER_CHOICE_IDS.includes(overrides.settings.examinerChoice)) {
+      throw new Error('Invalid challenge examiner choice override');
     }
   }
   if ('replayPolicy' in overrides && !REPLAY_POLICIES.has(overrides.replayPolicy)) {

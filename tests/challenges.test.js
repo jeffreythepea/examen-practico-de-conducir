@@ -19,11 +19,15 @@ const TITLE_KEYS = Object.freeze({
   'audio-only': 'audioOnly',
   'one-listen': 'oneListen',
   'control-check': 'controlCheck',
-  'personal-best': 'personalBest'
+  'personal-best': 'personalBest',
+  'perfect-roundabouts': 'perfectRoundabouts',
+  'five-examiners': 'fiveExaminers'
 });
 
-test('exports Audio only, One listen, Control check, and Personal best challenges in stable order', () => {
-  assert.deepEqual(CHALLENGE_IDS, ['audio-only', 'one-listen', 'control-check', 'personal-best']);
+test('exports all six challenges in stable order', () => {
+  assert.deepEqual(CHALLENGE_IDS, [
+    'audio-only', 'one-listen', 'control-check', 'personal-best', 'perfect-roundabouts', 'five-examiners'
+  ]);
   assert.deepEqual(CHALLENGES.map(({ id }) => id), CHALLENGE_IDS);
 });
 
@@ -38,6 +42,8 @@ test('each challenge carries a title/description key, a known base preset, and a
   assert.equal(challengeById('one-listen').passRule, 'clean');
   assert.equal(challengeById('control-check').passRule, 'no-miss');
   assert.equal(challengeById('personal-best').passRule, 'clean');
+  assert.equal(challengeById('perfect-roundabouts').passRule, 'clean');
+  assert.equal(challengeById('five-examiners').passRule, 'clean');
 });
 
 test('challenge registry and every nested record are deeply frozen', () => {
@@ -97,6 +103,28 @@ test('personal-best applies Practice unmodified: theme, hints, and replay stay w
   assert.equal(result.revealPolicy, 'immediate');
 });
 
+test('perfect-roundabouts forces the roundabout-circuit theme and a short (5-command) session', () => {
+  const base = { ...defaultState().settings, themeId: 'city-circuit', length: 'medium' };
+  const result = applyChallenge(base, 'perfect-roundabouts');
+
+  assert.equal(result.challengeId, 'perfect-roundabouts');
+  assert.equal(result.settings.themeId, 'roundabout-circuit');
+  assert.equal(result.settings.length, 'short');
+  assert.equal(result.settings.hintPolicy, 'available');
+  assert.equal(result.replayPolicy, 'unlimited');
+});
+
+test('five-examiners forces a short session and Mixed examiners, leaving theme and hints untouched', () => {
+  const base = { ...defaultState().settings, examinerChoice: 'roger', length: 'all', themeId: 'city-circuit' };
+  const result = applyChallenge(base, 'five-examiners');
+
+  assert.equal(result.challengeId, 'five-examiners');
+  assert.equal(result.settings.length, 'short');
+  assert.equal(result.settings.examinerChoice, 'mixed');
+  assert.equal(result.settings.themeId, 'city-circuit');
+  assert.equal(result.settings.hintPolicy, 'available');
+});
+
 test('applying a challenge never mutates caller-owned settings', () => {
   const base = defaultState().settings;
   const before = structuredClone(base);
@@ -136,6 +164,12 @@ test('validation rejects duplicates, unknown base presets, and unsupported overr
   assert.throws(() => validateChallenges([
     { ...CHALLENGES[1], overrides: { replayPolicy: 'sometimes' } }
   ]), /invalid challenge replay policy/i);
+  assert.throws(() => validateChallenges([
+    { ...CHALLENGES[4], overrides: { settings: { themeId: 'roundabout-circuit', length: 'medium-ish' } } }
+  ]), /invalid challenge length override/i);
+  assert.throws(() => validateChallenges([
+    { ...CHALLENGES[5], overrides: { settings: { length: 'short', examinerChoice: 'nobody' } } }
+  ]), /invalid challenge examiner choice override/i);
   assert.throws(() => validateChallenges([]), /invalid challenges/i);
 });
 

@@ -21,6 +21,7 @@ import { createFeedbackCuePlayer } from './feedback-audio.js';
 import { createAmbiencePlayer, pickAmbienceClip } from './ambience.js';
 import {
   EXAMINERS,
+  assignExaminerRotation,
   examinerById,
   filterVariantsForExaminer,
   selectTodaysExaminer
@@ -1798,7 +1799,10 @@ async function bootstrap() {
       return;
     }
     readinessFilters = { ...readinessFilters, noticeKey: '' };
-    let session = selectedCommands.map(command => ({
+    const examinerRotation = experience.challengeId === 'five-examiners'
+      ? assignExaminerRotation(selectedCommands.length)
+      : null;
+    let session = selectedCommands.map((command, index) => ({
       ...command,
       audioVariant: selectPlaybackVariant(
         manifest,
@@ -1808,7 +1812,7 @@ async function bootstrap() {
         state.attempts,
         Math.random,
         {
-          examinerChoice: experience.resolvedExaminerId ?? 'mixed',
+          examinerChoice: examinerRotation ? examinerRotation[index] : (experience.resolvedExaminerId ?? 'mixed'),
           dateParts: sessionDateParts,
           manifestIndex
         }
