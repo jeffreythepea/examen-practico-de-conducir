@@ -48,6 +48,14 @@ transitions between them. The **Continuous drive** setting in Advanced options
 turns this off and restores isolated per-command practice; the confusion-pairs
 challenge always runs without it.
 
+Like a real exam, commands do not announce themselves: each scene appears
+first and the examiner's voice lands a randomized moment later. Some drives
+also include one silent junction — the examiner gives no command, and the
+correct response is to tap the straight-ahead road and continue. Silent
+junctions are instructional only: they are never scored, never appear in
+Readiness, and never touch attempt history. Faults-style exam scoring remains
+deferred until an instructor-sourced DGT rubric exists.
+
 The app has no runtime dependency on Piso Asturiano and no backend. The source remains a plain static browser application; public releases use a deterministic build step to select and verify only runtime assets. Stage 2 is implemented with an action-matched response model and optional moving-road approaches on suitable realistic scenes. The current working catalog contains 39 commands and 81 Spanish phrasings, with its complete 1,215-recording corpus ready for integration. Deeper phrasing/voice mastery reporting, an instructor-validated sequential examination, and automatic difficulty progression remain deferred.
 
 ## Readiness and targeted practice

@@ -222,6 +222,44 @@ Version-2 sessions normalize to continuity disabled and resume exactly as they
 do now. A catalog or route-plan mismatch clears only resumability and preserves
 attempt history and lesson flags.
 
+## Addendum (2026-08-10): randomized command onset and null events
+
+### Randomized command onset
+
+The scene and its camera approach no longer start with the command audio. The
+controller shows the surface first (`SCENE_STARTED`), then starts audio after a
+randomized onset delay: uniform 0–2500 ms on moving-road trials (inside the
+6000 ms approach window, so late commands land with the junction visibly
+growing) and uniform 400–1500 ms on static surfaces. The delay is injected
+randomness (`commandOnsetDelayMs`), the shared gesture-activated audio element
+still performs the delayed play, and `AUDIO_COMPLETED` semantics (controls
+unlock, `promptStartedAt`) are unchanged.
+
+### Null-event steps
+
+The planner may emit one additional non-command step kind:
+
+```js
+{ kind: 'null-event', id: 'null-0', sceneId: 'four-way-intersection-photo-v1', chapter: 'driving' }
+```
+
+At most one cruise slot per route becomes a null event, only between ordinary
+driving commands and only when at least one real cruise transition remains
+(routes need two or more cruise slots; inclusion probability is 0.5 via the
+injected rng, and the chosen slot and scene are stable in the stored step so
+resume replays the same silent junction).
+
+A null event is a silent junction: no command plays and no audio machinery
+runs — silence is the test. The junction surface renders with live targets;
+the correct response is explicitly tapping the straight-ahead road. A wrong
+road shows corrective copy, an unanswered approach shows a continue-ahead
+hint, and mock mode shows only neutral copy (evaluation stays withheld).
+
+**Protected invariant, identical to transitions:** a null event is never a
+scored attempt, never touches readiness or attempt history, and advancing it
+moves only the route-step index. Faults-style scoring (idea E) remains
+explicitly deferred pending an instructor-sourced DGT rubric.
+
 ## Approved New-Command Content Contract
 
 The two new commands are separate catalog changes, not cutscene details.
