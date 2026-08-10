@@ -44,7 +44,7 @@ export const CONTINUITY_SCENE_FAMILIES = deepFreeze({
  *   motionEnabled: boolean,
  *   sceneTappable?: boolean,
  *   camera?: { startScale: number, endScale: number, originX: number, originY: number, durationMs: number },
- *   intro?: { sceneId: string, asset: string, dx: number, dy: number, scale: number, rotate: number, durationMs: number }
+ *   intro?: { sceneId: string, asset: string, dx: number, dy: number, scale: number, rotate: number, yawDeg: number, settleDx: number, durationMs: number }
  * }} viewModel
  * @param {'en'|'es'} locale
  * @returns {string}
@@ -65,8 +65,13 @@ export function renderContinuityTransition(viewModel, locale) {
           <img src="${escapeAttribute(model.intro.asset)}" alt="" aria-hidden="true">
         </span>`
     : '';
+  // While the intro plays, the cruise photo starts counter-offset and settles
+  // to centre so the crossfade reads as one continuous camera move.
+  const settle = model.motionEnabled && model.intro
+    ? ` data-turn-settle="true" style="--settle-dx:${model.intro.settleDx}%;--settle-duration:${model.intro.durationMs}ms"`
+    : '';
   const image = `<span class="continuity-transition-image-frame"${style}>
-          <img src="${escapeAttribute(scene.asset)}" alt="" aria-hidden="true">
+          <img src="${escapeAttribute(scene.asset)}" alt="" aria-hidden="true"${settle}>
         </span>${intro}`;
   const sceneMarkup = model.sceneTappable
     ? `<button type="button" class="continuity-transition-scene" data-action="skip-continuity-transition" aria-label="${escapeAttribute(copy.skipTransition)}">
@@ -123,7 +128,7 @@ function validateIntro(intro) {
       || typeof intro.asset !== 'string' || intro.asset.length === 0) {
     throw new Error('Invalid turn-through intro');
   }
-  const numbers = [intro.dx, intro.dy, intro.scale, intro.rotate, intro.durationMs];
+  const numbers = [intro.dx, intro.dy, intro.scale, intro.rotate, intro.yawDeg, intro.settleDx, intro.durationMs];
   if (!numbers.every(value => typeof value === 'number' && Number.isFinite(value))) {
     throw new Error('Invalid turn-through intro');
   }
@@ -154,6 +159,7 @@ function introStyle(intro) {
     `--turn-dy:${intro.dy}%`,
     `--turn-scale:${intro.scale}`,
     `--turn-rotate:${intro.rotate}deg`,
+    `--turn-yaw:${intro.yawDeg}deg`,
     `--turn-duration:${intro.durationMs}ms`
   ].join(';');
 }

@@ -143,7 +143,9 @@ const INTRO = Object.freeze({
   dy: 0,
   scale: 1.22,
   rotate: -2,
-  durationMs: 900
+  yawDeg: -13.48,
+  settleDx: -3.06,
+  durationMs: 1400
 });
 
 test('renders a decorative turn-through intro overlay when supplied', () => {
@@ -154,8 +156,17 @@ test('renders a decorative turn-through intro overlay when supplied', () => {
   assert.match(html, /--turn-dy:0%/);
   assert.match(html, /--turn-scale:1\.22/);
   assert.match(html, /--turn-rotate:-2deg/);
-  assert.match(html, /--turn-duration:900ms/);
+  assert.match(html, /--turn-yaw:-13\.48deg/);
+  assert.match(html, /--turn-duration:1400ms/);
   assert.match(html, /src="\.\/assets\/driving\/four-way-intersection-photo-v1\.webp"/);
+});
+
+test('marks the cruise img to settle only while an intro plays', () => {
+  const html = render({ intro: INTRO });
+  assert.match(html, /<img[^>]*data-turn-settle="true"[^>]*--settle-dx:-3\.06%/);
+  assert.match(html, /--settle-duration:1400ms/);
+  assert.doesNotMatch(render(), /data-turn-settle|--settle-/);
+  assert.doesNotMatch(render({ intro: INTRO, motionEnabled: false }), /data-turn-settle|--settle-/);
 });
 
 test('omits the intro overlay when absent, null, or motion is disabled', () => {
@@ -164,12 +175,17 @@ test('omits the intro overlay when absent, null, or motion is disabled', () => {
   assert.doesNotMatch(render({ intro: INTRO, motionEnabled: false }), /turn-through-intro/);
 });
 
-test('keeps the main camera frame unchanged when the intro is present', () => {
+test('renders byte-identical no-intro markup with and without the intro field', () => {
+  assert.equal(render(), render({ intro: null }));
+  assert.equal(render({ motionEnabled: false }), render({ intro: INTRO, motionEnabled: false }));
+});
+
+test('keeps the main camera frame attributes unchanged when the intro is present', () => {
   const camera = { startScale: 1, endScale: 1.08, originX: 52, originY: 86, durationMs: 2100 };
   const plain = render({ camera });
   const withIntro = render({ camera, intro: INTRO });
-  const mainFrame = /<span class="continuity-transition-image-frame"[^>]*>[\s\S]*?<\/span>/;
-  assert.equal(withIntro.match(mainFrame)?.[0], plain.match(mainFrame)?.[0]);
+  const frameTag = /<span class="continuity-transition-image-frame"[^>]*>/;
+  assert.equal(withIntro.match(frameTag)?.[0], plain.match(frameTag)?.[0]);
   assert.match(withIntro, /--continuity-end-scale:1\.08/);
 });
 
@@ -178,6 +194,8 @@ test('rejects malformed turn-through intros', () => {
   assert.throws(() => render({ intro: { ...INTRO, asset: '' } }), /turn-through intro/i);
   assert.throws(() => render({ intro: { ...INTRO, dx: Number.NaN } }), /turn-through intro/i);
   assert.throws(() => render({ intro: { ...INTRO, scale: 0 } }), /turn-through intro/i);
+  assert.throws(() => render({ intro: { ...INTRO, yawDeg: 'right' } }), /turn-through intro/i);
+  assert.throws(() => render({ intro: { ...INTRO, settleDx: Number.POSITIVE_INFINITY } }), /turn-through intro/i);
   assert.throws(() => render({ intro: { ...INTRO, durationMs: 60_000 } }), /turn-through intro/i);
 });
 
@@ -191,4 +209,21 @@ test('scoped CSS animates the intro and hides it under reduced motion', async ()
   assert.match(section, /\.turn-through-intro[\s\S]*pointer-events:\s*none/);
   assert.match(section, /calc\(var\(--turn-dx, 0%\) \* -1\)/);
   assert.match(section, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.turn-through-intro[\s\S]*display:\s*none/);
+});
+
+test('scoped CSS drives the perspective turn, blur ramp, and cruise settle', async () => {
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  const section = css.slice(
+    css.indexOf('/* continuity-transition:start */'),
+    css.indexOf('/* continuity-transition:end */')
+  );
+  assert.match(section, /@keyframes turn-through-pan[\s\S]*perspective\(/);
+  assert.match(section, /rotateY\(var\(--turn-yaw/);
+  assert.match(section, /@keyframes turn-through-pan[\s\S]*filter:\s*blur\(2px\)/);
+  assert.match(section, /@keyframes cruise-settle[\s\S]*translateX\(var\(--settle-dx/);
+  assert.match(section, /img\[data-turn-settle="true"\][\s\S]*animation:\s*cruise-settle/);
+  assert.match(
+    section,
+    /@media \(prefers-reduced-motion: reduce\)[\s\S]*img\[data-turn-settle="true"\][\s\S]*animation:\s*none/
+  );
 });

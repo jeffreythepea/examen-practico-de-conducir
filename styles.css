@@ -2402,26 +2402,62 @@ button.continuity-transition-scene {
 }
 
 .continuity-transition[data-continuity-motion="true"] .continuity-transition-image-frame.turn-through-intro {
-  animation: turn-through-pan var(--turn-duration, 900ms) ease-in-out forwards;
+  animation: turn-through-pan var(--turn-duration, 1400ms) ease-in-out forwards;
 }
 
+/* Two beats: an approach push toward the junction, then a perspective swing
+   into the chosen road, with a small blur ramp over the fastest stretch. */
 @keyframes turn-through-pan {
   0% {
     opacity: 1;
-    transform: translate(0, 0) scale(1) rotate(0deg);
+    filter: blur(0);
+    transform: perspective(800px) translate(0, 0) scale(1) rotate(0deg);
   }
 
-  66% {
+  45% {
     opacity: 1;
+    filter: blur(0);
+    transform:
+      perspective(800px)
+      translate(calc(var(--turn-dx, 0%) * -0.3), calc(var(--turn-dy, 0%) * -0.3))
+      scale(1.12)
+      rotate(var(--turn-rotate, 0deg));
+  }
+
+  70% {
+    opacity: 1;
+    filter: blur(2px);
+    transform:
+      perspective(800px)
+      translate(calc(var(--turn-dx, 0%) * -0.85), calc(var(--turn-dy, 0%) * -0.85))
+      scale(1.2)
+      rotate(var(--turn-rotate, 0deg))
+      rotateY(var(--turn-yaw, 0deg));
   }
 
   100% {
     opacity: 0;
+    filter: blur(0.5px);
     transform:
+      perspective(800px)
       translate(calc(var(--turn-dx, 0%) * -1), calc(var(--turn-dy, 0%) * -1))
-      scale(var(--turn-scale, 1.22))
-      rotate(var(--turn-rotate, 0deg));
+      scale(1.3)
+      rotate(var(--turn-rotate, 0deg))
+      rotateY(var(--turn-yaw, 0deg));
   }
+}
+
+/* The cruise photo starts counter-offset and settles to centre while the
+   intro plays, so both scenes read as one continuous camera move. The frame's
+   scale push and this translate compose because they animate different
+   elements. */
+.continuity-transition[data-continuity-motion="true"] img[data-turn-settle="true"] {
+  animation: cruise-settle var(--settle-duration, 1400ms) ease-out both;
+}
+
+@keyframes cruise-settle {
+  from { transform: translateX(var(--settle-dx, 0%)); }
+  to { transform: translateX(0); }
 }
 
 @media (orientation: landscape) and (min-width: 900px) {
@@ -2433,7 +2469,8 @@ button.continuity-transition-scene {
 
 @media (prefers-reduced-motion: reduce) {
   .continuity-transition-image-frame,
-  .continuity-transition[data-continuity-motion="true"] .continuity-transition-image-frame {
+  .continuity-transition[data-continuity-motion="true"] .continuity-transition-image-frame,
+  .continuity-transition[data-continuity-motion="true"] img[data-turn-settle="true"] {
     animation: none !important;
     transform: none !important;
   }
