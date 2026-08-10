@@ -81,18 +81,21 @@ separately (see below, they already exist).
 6. **UI**: one new screen, "Collection" (reachable from setup, alongside Readiness),
    showing three sections: the 5 accomplishment badges (earned + date, or locked),
    completed themed drives (6 themes, completed + last date, or not yet), and personal
-   bests (per theme key, with time). Per roadmap wording ("examiner stamps, route
-   cards, or test-folder endorsements") this wants real visual treatment eventually;
-   this pass ships a plain, correct list — visual polish is a fast follow-up once the
-   data model and gate are proven, not blocking.
+   bests (per theme key, with time). Roadmap wording suggests real visual treatment
+   ("examiner stamps, route cards, or test-folder endorsements"); this pass ships a
+   plain, correct list instead. Per Jeffrey (2026-08-10): demoted to low-priority
+   deferred, not just "later" — he doesn't think the visual metaphor adds much. Revisit
+   only if it comes up again on its own merits, not as an assumed next step.
 7. **Backup/import**: `state.completions` rides through `exportState`/`importState`
    automatically once it's a validated top-level state field, same as every other
    field — no special-case code needed, just correct validation.
 
 ## Explicitly deferred (not this pass)
 
-- Visual "stamp/route card" styling — ship the correct data model and a plain list
-  first.
+- **Visual "stamp/route card" styling — low priority, deferred indefinitely** (Jeffrey,
+  2026-08-10): not just sequenced after the data model, but demoted — he doesn't think
+  the visual metaphor helps much. The plain list stands as the shipped UI unless this
+  gets revisited on its own merits later, not picked back up by default.
 - Examiner-encounter *history* detail (which specific sessions, not just "have you
   heard this voice") — the roadmap only asks to "show completed themed drives and
   examiner encounters," which a simple heard/not-heard set satisfies.
