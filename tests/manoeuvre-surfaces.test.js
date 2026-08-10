@@ -271,7 +271,7 @@ test('every urban-photo choice is anchored to its visible curb, driveway, crossi
   }
 });
 
-test('photo-backed physical features do not receive redundant crosswalk or driveway drawings', () => {
+test('photo-backed physical features do not receive redundant crosswalk, driveway, or restriction-marking drawings', () => {
   for (const [action, surfaceId, templateId] of [
     ['park', 'parking-v1', 'marked-bays-clear-entry'],
     ['park', 'parking-v1', 'curb-bays-clear-space'],
@@ -280,11 +280,9 @@ test('photo-backed physical features do not receive redundant crosswalk or drive
   ]) {
     const model = modelForTemplate(action, surfaceId, templateId);
     const markup = renderManoeuvreSurface(model, 'en');
-    assert.doesNotMatch(markup, /class="scenario-crosswalk"|class="scenario-driveway"/);
+    assert.doesNotMatch(markup, /class="scenario-crosswalk"|class="scenario-driveway"|class="scenario-restriction"/);
   }
 
-  const marked = modelForTemplate('park', 'parking-v1', 'marked-bays-clear-entry');
-  assert.match(renderManoeuvreSurface(marked, 'en'), /class="scenario-restriction"/);
   const signed = modelForTemplate('park', 'parking-v1', 'curb-bays-clear-space');
   assert.match(renderManoeuvreSurface(signed, 'en'), /data-road-sign="no-parking"/);
 });
