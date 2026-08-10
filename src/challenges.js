@@ -7,7 +7,8 @@ const REPLAY_POLICIES = new Set(['unlimited', 'none']);
 const REVEAL_POLICIES = new Set(['immediate', 'session-end']);
 const PASS_RULES = new Set(['clean', 'no-miss']);
 const LENGTHS = new Set(['short', 'medium', 'all']);
-const OVERRIDE_SETTING_FIELDS = new Set(['hintPolicy', 'themeId', 'length', 'examinerChoice']);
+const SPEEDS = new Set([0.75, 0.9, 1]);
+const OVERRIDE_SETTING_FIELDS = new Set(['hintPolicy', 'themeId', 'length', 'examinerChoice', 'speed']);
 
 const RAW_CHALLENGES = [
   {
@@ -66,6 +67,16 @@ const RAW_CHALLENGES = [
     overrides: {
       settings: { length: 'short', examinerChoice: 'mixed' }
     }
+  },
+  {
+    id: 'brisk-examiner',
+    titleKey: 'challenge.briskExaminer.title',
+    descriptionKey: 'challenge.briskExaminer.description',
+    basePresetId: 'practice',
+    passRule: 'clean',
+    overrides: {
+      settings: { speed: 1 }
+    }
   }
 ];
 
@@ -97,6 +108,9 @@ function validateOverrides(overrides) {
     }
     if ('examinerChoice' in overrides.settings && !EXAMINER_CHOICE_IDS.includes(overrides.settings.examinerChoice)) {
       throw new Error('Invalid challenge examiner choice override');
+    }
+    if ('speed' in overrides.settings && !SPEEDS.has(overrides.settings.speed)) {
+      throw new Error('Invalid challenge speed override');
     }
   }
   if ('replayPolicy' in overrides && !REPLAY_POLICIES.has(overrides.replayPolicy)) {

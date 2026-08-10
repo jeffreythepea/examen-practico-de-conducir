@@ -21,12 +21,14 @@ const TITLE_KEYS = Object.freeze({
   'control-check': 'controlCheck',
   'personal-best': 'personalBest',
   'perfect-roundabouts': 'perfectRoundabouts',
-  'five-examiners': 'fiveExaminers'
+  'five-examiners': 'fiveExaminers',
+  'brisk-examiner': 'briskExaminer'
 });
 
-test('exports all six challenges in stable order', () => {
+test('exports all seven challenges in stable order', () => {
   assert.deepEqual(CHALLENGE_IDS, [
-    'audio-only', 'one-listen', 'control-check', 'personal-best', 'perfect-roundabouts', 'five-examiners'
+    'audio-only', 'one-listen', 'control-check', 'personal-best',
+    'perfect-roundabouts', 'five-examiners', 'brisk-examiner'
   ]);
   assert.deepEqual(CHALLENGES.map(({ id }) => id), CHALLENGE_IDS);
 });
@@ -44,6 +46,7 @@ test('each challenge carries a title/description key, a known base preset, and a
   assert.equal(challengeById('personal-best').passRule, 'clean');
   assert.equal(challengeById('perfect-roundabouts').passRule, 'clean');
   assert.equal(challengeById('five-examiners').passRule, 'clean');
+  assert.equal(challengeById('brisk-examiner').passRule, 'clean');
 });
 
 test('challenge registry and every nested record are deeply frozen', () => {
@@ -125,6 +128,17 @@ test('five-examiners forces a short session and Mixed examiners, leaving theme a
   assert.equal(result.settings.hintPolicy, 'available');
 });
 
+test('brisk-examiner forces speed 1 on top of Practice, leaving theme, hints, and replay untouched', () => {
+  const base = { ...defaultState().settings, speed: 0.75, themeId: 'city-circuit' };
+  const result = applyChallenge(base, 'brisk-examiner');
+
+  assert.equal(result.challengeId, 'brisk-examiner');
+  assert.equal(result.settings.speed, 1);
+  assert.equal(result.settings.themeId, 'city-circuit');
+  assert.equal(result.settings.hintPolicy, 'available');
+  assert.equal(result.replayPolicy, 'unlimited');
+});
+
 test('applying a challenge never mutates caller-owned settings', () => {
   const base = defaultState().settings;
   const before = structuredClone(base);
@@ -153,7 +167,7 @@ test('validation rejects duplicates, unknown base presets, and unsupported overr
     { ...CHALLENGES[0], passRule: 'flawless' }
   ]), /invalid challenge pass rule/i);
   assert.throws(() => validateChallenges([
-    { ...CHALLENGES[0], overrides: { settings: { speed: 1 } } }
+    { ...CHALLENGES[0], overrides: { settings: { mode: 'free' } } }
   ]), /unsupported challenge settings override/i);
   assert.throws(() => validateChallenges([
     { ...CHALLENGES[0], overrides: { settings: { hintPolicy: 'loud' } } }
@@ -170,6 +184,9 @@ test('validation rejects duplicates, unknown base presets, and unsupported overr
   assert.throws(() => validateChallenges([
     { ...CHALLENGES[5], overrides: { settings: { length: 'short', examinerChoice: 'nobody' } } }
   ]), /invalid challenge examiner choice override/i);
+  assert.throws(() => validateChallenges([
+    { ...CHALLENGES[6], overrides: { settings: { speed: 2 } } }
+  ]), /invalid challenge speed override/i);
   assert.throws(() => validateChallenges([]), /invalid challenges/i);
 });
 
