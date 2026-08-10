@@ -1,9 +1,10 @@
 # Follow-up backlog — examen-practico-de-conducir
 
 Findings from live manual testing after merging A/B/C (main @ `3980426`), plus one open
-scoping question. None of these are regressions from that merge — all predate it. Not
-scheduled against any prompt/session yet; each needs its own scoping pass before
-implementation.
+scoping question. None of these are regressions from that merge — all predate it.
+
+**Status as of 2026-08-10: F1, F2, F4 resolved; F3 partially resolved (the two named
+examples fixed; no further issues found in a re-triage, see F3).**
 
 ## F1 — `hatched-bay` target misaligned with its photo (parking scenario, medium) — RESOLVED 2026-08-10
 
@@ -38,7 +39,20 @@ actually depicts, or give each scenario variant its own dedicated photo. Check
 `tests/*.test.js` for coordinate assertions before changing numbers. Verify visually in
 a browser, not just via tests — this is fundamentally a visual-alignment issue.
 
-## F2 — Post-answer road-motion animation leaves vestige lines (visual bug, medium)
+## F2 — Post-answer road-motion animation leaves vestige lines (visual bug, medium) — RESOLVED 2026-08-09
+
+Root cause found while scoping F4 (see below): the post-answer motion overlay used the
+SVG default `preserveAspectRatio` ("meet", pillarboxed) while the main scene SVG
+stretches with `preserveAspectRatio="none"`. The same `{x,y}` route data was landing at
+different pixel positions between the two SVGs — exactly the kind of mismatch that
+produces stray/leftover line artifacts. Fixed as part of `285430f` "F4: replace
+post-answer line animation with a car glyph, extend coverage", which also removed the
+drawn route line entirely (see F4). Verified in this session: `renderPostAnswerMotion`
+and the scene SVG both carry `preserveAspectRatio="none"`, and the static
+`data-correct-route` line only ever renders when the animated marker isn't present
+(mutually exclusive, not layered).
+
+Original report below, kept for context.
 
 Some animated route/direction lines shown after answering a driving command show extra
 lines or leftovers of the prior, un-animated line rather than a single clean animated
@@ -66,7 +80,25 @@ commands, watch closely after each answer.
 entirely with actual car motion. Decide direction before investing implementation time
 in a cleanup that a redesign would throw away.
 
-## F3 — Off-placement targets on roundabouts and precheck controls (medium, needs triage)
+## F3 — Off-placement targets on roundabouts and precheck controls (medium, needs triage) — PARTIALLY RESOLVED
+
+Jeffrey manually fixed the two originally-named examples in `e628e37` "Fix F3: realign
+precheck targets on engine-oil and headlight-ring" (2026-08-09), using a manual
+coordinate calibrator against direct pixel comparison. Notably, that commit's message
+records that "an earlier automated pass (F3 session) misidentified which printed symbol
+was which and landed both targets worse than the pre-existing coordinates" — i.e. a
+prior AI attempt at this exact item made it worse, not better.
+
+Re-triaged in this session (2026-08-10): sampled the 4-exit roundabout, 5-exit
+roundabout, and the headlight-ring precheck (the exact surface Jeffrey's fix targeted)
+live in-browser. Found no obvious remaining misalignment in that sample — consistent
+with Jeffrey's fix already covering the reported case. Did not attempt further
+coordinate changes beyond that sample, given the documented risk of automated
+misidentification above; if more specific instances turn up (ideally with a screenshot,
+the way F1 was originally reported), those should go through the same manual
+pixel-comparison approach Jeffrey used, not a blind automated pass.
+
+Original report below, kept for context.
 
 Some clickable targets — roundabout exits and precheck controls (e.g. headlight/light
 stalks in the Yaris dashboard precheck) — are positioned slightly off from where the
@@ -86,7 +118,17 @@ much) before changing coordinates — "a little off" across many targets is prob
 small independent fixes, not one root cause. Check `tests/*.test.js` for coordinate
 assertions before changing values.
 
-## F4 — Scope replacing post-answer line animation with actual car motion (needs scoping)
+## F4 — Scope replacing post-answer line animation with actual car motion (needs scoping) — RESOLVED 2026-08-09
+
+Decided and implemented same day, in `285430f` "F4: replace post-answer line animation
+with a car glyph, extend coverage": a small car glyph now animates along the route
+(`animateMotion`, `rotate="auto"`) while moving, and holds a computed final heading when
+stopped. Direction taken: "car only, no trail" — the drawn route line is dropped
+entirely rather than kept alongside the glyph. Also extended post-answer motion to
+u-turn/overtake/join-traffic, which had `correctRoute` data but no motion wiring before.
+Fixing this also resolved F2 (see above) as a side effect of the same viewbox fix.
+
+Original scoping question below, kept for context.
 
 Not a bug — an open question raised 2026-08-09: how big a job would it be to replace the
 current line-based post-answer animation (see F2) with actual visible movement of the
