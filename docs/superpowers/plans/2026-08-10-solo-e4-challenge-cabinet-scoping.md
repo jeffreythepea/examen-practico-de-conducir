@@ -106,8 +106,13 @@ Roughly increasing cost, per the direction above:
    Control check's themeId) into a small set of "lives on experience, not
    settings" fields — the five-examiners regression test confirms it actually
    catches the equivalent mistake this time. Both browser-verified live.
-5. **Brisk examiner** — not started; medium; code-only, no blocker now that
-   `speed: 1` is the accepted stand-in.
+5. **Brisk examiner** — done, `feature/e4-audio-only-one-listen`. Simple
+   `speed: 1` settings override, extending the same challenge-override
+   mechanism; no active-session.js changes needed since speed already lives
+   on `activeSession.settings`. Browser-verified.
 6. **Confusion pairs** — not started; largest; needs new attempt-level
    tracking, a schema migration to v5, and time to accumulate real data
-   before the challenge is meaningful. Last in build order.
+   before the challenge is meaningful. Deliberately last and not started now —
+   it's a poor fit to build blind: the "what wrong answer was picked instead"
+   tracking needs to exist and collect real data before this challenge is
+   even meaningful to evaluate against.
