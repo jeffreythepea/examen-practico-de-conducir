@@ -260,6 +260,34 @@ scored attempt, never touches readiness or attempt history, and advancing it
 moves only the route-step index. Faults-style scoring (idea E) remains
 explicitly deferred pending an instructor-sourced DGT rubric.
 
+### Turn-through intro on cruise transitions (2026-08-10)
+
+After a **correct** road answer (unaided or assisted) whose next route step is
+a cruise transition, the transition opens with a first-person turn-through:
+the answered scene's photo pans and zooms toward the road the learner chose,
+leaning slightly into the turn, then fades out over the cruise camera push
+already running underneath — the fade is the crossfade. It is the cheap tier
+of idea D: pure CSS transforms on existing scene photos, no rendered road and
+no new assets.
+
+Boundaries:
+
+- **Presentation only, never persisted.** The reducer carries plain source
+  data (`turnThrough`: scene, family, chosen-target coordinates, outcome) from
+  the leaving reveal into the transition model; `resetTrial` and
+  `CONTINUITY_SYNC` clear it, and it never touches `activeSession` or storage.
+  A reload during the transition restarts it without the intro.
+- **Correct answers only.** Wrong answers and timeouts keep the plain
+  transition, matching the reward framing of the top-down car-glyph motion,
+  which is unchanged and plays first on the reveal.
+- **Absent in mock.** Mock reaches `mock-transition` inside `reveal()` and
+  never dispatches `CONTINUE`, so no turn-through data can attach — a
+  correct-only intro would otherwise leak the withheld evaluation.
+- **Absent under reduced motion** and when Road movement is off; the overlay
+  is decorative (`aria-hidden`, no pointer events) and Skip keeps working
+  mid-intro. The transition's auto-advance delay stretches by the intro's
+  duration.
+
 ## Approved New-Command Content Contract
 
 The two new commands are separate catalog changes, not cutscene details.
