@@ -95,7 +95,8 @@ test('creates fresh version 4 defaults with recommended practice and an empty le
     actionProgress: {},
     lessonFlags: [],
     activeSession: null,
-    personalBests: {}
+    personalBests: {},
+    completions: []
   });
   assert.notEqual(first, second);
   assert.notEqual(first.settings, second.settings);
@@ -350,6 +351,39 @@ test('personal-best records persist per theme key, validate, and safely default 
     assert.throws(
       () => importState(JSON.stringify({ ...defaultState(), personalBests })),
       /Invalid personalBests/
+    );
+  }
+});
+
+test('completions log round-trips, validates, safely defaults for older backups, and rejects duplicates', () => {
+  const withCompletions = {
+    ...defaultState(),
+    completions: [
+      { kind: 'challenge', id: 'audio-only', achievedAt: 1700000000000 },
+      { kind: 'theme', id: 'roundabout-circuit', achievedAt: 1700000001000 }
+    ]
+  };
+  assert.deepEqual(importState(exportState(withCompletions)).completions, withCompletions.completions);
+
+  const older = defaultState();
+  delete older.completions;
+  assert.deepEqual(importState(JSON.stringify(older)).completions, []);
+
+  for (const completions of [
+    [{ kind: 'mystery', id: 'audio-only', achievedAt: 1 }],
+    [{ kind: 'challenge', id: 'personal-best', achievedAt: 1 }],
+    [{ kind: 'theme', id: 'not-a-theme', achievedAt: 1 }],
+    [{ kind: 'challenge', id: 'audio-only', achievedAt: 'now' }],
+    [{ kind: 'challenge', id: 'audio-only' }],
+    [
+      { kind: 'challenge', id: 'audio-only', achievedAt: 1 },
+      { kind: 'challenge', id: 'audio-only', achievedAt: 2 }
+    ],
+    {}
+  ]) {
+    assert.throws(
+      () => importState(JSON.stringify({ ...defaultState(), completions })),
+      /Invalid.*completions|Invalid.*\.id|Invalid.*\.kind|Invalid.*\.achievedAt|Invalid duplicate/i
     );
   }
 });

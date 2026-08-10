@@ -17,6 +17,14 @@ import {
   renderContinuityTransition
 } from './continuity-transition-view.js';
 import { commandsForPhase, validateCatalog } from './catalog.js';
+import {
+  ACCOMPLISHMENTS,
+  ACCOMPLISHMENT_CHALLENGE_IDS,
+  accomplishmentStatus,
+  examinerEncounters,
+  recordCompletion,
+  themeCompletionStatus
+} from './collection.js';
 import { computeConfusionPairs, confusionDrillCommandIds } from './confusion-pairs.js';
 import { createFeedbackCuePlayer } from './feedback-audio.js';
 import { createAmbiencePlayer, pickAmbienceClip } from './ambience.js';
@@ -52,8 +60,9 @@ import {
 import { readinessForCatalog } from './readiness.js';
 import { renderLessonFlagEditor, renderReadinessView } from './readiness-view.js';
 import { sessionPresetById } from './session-presets.js';
-import { eligibleCommandsForTheme, SESSION_THEMES } from './session-themes.js';
+import { THEME_IDS, eligibleCommandsForTheme, SESSION_THEMES } from './session-themes.js';
 import { renderSoloSetupView } from './solo-setup-view.js';
+import { renderCollectionView } from './collection-view.js';
 import {
   STORAGE_KEY,
   defaultState,
@@ -1007,6 +1016,8 @@ async function bootstrap() {
       ? renderSetup()
       : model.screen === 'readiness'
         ? renderReadiness()
+      : model.screen === 'collection'
+        ? renderCollection()
       : model.screen === 'loading-audio'
         ? renderLoading()
         : model.screen === 'prompt'
@@ -1020,6 +1031,7 @@ async function bootstrap() {
     bindCommonEvents();
     if (model.screen === 'setup') bindSetupEvents();
     if (model.screen === 'readiness') bindReadinessEvents();
+    if (model.screen === 'collection') bindCollectionEvents();
     if (model.screen === 'loading-audio') bindLoadingEvents();
     if (model.screen === 'prompt') bindPromptEvents();
     if (model.screen === 'reveal') bindRevealEvents();
@@ -1151,6 +1163,7 @@ async function bootstrap() {
       </details>
       <p class="pool-count">${translate(locale(), 'summary.count', { count: pool.length })}</p>
       <button type="button" data-action="open-readiness">${translate(locale(), 'screen.readiness')}</button>
+      <button type="button" data-action="open-collection">${translate(locale(), 'screen.collection')}</button>
       <button class="primary" type="button" data-action="start" ${eligibility.canStart ? '' : 'disabled'}>${translate(locale(), 'action.start')}</button>
       ${eligibility.canStart ? '' : `<p class="notice error" role="alert">${translate(locale(), startErrorKey)}</p>`}
       ${renderOfflineCard()}
@@ -1175,6 +1188,23 @@ async function bootstrap() {
       readiness: readinessForCatalog(selectableCommands, state.attempts, state.lessonFlags),
       lessonFlags: state.lessonFlags,
       filters: readinessFilters
+    });
+  }
+
+  function renderCollection() {
+    return renderCollectionView({
+      locale: locale(),
+      t: (key, variables) => translate(locale(), key, variables),
+      accomplishments: accomplishmentStatus(state.completions),
+      themes: themeCompletionStatus(state.completions, THEME_IDS).map(entry => ({
+        ...entry,
+        titleKey: SESSION_THEMES.find(theme => theme.id === entry.themeId)?.titleKey ?? entry.themeId
+      })),
+      examiners: examinerEncounters(state.attempts),
+      personalBests: Object.entries(state.personalBests).map(([key, record]) => ({
+        titleKey: key === 'adaptive' ? 'theme.adaptive.title' : `theme.${key}.title`,
+        averageResponseMs: record.averageResponseMs
+      }))
     });
   }
 
@@ -1407,6 +1437,7 @@ async function bootstrap() {
           }).join('')}</ul>`}`}
       <button class="primary" type="button" data-action="setup">${translate(locale(), 'action.newSession')}</button>
       <button type="button" data-action="open-readiness">${translate(locale(), 'screen.readiness')}</button>
+      <button type="button" data-action="open-collection">${translate(locale(), 'screen.collection')}</button>
     </section>`;
   }
 
@@ -1502,6 +1533,7 @@ async function bootstrap() {
     }));
     app.querySelector('[data-action="start"]')?.addEventListener('click', () => startSession());
     app.querySelector('[data-action="open-readiness"]')?.addEventListener('click', openReadiness);
+    app.querySelector('[data-action="open-collection"]')?.addEventListener('click', openCollection);
     app.querySelector('[data-action="resume-session"]')?.addEventListener('click', resumeSession);
     app.querySelector('[data-action="discard-session"]')?.addEventListener('click', discardSession);
     app.querySelector('[data-offline-action="download"]')?.addEventListener('click', () => void offlineClient.download());
@@ -1518,6 +1550,13 @@ async function bootstrap() {
       const [file] = event.target.files;
       if (file) void importBackup(file);
       event.target.value = '';
+    });
+  }
+
+  function bindCollectionEvents() {
+    app.querySelector('[data-action="close-collection"]')?.addEventListener('click', () => {
+      model = { screen: 'setup', settings: state.settings, session: [], index: 0 };
+      render();
     });
   }
 
@@ -1632,6 +1671,25 @@ async function bootstrap() {
     persistState();
   }
 
+  function settleCompletions() {
+    const achievedAt = Date.now();
+    let completions = state.completions;
+    const themeId = model.experience?.themeId ?? null;
+    if (themeId !== null) {
+      completions = recordCompletion(completions, 'theme', themeId, achievedAt);
+    }
+    const challengeId = model.experience?.challengeId ?? null;
+    if (challengeId && ACCOMPLISHMENT_CHALLENGE_IDS.includes(challengeId)) {
+      const attempts = state.attempts.filter(attempt => sessionAttemptIds.includes(attempt.id));
+      if (evaluateChallengeSession(challengeId, attempts, model.session.length) === 'clean') {
+        completions = recordCompletion(completions, 'challenge', challengeId, achievedAt);
+      }
+    }
+    if (completions === state.completions) return;
+    state = { ...state, completions };
+    persistState();
+  }
+
   function bindRevealEvents() {
     app.querySelector('[data-action="open-reveal-lesson-flag"]')?.addEventListener('click', () => {
       openLessonFlagEditor(currentCommand().id);
@@ -1646,7 +1704,10 @@ async function bootstrap() {
       readinessFilters = { ...readinessFilters, editor: null };
       currentAttemptId = null;
       model = reduceScreen(model, { type: 'CONTINUE' });
-      if (model.screen === 'results') settlePersonalBest();
+      if (model.screen === 'results') {
+        settlePersonalBest();
+        settleCompletions();
+      }
       render();
       if (model.screen === 'loading-audio') void playCurrentCommand();
     });
@@ -1677,6 +1738,10 @@ async function bootstrap() {
     window.setTimeout(() => {
       if (model.screen !== 'mock-transition') return;
       model = reduceScreen(model, { type: 'MOCK_CONTINUE' });
+      if (model.screen === 'results') {
+        settlePersonalBest();
+        settleCompletions();
+      }
       render();
       if (model.screen === 'loading-audio') void playCurrentCommand();
     }, 600);
@@ -1699,6 +1764,7 @@ async function bootstrap() {
       });
     });
     app.querySelector('[data-action="open-readiness"]')?.addEventListener('click', openReadiness);
+    app.querySelector('[data-action="open-collection"]')?.addEventListener('click', openCollection);
     app.querySelector('[data-action="setup"]').addEventListener('click', () => {
       model = reduceScreen(model, { type: 'GO_TO_SETUP' });
       sessionAttemptIds = [];
@@ -1712,6 +1778,11 @@ async function bootstrap() {
   function openReadiness() {
     readinessFilters = { ...readinessFilters, phase: state.settings.phase, editor: null, noticeKey: '' };
     model = { ...model, screen: 'readiness', settings: state.settings };
+    render();
+  }
+
+  function openCollection() {
+    model = { ...model, screen: 'collection', settings: state.settings };
     render();
   }
 
