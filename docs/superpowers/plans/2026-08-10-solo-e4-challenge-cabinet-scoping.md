@@ -86,15 +86,21 @@ for readability.)
 
 Roughly increasing cost, per the direction above:
 
-1. **Audio only**, **One listen** — trivial; both settings already exist,
-   just need a new preset/challenge wrapper.
-2. **Control check** — small; existing theme + a zero-miss pass rule.
-3. **Personal best** — small–medium; existing data, needs a "comparable
-   session" definition.
-4. **Five examiners**, **Perfect roundabouts** — medium; shared "full
-   coverage of set S" mechanism, then two thin challenge configs on top of it.
-5. **Brisk examiner** — medium; code-only, no blocker now that `speed: 1` is
-   the accepted stand-in.
-6. **Confusion pairs** — largest; needs new attempt-level tracking, a schema
-   migration to v5, and time to accumulate real data before the challenge is
-   meaningful. Last in build order.
+1. **Audio only**, **One listen** — done, `feature/e4-audio-only-one-listen`.
+2. **Control check** — done, `feature/e4-audio-only-one-listen`. Caught and
+   fixed a real active-session validation bug in the process (themeId was
+   being checked against the wrong object shape) — browser-verified, not
+   just unit-tested.
+3. **Personal best** — done, `feature/e4-audio-only-one-listen`. Needed new
+   persisted state after all (`state.personalBests`, keyed by theme) since
+   attempts carry no sessionId to reconstruct comparable prior sessions from;
+   the "no schema change" assumption above didn't hold. Browser-verified with
+   a live 5-command run.
+4. **Five examiners**, **Perfect roundabouts** — not started; medium; shared
+   "full coverage of set S" mechanism, then two thin challenge configs on top
+   of it.
+5. **Brisk examiner** — not started; medium; code-only, no blocker now that
+   `speed: 1` is the accepted stand-in.
+6. **Confusion pairs** — not started; largest; needs new attempt-level
+   tracking, a schema migration to v5, and time to accumulate real data
+   before the challenge is meaningful. Last in build order.
