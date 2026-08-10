@@ -179,6 +179,101 @@ test('missing active entries invalidate readiness without deleting ordinary cach
   assert.equal(state.error, 'OFFLINE_FILES_MISSING');
 });
 
+test('meta state is memoized per cacheStorage: repeated queries do not re-read the meta cache', async () => {
+  const cacheStorage = new MemoryCacheStorage();
+  const { manifest, files } = packageManifest();
+  await downloadPackage({
+    packageManifest: manifest, packageUrl: 'https://example.test/app/offline-package.json',
+    cacheStorage, fetchImpl: fetchFiles(files)
+  });
+  await activatePackage({ cacheStorage, version: 'v1' });
+
+  const metaCache = await cacheStorage.open(META_CACHE);
+  let matchCalls = 0;
+  const originalMatch = metaCache.match.bind(metaCache);
+  metaCache.match = async request => {
+    matchCalls += 1;
+    return originalMatch(request);
+  };
+
+  await readOfflineState(cacheStorage);
+  await matchActiveRequest({
+    cacheStorage,
+    request: new Request('https://example.test/app/index.html')
+  });
+  await matchActiveRequest({
+    cacheStorage,
+    request: new Request('https://example.test/app/index.html')
+  });
+
+  assert.equal(matchCalls, 0, 'meta cache must not be re-read once memoized for this cacheStorage');
+});
+
+test('readOfflineState sweeps asset presence once per cacheStorage lifetime, then trusts the memo', async () => {
+  const cacheStorage = new MemoryCacheStorage();
+  const { manifest, files } = packageManifest();
+  await downloadPackage({
+    packageManifest: manifest, packageUrl: 'https://example.test/app/offline-package.json',
+    cacheStorage, fetchImpl: fetchFiles(files)
+  });
+  await activatePackage({ cacheStorage, version: 'v1' });
+
+  const first = await readOfflineState(cacheStorage);
+  assert.equal(first.activeVersion, 'v1');
+
+  // Remove an asset *after* the first (real) sweep. A second sweep would
+  // catch this; trusting the memo means it stays silently reported as ready.
+  const cache = await cacheStorage.open(runtimeCacheName('v1'));
+  await cache.delete('https://example.test/app/audio/test.mp3');
+
+  const second = await readOfflineState(cacheStorage);
+  assert.equal(second.activeVersion, 'v1', 'second call within the same lifetime must trust the memoized state');
+
+  // A fresh cacheStorage is a new "lifetime" — no memo carries over, so its
+  // own first sweep must still run and catch a real problem (fail-closed).
+  const freshCacheStorage = new MemoryCacheStorage();
+  const second2 = packageManifest();
+  await downloadPackage({
+    packageManifest: second2.manifest, packageUrl: 'https://example.test/app/offline-package.json',
+    cacheStorage: freshCacheStorage, fetchImpl: fetchFiles(second2.files)
+  });
+  await activatePackage({ cacheStorage: freshCacheStorage, version: 'v1' });
+  const freshCache = await freshCacheStorage.open(runtimeCacheName('v1'));
+  await freshCache.delete('https://example.test/app/audio/test.mp3');
+  const freshState = await readOfflineState(freshCacheStorage);
+  assert.equal(freshState.activeVersion, null);
+  assert.equal(freshState.error, 'OFFLINE_FILES_MISSING');
+});
+
+test('activating a new version forces one fresh sweep on the next readOfflineState call', async () => {
+  const cacheStorage = new MemoryCacheStorage();
+  const first = packageManifest('v1');
+  await downloadPackage({
+    packageManifest: first.manifest, packageUrl: 'https://example.test/app/offline-package.json',
+    cacheStorage, fetchImpl: fetchFiles(first.files)
+  });
+  await activatePackage({ cacheStorage, version: 'v1' });
+  await readOfflineState(cacheStorage); // consumes the v1 sweep, memo now trusted
+  await confirmActivePackage({ cacheStorage, version: 'v1' });
+
+  const second = packageManifest('v2', { 'index.html': '<main>new</main>' });
+  await downloadPackage({
+    packageManifest: second.manifest, packageUrl: 'https://example.test/app/offline-package.json',
+    cacheStorage, fetchImpl: fetchFiles(second.files)
+  });
+  await activatePackage({ cacheStorage, version: 'v2' });
+
+  // Corrupt v2 before its own sweep has had a chance to run. v2's manifest
+  // only contains index.html (see `second` above), so that's the asset to
+  // remove — not audio/test.mp3, which isn't part of this version at all.
+  const v2Cache = await cacheStorage.open(runtimeCacheName('v2'));
+  await v2Cache.delete('https://example.test/app/index.html');
+
+  const state = await readOfflineState(cacheStorage);
+  assert.equal(state.activeVersion, null, 'activation must force a fresh sweep, not trust the pre-activation memo');
+  assert.equal(state.error, 'OFFLINE_FILES_MISSING');
+});
+
 test('cleanup protects metadata plus active, staged, previous, and explicit versions', async () => {
   const cacheStorage = new MemoryCacheStorage();
   for (const name of [META_CACHE, runtimeCacheName('active'), runtimeCacheName('staged'), runtimeCacheName('prior'), runtimeCacheName('keep'), runtimeCacheName('remove')]) {

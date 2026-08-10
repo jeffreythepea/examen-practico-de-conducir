@@ -24,23 +24,40 @@ const jsonResponse = value => new Response(JSON.stringify(value), {
   headers: { 'content-type': 'application/json' }
 });
 
+// Memoized per cacheStorage instance (in the real SW there's exactly one —
+// `caches` — for the worker's whole lifetime, so this behaves like a single
+// SW-global variable there; keying on the instance instead of a flat module
+// global just keeps independent cacheStorage instances — e.g. one per test —
+// from bleeding state into each other).
+const stateMemo = new WeakMap();
+// Tracks which cacheStorage instances have completed at least one full
+// asset-presence sweep this "lifetime". readOfflineState trusts the memoized
+// state once this is set, only re-sweeping after activatePackage changes
+// which version is active.
+const verifiedLifetimes = new WeakSet();
+
 async function readRawState(cacheStorage) {
+  if (stateMemo.has(cacheStorage)) return stateMemo.get(cacheStorage);
   const cache = await cacheStorage.open(META_CACHE);
   const response = await cache.match(META_REQUEST);
-  if (!response) return DEFAULT_STATE;
-  try {
-    const state = await response.json();
-    if (state.protocolVersion !== OFFLINE_PROTOCOL_VERSION) return DEFAULT_STATE;
-    return freezeState(state);
-  } catch {
-    return DEFAULT_STATE;
+  let state = DEFAULT_STATE;
+  if (response) {
+    try {
+      const parsed = await response.json();
+      if (parsed.protocolVersion === OFFLINE_PROTOCOL_VERSION) state = freezeState(parsed);
+    } catch {
+      state = DEFAULT_STATE;
+    }
   }
+  stateMemo.set(cacheStorage, state);
+  return state;
 }
 
 async function writeState(cacheStorage, state) {
   const next = freezeState(state);
   const cache = await cacheStorage.open(META_CACHE);
   await cache.put(META_REQUEST, jsonResponse(next));
+  stateMemo.set(cacheStorage, next);
   return next;
 }
 
@@ -221,7 +238,7 @@ export async function activatePackage({ cacheStorage, version }) {
       throw new Error(`Staged package is missing ${asset.path}`);
     }
   }
-  return writeState(cacheStorage, {
+  const next = await writeState(cacheStorage, {
     ...state,
     previousVersion: state.activeVersion,
     activeVersion: version,
@@ -234,18 +251,30 @@ export async function activatePackage({ cacheStorage, version }) {
     totalBytes: manifest.totalBytes,
     error: null
   });
+  // The newly active version hasn't had its own presence sweep yet this
+  // lifetime — force readOfflineState to verify it once, even though this
+  // function's own loop above already checked it synchronously. Cheap
+  // (happens once per activation, not per fetch) and keeps "Ready offline"
+  // reporting honest about the version actually now active.
+  verifiedLifetimes.delete(cacheStorage);
+  return next;
 }
 
 export async function readOfflineState(cacheStorage) {
   const state = await readRawState(cacheStorage);
   if (!state.activeVersion) return state;
+  if (verifiedLifetimes.has(cacheStorage)) return state;
   const cache = await cacheStorage.open(runtimeCacheName(state.activeVersion));
   const manifest = await readStoredManifest(cache);
   if (manifest) {
     const base = new URL(manifest.packageBaseUrl);
     const entries = await Promise.all(manifest.assets.map(asset => cache.match(assetUrl(asset, base))));
-    if (entries.every(Boolean)) return state;
+    if (entries.every(Boolean)) {
+      verifiedLifetimes.add(cacheStorage);
+      return state;
+    }
   }
+  verifiedLifetimes.add(cacheStorage);
   return writeState(cacheStorage, {
     ...state,
     activeVersion: null,
