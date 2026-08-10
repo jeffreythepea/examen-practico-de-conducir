@@ -267,6 +267,18 @@ test('Today and fixed examiner snapshots enforce one resolved examiner voice whi
   assert.doesNotThrow(() => session());
 });
 
+test('Control check snapshots require the precheck-inspection theme override, not a settings.themeId field', () => {
+  const controlCheckExperience = {
+    modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,
+    themeId: 'precheck-inspection', challengeId: 'control-check',
+    replayPolicy: 'unlimited', revealPolicy: 'immediate', simulated: false
+  };
+  assert.doesNotThrow(() => session({ experience: controlCheckExperience }));
+  assert.throws(() => session({
+    experience: { ...controlCheckExperience, themeId: null }
+  }), /themeId for challenge/);
+});
+
 test('resolution rejects commands outside the snapshotted theme', () => {
   const experience = {
     modeId: 'practice', examinerChoice: 'mixed', resolvedExaminerId: null,

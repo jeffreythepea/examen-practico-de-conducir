@@ -154,6 +154,12 @@ function validateExperience(experience, settings) {
     }
   } else if (challenge) {
     for (const field of Object.keys(challenge.overrides.settings ?? {})) {
+      if (field === 'themeId') {
+        if (experience.themeId !== challenge.overrides.settings.themeId) {
+          throw new Error('Invalid activeSession.experience.themeId for challenge');
+        }
+        continue;
+      }
       if (settings[field] !== challenge.overrides.settings[field]) throw new Error(`Invalid activeSession.settings.${field} for experience`);
     }
   }

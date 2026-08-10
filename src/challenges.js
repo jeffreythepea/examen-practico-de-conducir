@@ -1,9 +1,11 @@
 import { SESSION_PRESET_IDS, applySessionPreset } from './session-presets.js';
+import { THEME_IDS } from './session-themes.js';
 
 const HINT_POLICIES = new Set(['available', 'shown', 'unavailable']);
 const REPLAY_POLICIES = new Set(['unlimited', 'none']);
 const REVEAL_POLICIES = new Set(['immediate', 'session-end']);
-const OVERRIDE_SETTING_FIELDS = new Set(['hintPolicy']);
+const PASS_RULES = new Set(['clean', 'no-miss']);
+const OVERRIDE_SETTING_FIELDS = new Set(['hintPolicy', 'themeId']);
 
 const RAW_CHALLENGES = [
   {
@@ -11,6 +13,7 @@ const RAW_CHALLENGES = [
     titleKey: 'challenge.audioOnly.title',
     descriptionKey: 'challenge.audioOnly.description',
     basePresetId: 'practice',
+    passRule: 'clean',
     overrides: {
       settings: { hintPolicy: 'unavailable' }
     }
@@ -20,8 +23,19 @@ const RAW_CHALLENGES = [
     titleKey: 'challenge.oneListen.title',
     descriptionKey: 'challenge.oneListen.description',
     basePresetId: 'practice',
+    passRule: 'clean',
     overrides: {
       replayPolicy: 'none'
+    }
+  },
+  {
+    id: 'control-check',
+    titleKey: 'challenge.controlCheck.title',
+    descriptionKey: 'challenge.controlCheck.description',
+    basePresetId: 'practice',
+    passRule: 'no-miss',
+    overrides: {
+      settings: { themeId: 'precheck-inspection' }
     }
   }
 ];
@@ -46,6 +60,9 @@ function validateOverrides(overrides) {
     if ('hintPolicy' in overrides.settings && !HINT_POLICIES.has(overrides.settings.hintPolicy)) {
       throw new Error('Invalid challenge hint policy override');
     }
+    if ('themeId' in overrides.settings && !THEME_IDS.includes(overrides.settings.themeId)) {
+      throw new Error('Invalid challenge theme override');
+    }
   }
   if ('replayPolicy' in overrides && !REPLAY_POLICIES.has(overrides.replayPolicy)) {
     throw new Error('Invalid challenge replay policy override');
@@ -61,6 +78,7 @@ function freezeChallenge(challenge) {
     titleKey: challenge.titleKey,
     descriptionKey: challenge.descriptionKey,
     basePresetId: challenge.basePresetId,
+    passRule: challenge.passRule,
     overrides: Object.freeze({
       ...(challenge.overrides?.settings ? { settings: Object.freeze({ ...challenge.overrides.settings }) } : {}),
       ...(challenge.overrides?.replayPolicy ? { replayPolicy: challenge.overrides.replayPolicy } : {}),
@@ -80,6 +98,7 @@ export function validateChallenges(value) {
     if (!SESSION_PRESET_IDS.includes(challenge.basePresetId)) {
       throw new Error(`Unknown challenge base preset: ${challenge.basePresetId}`);
     }
+    if (!PASS_RULES.has(challenge.passRule)) throw new Error(`Invalid challenge pass rule: ${challenge.passRule}`);
     validateOverrides(challenge.overrides);
     return freezeChallenge(challenge);
   });
@@ -123,4 +142,29 @@ export function evaluateCleanSession(attempts, expectedCount) {
   return attempts.length === expectedCount && attempts.every(attempt => attempt.outcome === 'unaided')
     ? 'clean'
     : 'needs-practice';
+}
+
+/**
+ * A looser bar than evaluateCleanSession: every expected command must be
+ * attempted, but hint-assisted correct answers still pass — only an actual
+ * miss (outcome 'incorrect') fails the run. This is Control check's rule:
+ * "complete a precheck inspection without a miss," not "without a hint."
+ */
+export function evaluateNoMissSession(attempts, expectedCount) {
+  if (!Array.isArray(attempts) || !Number.isSafeInteger(expectedCount) || expectedCount < 1) {
+    return 'needs-practice';
+  }
+  return attempts.length === expectedCount && attempts.every(attempt => attempt.outcome !== 'incorrect')
+    ? 'clean'
+    : 'needs-practice';
+}
+
+const PASS_RULE_EVALUATORS = Object.freeze({
+  clean: evaluateCleanSession,
+  'no-miss': evaluateNoMissSession
+});
+
+export function evaluateChallengeSession(challengeId, attempts, expectedCount, challenges = CHALLENGES) {
+  const challenge = challengeById(challengeId, challenges);
+  return PASS_RULE_EVALUATORS[challenge.passRule](attempts, expectedCount);
 }

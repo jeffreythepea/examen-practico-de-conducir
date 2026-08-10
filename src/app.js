@@ -40,7 +40,7 @@ import {
   postAnswerMotionView
 } from './post-answer-motion.js';
 import { compactAttempts } from './attempt-compaction.js';
-import { challengeById, evaluateCleanSession } from './challenges.js';
+import { challengeById, evaluateChallengeSession, evaluateCleanSession } from './challenges.js';
 import { readinessForCatalog } from './readiness.js';
 import { renderLessonFlagEditor, renderReadinessView } from './readiness-view.js';
 import { sessionPresetById } from './session-presets.js';
@@ -1073,10 +1073,10 @@ async function bootstrap() {
   function renderSetup() {
     const dateParts = localDateParts(new Date());
     const effectiveSettings = effectiveSessionSettings(state.settings);
-    const themed = state.settings.themeId === null
+    const themed = effectiveSettings.themeId === null
       ? selectableCommands
-      : eligibleCommandsForTheme(selectableCommands, state.settings.themeId);
-    const pool = commandsForPhase(themed, state.settings.phase);
+      : eligibleCommandsForTheme(selectableCommands, effectiveSettings.themeId);
+    const pool = commandsForPhase(themed, effectiveSettings.phase);
     const eligibility = sessionStartEligibility(
       selectableCommands,
       manifest,
@@ -1356,7 +1356,7 @@ async function bootstrap() {
     const isMock = model.experience?.revealPolicy === 'session-end';
     const mockStatus = isMock ? mockResultStatus(attempts, model.session.length) : null;
     const challengeId = model.experience?.challengeId ?? null;
-    const challengeStatus = challengeId ? evaluateCleanSession(attempts, model.session.length) : null;
+    const challengeStatus = challengeId ? evaluateChallengeSession(challengeId, attempts, model.session.length) : null;
     return `<section class="panel results" aria-labelledby="results-title">
       <h2 id="results-title" role="status" aria-live="polite" aria-describedby="results-headline" data-screen-focus tabindex="-1">${translate(locale(), 'screen.results')}</h2>
       ${renderSessionIdentity()}
