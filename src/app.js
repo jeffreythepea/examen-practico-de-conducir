@@ -40,7 +40,13 @@ import {
   postAnswerMotionView
 } from './post-answer-motion.js';
 import { compactAttempts } from './attempt-compaction.js';
-import { challengeById, evaluateChallengeSession, evaluateCleanSession } from './challenges.js';
+import {
+  challengeById,
+  evaluateChallengeSession,
+  evaluateCleanSession,
+  personalBestKey,
+  recordPersonalBest
+} from './challenges.js';
 import { readinessForCatalog } from './readiness.js';
 import { renderLessonFlagEditor, renderReadinessView } from './readiness-view.js';
 import { sessionPresetById } from './session-presets.js';
@@ -1357,6 +1363,9 @@ async function bootstrap() {
     const mockStatus = isMock ? mockResultStatus(attempts, model.session.length) : null;
     const challengeId = model.experience?.challengeId ?? null;
     const challengeStatus = challengeId ? evaluateChallengeSession(challengeId, attempts, model.session.length) : null;
+    const personalBestNotice = challengeId === 'personal-best'
+      ? personalBestResultNotice(state.personalBests, model.experience.themeId, summary.averageResponseMs, challengeStatus)
+      : null;
     return `<section class="panel results" aria-labelledby="results-title">
       <h2 id="results-title" role="status" aria-live="polite" aria-describedby="results-headline" data-screen-focus tabindex="-1">${translate(locale(), 'screen.results')}</h2>
       ${renderSessionIdentity()}
@@ -1364,7 +1373,8 @@ async function bootstrap() {
         ? translate(locale(), `mock.result.${mockStatus}`)
         : translate(locale(), 'summary.unaidedPercent', { percent: summary.unaidedPercentage })}</p>
       ${isMock ? `<p class="notice">${translate(locale(), 'mock.result.nonOfficial')}</p>` : ''}
-      ${challengeId ? `<p class="notice">${translate(locale(), `challenge.result.${challengeStatus}`)}</p>` : ''}
+      ${challengeId && challengeId !== 'personal-best' ? `<p class="notice">${translate(locale(), `challenge.result.${challengeStatus}`)}</p>` : ''}
+      ${personalBestNotice ? `<p class="notice">${personalBestNotice}</p>` : ''}
       ${!isMock && summary.counts.assisted > summary.counts.unaided ? `<p class="notice">${translate(locale(), 'results.hintNotice')}</p>` : ''}
       <div class="result-counts">
         ${countCard('unaided', summary.counts.unaided)}
@@ -1372,7 +1382,7 @@ async function bootstrap() {
         ${countCard('incorrect', summary.counts.incorrect)}
       </div>
       <dl class="summary-details">
-        <div><dt>${translate(locale(), 'summary.averageTime')}</dt><dd>${summary.averageResponseMs === null ? '—' : translate(locale(), 'summary.milliseconds', { seconds: new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(summary.averageResponseMs / 1000) })}</dd></div>
+        <div><dt>${translate(locale(), 'summary.averageTime')}</dt><dd>${summary.averageResponseMs === null ? '—' : translate(locale(), 'summary.milliseconds', { seconds: formatSeconds(summary.averageResponseMs) })}</dd></div>
         <div><dt>${translate(locale(), 'summary.replays')}</dt><dd>${summary.replayCount}</dd></div>
         <div><dt>${translate(locale(), 'summary.hints')}</dt><dd>${summary.hintCount}</dd></div>
       </dl>
@@ -1405,7 +1415,7 @@ async function bootstrap() {
           <p><strong>${translate(locale(), 'mock.review.outcome')}:</strong> ${translate(locale(), `result.${attempt.outcome}`)}</p>
           <p><strong>${translate(locale(), 'mock.review.response')}:</strong> ${attempt.responseMs === null
             ? '—'
-            : translate(locale(), 'summary.milliseconds', { seconds: new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(attempt.responseMs / 1000) })}</p>
+            : translate(locale(), 'summary.milliseconds', { seconds: formatSeconds(attempt.responseMs) })}</p>
           <p><strong>${translate(locale(), 'summary.replays')}:</strong> ${attempt.replays ?? 0}</p>
           ${attempt.outcome === 'incorrect' ? `<fieldset class="diagnosis">
             <legend>${translate(locale(), 'miss.title')}</legend>
@@ -1426,6 +1436,23 @@ async function bootstrap() {
 
   function countCard(outcome, count) {
     return `<div class="count-card ${outcome}"><strong>${count}</strong><span>${translate(locale(), `result.${outcome}`)}</span></div>`;
+  }
+
+  function formatSeconds(responseMs) {
+    return new Intl.NumberFormat(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(responseMs / 1000);
+  }
+
+  function personalBestResultNotice(personalBests, themeId, averageResponseMs, challengeStatus) {
+    if (challengeStatus !== 'clean' || averageResponseMs === null) {
+      return translate(locale(), 'challenge.personalBest.notClean');
+    }
+    const record = personalBests[personalBestKey(themeId)];
+    return record?.averageResponseMs === averageResponseMs
+      ? translate(locale(), 'challenge.personalBest.newRecord', { seconds: formatSeconds(averageResponseMs) })
+      : translate(locale(), 'challenge.personalBest.comparison', {
+          seconds: formatSeconds(averageResponseMs),
+          best: formatSeconds(record.averageResponseMs)
+        });
   }
 
   function bindCommonEvents() {
@@ -1582,6 +1609,18 @@ async function bootstrap() {
     completeTrial({ type: 'SURFACE_EVENT', surfaceEvent, completedAt: Date.now() });
   }
 
+  function settlePersonalBest() {
+    if (model.experience?.challengeId !== 'personal-best') return;
+    const attempts = state.attempts.filter(attempt => sessionAttemptIds.includes(attempt.id));
+    if (evaluateChallengeSession('personal-best', attempts, model.session.length) !== 'clean') return;
+    const summary = summarizeSession(attempts, model.session);
+    const key = personalBestKey(model.experience.themeId);
+    const updated = recordPersonalBest(state.personalBests, key, summary.averageResponseMs, Date.now());
+    if (updated === state.personalBests) return;
+    state = { ...state, personalBests: updated };
+    persistState();
+  }
+
   function bindRevealEvents() {
     app.querySelector('[data-action="open-reveal-lesson-flag"]')?.addEventListener('click', () => {
       openLessonFlagEditor(currentCommand().id);
@@ -1596,6 +1635,7 @@ async function bootstrap() {
       readinessFilters = { ...readinessFilters, editor: null };
       currentAttemptId = null;
       model = reduceScreen(model, { type: 'CONTINUE' });
+      if (model.screen === 'results') settlePersonalBest();
       render();
       if (model.screen === 'loading-audio') void playCurrentCommand();
     });

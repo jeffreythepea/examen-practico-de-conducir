@@ -37,6 +37,13 @@ const RAW_CHALLENGES = [
     overrides: {
       settings: { themeId: 'precheck-inspection' }
     }
+  },
+  {
+    id: 'personal-best',
+    titleKey: 'challenge.personalBest.title',
+    descriptionKey: 'challenge.personalBest.description',
+    basePresetId: 'practice',
+    passRule: 'clean'
   }
 ];
 
@@ -167,4 +174,26 @@ const PASS_RULE_EVALUATORS = Object.freeze({
 export function evaluateChallengeSession(challengeId, attempts, expectedCount, challenges = CHALLENGES) {
   const challenge = challengeById(challengeId, challenges);
   return PASS_RULE_EVALUATORS[challenge.passRule](attempts, expectedCount);
+}
+
+/**
+ * Personal-best records are compared per drive/theme, since a First-drive
+ * clean run and a Roundabout-circuit clean run aren't comparable speeds.
+ * null (Adaptive) settles to a stable 'adaptive' key.
+ */
+export function personalBestKey(themeId) {
+  return themeId ?? 'adaptive';
+}
+
+/**
+ * Registers a new personal-best record only if it strictly beats any
+ * existing record for the same key (a faster, i.e. lower, average). Returns
+ * the same personalBests reference unchanged when it doesn't qualify, so
+ * callers can tell by reference whether anything actually changed.
+ */
+export function recordPersonalBest(personalBests, key, averageResponseMs, achievedAt) {
+  if (!Number.isFinite(averageResponseMs) || averageResponseMs <= 0) return personalBests;
+  const existing = personalBests?.[key];
+  if (existing && existing.averageResponseMs <= averageResponseMs) return personalBests;
+  return Object.freeze({ ...personalBests, [key]: Object.freeze({ averageResponseMs, achievedAt }) });
 }

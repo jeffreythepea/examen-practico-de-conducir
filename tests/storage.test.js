@@ -94,7 +94,8 @@ test('creates fresh version 4 defaults with recommended practice and an empty le
     attempts: [],
     actionProgress: {},
     lessonFlags: [],
-    activeSession: null
+    activeSession: null,
+    personalBests: {}
   });
   assert.notEqual(first, second);
   assert.notEqual(first.settings, second.settings);
@@ -320,6 +321,37 @@ test('feedback-sound preference persists, validates, and safely defaults for old
     })),
     /Invalid settings\.feedbackSounds/
   );
+});
+
+test('personal-best records persist per theme key, validate, and safely default for older backups', () => {
+  const withRecords = {
+    ...defaultState(),
+    personalBests: {
+      adaptive: { averageResponseMs: 4200, achievedAt: 1700000000000 },
+      'roundabout-circuit': { averageResponseMs: 3100, achievedAt: 1700000001000 }
+    }
+  };
+  assert.deepEqual(importState(exportState(withRecords)).personalBests, withRecords.personalBests);
+
+  const older = defaultState();
+  delete older.personalBests;
+  assert.deepEqual(importState(JSON.stringify(older)).personalBests, {});
+
+  for (const personalBests of [
+    { arcade: { averageResponseMs: 1000, achievedAt: 1 } },
+    { adaptive: { averageResponseMs: 0, achievedAt: 1 } },
+    { adaptive: { averageResponseMs: -5, achievedAt: 1 } },
+    { adaptive: { averageResponseMs: 'fast', achievedAt: 1 } },
+    { adaptive: { averageResponseMs: 1000, achievedAt: 'now' } },
+    { adaptive: { averageResponseMs: 1000 } },
+    { adaptive: null },
+    []
+  ]) {
+    assert.throws(
+      () => importState(JSON.stringify({ ...defaultState(), personalBests })),
+      /Invalid personalBests/
+    );
+  }
 });
 
 test('road movement defaults on, round-trips false, and rejects invalid values', () => {

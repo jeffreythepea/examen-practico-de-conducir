@@ -9,6 +9,8 @@ import {
   evaluateChallengeSession,
   evaluateCleanSession,
   evaluateNoMissSession,
+  personalBestKey,
+  recordPersonalBest,
   validateChallenges
 } from '../src/challenges.js';
 import { defaultState } from '../src/storage.js';
@@ -16,11 +18,12 @@ import { defaultState } from '../src/storage.js';
 const TITLE_KEYS = Object.freeze({
   'audio-only': 'audioOnly',
   'one-listen': 'oneListen',
-  'control-check': 'controlCheck'
+  'control-check': 'controlCheck',
+  'personal-best': 'personalBest'
 });
 
-test('exports Audio only, One listen, and Control check challenges in stable order', () => {
-  assert.deepEqual(CHALLENGE_IDS, ['audio-only', 'one-listen', 'control-check']);
+test('exports Audio only, One listen, Control check, and Personal best challenges in stable order', () => {
+  assert.deepEqual(CHALLENGE_IDS, ['audio-only', 'one-listen', 'control-check', 'personal-best']);
   assert.deepEqual(CHALLENGES.map(({ id }) => id), CHALLENGE_IDS);
 });
 
@@ -34,6 +37,7 @@ test('each challenge carries a title/description key, a known base preset, and a
   assert.equal(challengeById('audio-only').passRule, 'clean');
   assert.equal(challengeById('one-listen').passRule, 'clean');
   assert.equal(challengeById('control-check').passRule, 'no-miss');
+  assert.equal(challengeById('personal-best').passRule, 'clean');
 });
 
 test('challenge registry and every nested record are deeply frozen', () => {
@@ -76,6 +80,18 @@ test('control-check forces the precheck-inspection theme on top of Practice, lea
   assert.equal(result.challengeId, 'control-check');
   assert.equal(result.presetId, 'practice');
   assert.equal(result.settings.themeId, 'precheck-inspection');
+  assert.equal(result.settings.hintPolicy, 'available');
+  assert.equal(result.replayPolicy, 'unlimited');
+  assert.equal(result.revealPolicy, 'immediate');
+});
+
+test('personal-best applies Practice unmodified: theme, hints, and replay stay whatever the learner already chose', () => {
+  const base = { ...defaultState().settings, themeId: 'roundabout-circuit' };
+  const result = applyChallenge(base, 'personal-best');
+
+  assert.equal(result.challengeId, 'personal-best');
+  assert.equal(result.presetId, 'practice');
+  assert.equal(result.settings.themeId, 'roundabout-circuit');
   assert.equal(result.settings.hintPolicy, 'available');
   assert.equal(result.replayPolicy, 'unlimited');
   assert.equal(result.revealPolicy, 'immediate');
@@ -164,4 +180,35 @@ test('evaluateChallengeSession dispatches to the challenge-specific pass rule', 
     { outcome: 'assisted' }
   ], 2), 'clean');
   assert.throws(() => evaluateChallengeSession('unknown', [], 0), /unknown challenge/i);
+});
+
+test('personalBestKey settles the null (Adaptive) theme to a stable key', () => {
+  assert.equal(personalBestKey(null), 'adaptive');
+  assert.equal(personalBestKey('roundabout-circuit'), 'roundabout-circuit');
+});
+
+test('recordPersonalBest only replaces an existing record with a strictly faster average', () => {
+  const empty = Object.freeze({});
+  const firstRun = recordPersonalBest(empty, 'adaptive', 4000, 1000);
+  assert.deepEqual(firstRun, { adaptive: { averageResponseMs: 4000, achievedAt: 1000 } });
+  assert.notEqual(firstRun, empty);
+
+  const slower = recordPersonalBest(firstRun, 'adaptive', 5000, 2000);
+  assert.equal(slower, firstRun);
+
+  const tied = recordPersonalBest(firstRun, 'adaptive', 4000, 2000);
+  assert.equal(tied, firstRun);
+
+  const faster = recordPersonalBest(firstRun, 'adaptive', 3000, 3000);
+  assert.deepEqual(faster, { adaptive: { averageResponseMs: 3000, achievedAt: 3000 } });
+  assert.notEqual(faster, firstRun);
+
+  const otherKey = recordPersonalBest(firstRun, 'roundabout-circuit', 6000, 4000);
+  assert.deepEqual(otherKey, {
+    adaptive: { averageResponseMs: 4000, achievedAt: 1000 },
+    'roundabout-circuit': { averageResponseMs: 6000, achievedAt: 4000 }
+  });
+
+  assert.equal(recordPersonalBest(empty, 'adaptive', 0, 1), empty);
+  assert.equal(recordPersonalBest(empty, 'adaptive', NaN, 1), empty);
 });

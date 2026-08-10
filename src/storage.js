@@ -20,6 +20,7 @@ const EXPERIENCE_MODES = new Set(SESSION_PRESET_IDS);
 const EXAMINER_CHOICES = new Set(EXAMINER_CHOICE_IDS);
 const THEMES = new Set([null, ...THEME_IDS]);
 const CHALLENGES_OR_NULL = new Set([null, ...CHALLENGE_IDS]);
+const PERSONAL_BEST_KEYS = new Set(['adaptive', ...THEME_IDS]);
 
 export function defaultState() {
   return {
@@ -43,7 +44,8 @@ export function defaultState() {
     attempts: [],
     actionProgress: {},
     lessonFlags: [],
-    activeSession: null
+    activeSession: null,
+    personalBests: {}
   };
 }
 
@@ -145,6 +147,8 @@ function validateState(value) {
   if (!isRecord(state.actionProgress)) throw new Error('Invalid actionProgress');
   validateActionProgress(state.actionProgress);
   validateLessonFlags(state.lessonFlags);
+  if (state.personalBests === undefined) state.personalBests = {};
+  validatePersonalBests(state.personalBests);
   if (state.activeSession !== null) {
     state.activeSession = validateStoredActiveSession(state.activeSession);
     const attemptIds = new Set(state.attempts.map(attempt => attempt.id));
@@ -174,6 +178,19 @@ function validateSettings(settings) {
   if (!EXAMINER_CHOICES.has(settings.examinerChoice)) throw new Error('Invalid settings.examinerChoice');
   if (!THEMES.has(settings.themeId)) throw new Error('Invalid settings.themeId');
   if (!CHALLENGES_OR_NULL.has(settings.challengeId)) throw new Error('Invalid settings.challengeId');
+}
+
+function validatePersonalBests(personalBests) {
+  if (!isRecord(personalBests)) throw new Error('Invalid personalBests');
+  for (const [key, record] of Object.entries(personalBests)) {
+    const path = `personalBests.${key}`;
+    if (!PERSONAL_BEST_KEYS.has(key)) throw new Error(`Invalid ${path} key`);
+    if (!isRecord(record)) throw new Error(`Invalid ${path}`);
+    if (!isFiniteNumber(record.averageResponseMs) || record.averageResponseMs <= 0) {
+      throw new Error(`Invalid ${path}.averageResponseMs`);
+    }
+    if (!isFiniteNumber(record.achievedAt)) throw new Error(`Invalid ${path}.achievedAt`);
+  }
 }
 
 function validateLessonFlags(flags) {
