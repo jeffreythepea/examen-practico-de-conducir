@@ -81,6 +81,7 @@ function getItemPhase(commands, item) {
 }
 
 function getSpecialCommandType(commandId) {
+  if (commandId === 'c-cint') return 'cint';
   if (commandId === 'c-arr') return 'arr';
   if (commandId === 'c-incorp') return 'incorp';
   if (commandId === 'c-final') return 'final';
@@ -147,6 +148,7 @@ export function buildSimulatedExamRoute(items, commands, rng = Math.random) {
 
   // Partition items into groups preserving original relative order
   const precheckItems = [];
+  const cintItems = [];
   const arrItems = [];
   const incorpItems = [];
   const ordinaryDrivingItems = [];
@@ -157,6 +159,8 @@ export function buildSimulatedExamRoute(items, commands, rng = Math.random) {
     const specialType = getSpecialCommandType(item.commandId);
     if (item.phase === 'precheck') {
       precheckItems.push(item);
+    } else if (specialType === 'cint') {
+      cintItems.push(item);
     } else if (specialType === 'arr') {
       arrItems.push(item);
     } else if (specialType === 'incorp') {
@@ -185,6 +189,13 @@ export function buildSimulatedExamRoute(items, commands, rng = Math.random) {
   }
 
   // Chapter 2: Start and departure
+  // Fastening the seatbelt happens seated in the still-parked car: directly
+  // after the prechecks, before the engine start and before any driving
+  // scene. No transition may precede or follow it within this block.
+  for (const item of cintItems) {
+    steps.push(buildCommandStep(item, item.index, 'departure'));
+  }
+
   const hasArr = arrItems.length > 0;
   const hasIncorp = incorpItems.length > 0;
 

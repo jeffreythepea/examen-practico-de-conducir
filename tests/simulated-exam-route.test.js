@@ -5,6 +5,7 @@ import { buildSimulatedExamRoute } from '../src/simulated-exam-route.js';
 const commands = [
   { id: 'c-pre-1', phase: 'precheck' },
   { id: 'c-pre-2', phase: 'precheck' },
+  { id: 'c-cint', phase: 'driving' },
   { id: 'c-arr', phase: 'driving' },
   { id: 'c-incorp', phase: 'driving' },
   { id: 'c-der', phase: 'driving' },
@@ -116,6 +117,34 @@ test('uses a preparation bridge when start-engine is absent without fabricating 
   assert.equal(route[1].kind, 'transition');
   assert.equal(route[1].sceneId, 'preparation-bridge');
   assert.equal(route[2].commandId, 'c-incorp');
+});
+
+test('fasten-seatbelt sits between prechecks and departure with no adjacent transition', () => {
+  const route = buildSimulatedExamRoute(
+    [item('c-der'), item('c-cint'), item('c-pre-1'), item('c-arr'), item('c-izq')],
+    commands
+  );
+  assert.deepEqual(
+    commandSteps(route).map(step => step.commandId),
+    ['c-pre-1', 'c-cint', 'c-arr', 'c-der', 'c-izq']
+  );
+  const cintIndex = route.findIndex(step => step.commandId === 'c-cint');
+  assert.equal(route[cintIndex - 1].kind, 'command', 'no transition before fastening the seatbelt');
+  assert.equal(route[cintIndex - 1].commandId, 'c-pre-1');
+  assert.equal(route[cintIndex + 1].kind, 'command', 'no transition between seatbelt and engine start');
+  assert.equal(route[cintIndex + 1].commandId, 'c-arr');
+  assert.equal(route[cintIndex].chapter, 'departure');
+});
+
+test('fasten-seatbelt precedes the preparation bridge when start-engine is absent', () => {
+  const route = buildSimulatedExamRoute(
+    [item('c-cint'), item('c-der'), item('c-izq')],
+    commands
+  );
+  assert.equal(route[0].commandId, 'c-cint');
+  assert.equal(route[1].kind, 'transition');
+  assert.equal(route[1].sceneId, 'preparation-bridge');
+  assert.equal(route[2].commandId, 'c-der');
 });
 
 test('does not add a preparation bridge when start-engine is present', () => {
