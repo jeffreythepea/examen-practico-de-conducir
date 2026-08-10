@@ -177,7 +177,11 @@ test('renderer draws unlabeled localized road targets and disables every target 
   assert.match(markup, /<svg viewBox="0 0 100 100" preserveAspectRatio="none"[^>]+aria-hidden="true"[^>]+focusable="false"/);
   assert.equal((markup.match(/class="road-target"/g) ?? []).length, 4);
   assert.equal((markup.match(/ disabled/g) ?? []).length, 4);
-  assert.equal((markup.match(/aria-label="Seleccione esta vía"/g) ?? []).length, 4);
+  const labels = [...markup.matchAll(/ aria-label="([^"]+)"/g)].map(([, label]) => label);
+  assert.equal(labels.length, 4);
+  assert.ok(labels.every(label => label.length > 0));
+  assert.equal(new Set(labels).size, labels.length, 'every target label must be distinct');
+  assert.deepEqual(labels, ['Primera salida', 'Segunda salida', 'Tercera salida', 'Cuarta salida']);
   assert.doesNotMatch(markup, /surface-result-label|data-correct-route|aria-current/);
 });
 
@@ -283,9 +287,40 @@ test('spatial reveal distinguishes the selected wrong road from the correct road
   const wrongButton = markup.match(new RegExp(`<button[^>]+data-target="${wrong.id}"[^>]*>[\\s\\S]*?</button>`))?.[0];
   assert.ok(wrongButton);
   assert.match(wrongButton, /data-selection-state="wrong"/);
-  assert.match(wrongButton, /aria-label="Seleccione esta vía — Selección incorrecta"/);
+  assert.match(wrongButton, /aria-label="Primera salida — Selección incorrecta"/);
   assert.match(wrongButton, /class="target-status-marker wrong"[^>]*>×</);
   assert.match(markup, /class="target-status-marker correct"[^>]*>✓</);
+});
+
+test('every spatial target exposes a non-empty, distinct, bilingual accessible name that never reveals the answer', () => {
+  const cases = [
+    ['turn-left', 'junction-v2'],
+    ['turn-right', 'junction-v2'],
+    ['continue-forward', 'junction-v2'],
+    ['roundabout-exit-1', 'roundabout-v2'],
+    ['roundabout-exit-3', 'roundabout-v2'],
+    ['roundabout-exit-5', 'roundabout-v2']
+  ];
+  for (const [action, surfaceId] of cases) {
+    for (let seed = 1; seed <= 8; seed += 1) {
+      const model = generateSpatialSurface(command(action, surfaceId), seed);
+      for (const [locale, correctWord] of [['en', 'correct'], ['es', 'correct']]) {
+        const markup = renderSpatialSurface(model, locale, { disabled: true });
+        const labels = [...markup.matchAll(/ aria-label="([^"]+)"/g)].map(([, label]) => label);
+        assert.equal(labels.length, model.targets.length, `${surfaceId} seed ${seed} (${locale}) must label every target`);
+        assert.ok(labels.every(label => label.trim().length > 0), `${surfaceId} seed ${seed} (${locale}) labels must be non-empty`);
+        assert.equal(
+          new Set(labels).size,
+          labels.length,
+          `${surfaceId} seed ${seed} (${locale}) labels must be pairwise distinct`
+        );
+        assert.ok(
+          labels.every(label => !label.toLowerCase().includes(correctWord)),
+          `${surfaceId} seed ${seed} (${locale}) labels must not claim correctness: ${labels.join(', ')}`
+        );
+      }
+    }
+  }
 });
 
 test('road target styles preserve a normalized 44px minimum and reveal route treatment', async () => {

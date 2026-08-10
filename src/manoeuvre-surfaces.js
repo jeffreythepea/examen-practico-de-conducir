@@ -7,6 +7,23 @@ import { createSurfaceModel, seededRandom } from './surface-model.js';
 const STAGE = Object.freeze({ stageWidth: 400, stageHeight: 300 });
 const POSITION_JITTER = 1.5;
 
+// Distinct, localized accessible names per target feature — describes what a
+// sighted user already sees (position/visible feature only), never which
+// target is correct for the current command. Decoy features that already
+// carry an explanationKey (see MANOEUVRE_TEMPLATES) reuse that key instead of
+// duplicating a string here; this only covers features with no such key.
+const FEATURE_LABEL_KEYS = Object.freeze({
+  'reverse-direction': 'surface.feature.reverseDirection',
+  'straight-route': 'surface.feature.straightRoute',
+  'passing-lane': 'surface.feature.passingLane',
+  'follow-lane': 'surface.feature.followLane',
+  'correct-travel-lane': 'surface.feature.correctTravelLane',
+  'right-curb-start': 'surface.feature.curbsidePosition',
+  'opposing-lane': 'surface.feature.opposingLane',
+  'open-bay': 'surface.feature.openBay',
+  'clear-curb': 'surface.feature.clearCurb'
+});
+
 export const MANOEUVRE_SURFACE_IDS = Object.freeze([
   'u-turn-v1',
   'overtake-v1',
@@ -269,7 +286,7 @@ export function renderManoeuvreSurface(model, locale, state = {}) {
       ${model.targets.map(target => targetButton(
         target,
         model,
-        translate(locale, targetLabelKey),
+        translate(locale, target.explanationKey ?? FEATURE_LABEL_KEYS[target.feature] ?? targetLabelKey),
         {
           ...state,
           correctSelectionLabel: translate(locale, 'surface.selectionCorrect'),
