@@ -198,13 +198,13 @@ test('length short limits to 5', () => {
   assert.equal(selected.length, 5);
 });
 
-test('length medium limits to 10', () => {
-  const cmds = Array.from({ length: 15 }, (_, i) => command(`c${i}`, `a${i}`));
+test('length medium limits to 20', () => {
+  const cmds = Array.from({ length: 25 }, (_, i) => command(`c${i}`, `a${i}`));
   const selected = selectPracticeCommands(cmds, {
     phase: 'mixed', length: 'medium', target: { kind: 'recommended' },
     attempts: [], now: NOW, rng: () => 0
   });
-  assert.equal(selected.length, 10);
+  assert.equal(selected.length, 20);
 });
 
 test('length all returns all eligible', () => {

@@ -1,6 +1,9 @@
 import { readinessForCatalog } from './readiness.js';
 
-export const SESSION_LENGTHS = Object.freeze({ short: 5, medium: 10, all: 15 });
+// The medium default is sized so a mixed simulated drive carries enough
+// ordinary driving commands for cruise transitions and an occasional null
+// event, closer to a real exam's pacing.
+export const SESSION_LENGTHS = Object.freeze({ short: 5, medium: 20, all: 30 });
 
 function fisherYatesShuffle(array, rng) {
   const result = [...array];

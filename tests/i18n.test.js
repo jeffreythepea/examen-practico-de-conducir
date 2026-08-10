@@ -173,11 +173,11 @@ test('solo experience and examiner scaffold copy is complete and neutral in both
 test('session lengths state exact command counts in both locales', () => {
   assert.deepEqual(
     ['short', 'medium', 'all'].map(length => translate('en', `length.${length}`)),
-    ['5 commands', '10 commands', '15 commands']
+    ['5 commands', '20 commands', '30 commands']
   );
   assert.deepEqual(
     ['short', 'medium', 'all'].map(length => translate('es', `length.${length}`)),
-    ['5 preguntas', '10 preguntas', '15 preguntas']
+    ['5 preguntas', '20 preguntas', '30 preguntas']
   );
 });
 

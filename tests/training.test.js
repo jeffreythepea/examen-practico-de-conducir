@@ -100,7 +100,7 @@ test('classifies outcomes independently of replay count and exports their fixed 
 });
 
 test('creates phase-filtered sessions at each supported length with injected deterministic randomness', () => {
-  assert.deepEqual(SESSION_LENGTHS, { short: 5, medium: 10, all: 15 });
+  assert.deepEqual(SESSION_LENGTHS, { short: 5, medium: 20, all: 30 });
 
   const settings = { phase: 'mixed', length: 'short' };
   const first = createSession(commands, { ...settings, rng: rngFrom([0.8, 0.1, 0.6]) });
@@ -116,13 +116,13 @@ test('creates phase-filtered sessions at each supported length with injected det
   assert.equal(prechecks.length, 6);
   assert.ok(prechecks.every(item => item.phase === 'precheck'));
 
-  assert.equal(createSession(commands, { phase: 'mixed', length: 'medium', rng: () => 0.5 }).length, 10);
+  assert.equal(createSession(commands, { phase: 'mixed', length: 'medium', rng: () => 0.5 }).length, commands.length);
   assert.equal(createSession(commands, { phase: 'mixed', length: 'all', rng: () => 0.5 }).length, commands.length);
 
-  const largePool = Array.from({ length: 20 }, (_, index) => command(`large-${index}`, `large-${index}`));
+  const largePool = Array.from({ length: 35 }, (_, index) => command(`large-${index}`, `large-${index}`));
   assert.equal(createSession(largePool, { phase: 'driving', length: 'short', rng: () => 0.5 }).length, 5);
-  assert.equal(createSession(largePool, { phase: 'driving', length: 'medium', rng: () => 0.5 }).length, 10);
-  assert.equal(createSession(largePool, { phase: 'driving', length: 'all', rng: () => 0.5 }).length, 15);
+  assert.equal(createSession(largePool, { phase: 'driving', length: 'medium', rng: () => 0.5 }).length, 20);
+  assert.equal(createSession(largePool, { phase: 'driving', length: 'all', rng: () => 0.5 }).length, 30);
   assert.throws(
     () => createSession(commands, { phase: 'mixed', length: 'short', mode: 'sequential', rng: () => 0.5 }),
     /Unknown session mode: sequential/
