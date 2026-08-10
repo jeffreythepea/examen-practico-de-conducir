@@ -120,6 +120,49 @@ test('transition advancement creates no attempt and cannot skip a command', () =
   assert.throws(() => advanceActiveSessionTransition(session()), /disabled/i);
 });
 
+test('null-event advancement creates no attempt and bumps only the route cursor', () => {
+  const nullRoute = {
+    nextRouteStepIndex: 0,
+    route: [
+      { kind: 'command', itemIndex: 0, commandId: 'c-der', chapter: 'driving' },
+      { kind: 'null-event', id: 'null-0', sceneId: 'four-way-intersection-photo-v1', chapter: 'driving' },
+      { kind: 'command', itemIndex: 1, commandId: 'c-pre-aceite', chapter: 'precheck' }
+    ]
+  };
+  const afterCommand = advanceActiveSession(
+    session({ continuity: nullRoute }),
+    { nextIndex: 1, attemptId: 'attempt-1' }
+  );
+  const afterNull = advanceActiveSessionTransition(afterCommand);
+  assert.equal(afterNull.nextIndex, 1);
+  assert.deepEqual(afterNull.attemptIds, ['attempt-1']);
+  assert.equal(afterNull.continuity.nextRouteStepIndex, 2);
+  assert.equal(afterNull.continuity.route[2].kind, 'command');
+});
+
+test('continuity validation accepts null-event steps and rejects malformed or duplicate ones', () => {
+  const nullStep = {
+    kind: 'null-event', id: 'null-0', sceneId: 'four-way-intersection-photo-v1', chapter: 'driving'
+  };
+  const routeWith = middle => ({
+    nextRouteStepIndex: 0,
+    route: [continuity().route[0], middle, continuity().route[2]]
+  });
+  const value = session({ continuity: routeWith(nullStep) });
+  assert.equal(value.continuity.route[1].kind, 'null-event');
+  assert.throws(() => session({ continuity: routeWith({ ...nullStep, extra: 1 }) }), /route\[1\]/);
+  assert.throws(() => session({ continuity: routeWith({ ...nullStep, sceneId: '' }) }), /sceneId/);
+  assert.throws(() => session({ continuity: routeWith({ kind: 'mystery', id: 'x', sceneId: 'y', chapter: 'driving' }) }), /kind/);
+  assert.throws(() => session({ continuity: continuity({
+    route: [
+      continuity().route[0],
+      { ...nullStep, id: 'cruise-0-1' },
+      continuity().route[1],
+      continuity().route[2]
+    ]
+  }) }), /duplicate.*id/i);
+});
+
 test('continuity validation rejects malformed routes, mismatched commands, and inconsistent progress', () => {
   assert.throws(() => session({ continuity: { route: [], nextRouteStepIndex: 0 } }), /continuity\.route/);
   assert.throws(() => session({ continuity: continuity({ nextRouteStepIndex: 4 }) }), /nextRouteStepIndex/);

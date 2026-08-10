@@ -3,6 +3,10 @@
 // No attempt, scoring, timing, audio, persistence, DOM, or translation behavior.
 
 const VALID_PHASES = new Set(['precheck', 'driving']);
+// C: a silent junction. The scene must come from a road-motion family with an
+// explicit straight-ahead target so the learner can answer "continue ahead".
+const NULL_EVENT_SCENE = 'four-way-intersection-photo-v1';
+const NULL_EVENT_PROBABILITY = 0.5;
 const TRANSITION_SCENES = {
   preparationBridge: 'preparation-bridge',
   departureConsequence: 'departure-consequence',
@@ -118,14 +122,18 @@ function buildTransitionStep(id, sceneId, chapter) {
   });
 }
 
-function chooseTransitionScene(rng, allowedScenes) {
-  if (allowedScenes.length === 0) return null;
-  if (allowedScenes.length === 1) return allowedScenes[0];
+function randomUnit(rng) {
   const value = rng();
   if (!Number.isFinite(value) || value < 0 || value >= 1) {
     throw new Error('RNG must return a number between 0 and 1');
   }
-  const index = Math.floor(value * allowedScenes.length);
+  return value;
+}
+
+function chooseTransitionScene(rng, allowedScenes) {
+  if (allowedScenes.length === 0) return null;
+  if (allowedScenes.length === 1) return allowedScenes[0];
+  const index = Math.floor(randomUnit(rng) * allowedScenes.length);
   return allowedScenes[index];
 }
 
@@ -177,10 +185,28 @@ export function buildSimulatedExamRoute(items, commands, rng = Math.random) {
   // Build the route steps in narrative order
   const steps = [];
   let transitionCounter = 0;
+  let nullEventCounter = 0;
 
   function addTransition(sceneId, chapter) {
     const id = `transition-${transitionCounter++}-${sceneId}`;
     steps.push(buildTransitionStep(id, sceneId, chapter));
+  }
+
+  function addNullEvent(chapter) {
+    steps.push(cloneAndFreeze({
+      kind: 'null-event',
+      id: `null-${nullEventCounter++}`,
+      sceneId: NULL_EVENT_SCENE,
+      chapter
+    }));
+  }
+
+  // At most one cruise slot per route becomes a silent junction (a null
+  // event), and only when at least one real cruise transition remains.
+  const cruiseSlotCount = Math.max(0, ordinaryDrivingItems.length - 1);
+  let nullEventSlot = -1;
+  if (cruiseSlotCount >= 2 && randomUnit(rng) >= 1 - NULL_EVENT_PROBABILITY) {
+    nullEventSlot = Math.floor(randomUnit(rng) * cruiseSlotCount);
   }
 
   // Chapter 1: Precheck
@@ -227,8 +253,12 @@ export function buildSimulatedExamRoute(items, commands, rng = Math.random) {
 
     // Add cruise transition between ordinary driving commands (not after the last one)
     if (i < ordinaryDrivingItems.length - 1) {
-      const sceneId = chooseTransitionScene(rng, [TRANSITION_SCENES.urbanCruise, TRANSITION_SCENES.ruralCruise]);
-      addTransition(sceneId, 'driving');
+      if (i === nullEventSlot) {
+        addNullEvent('driving');
+      } else {
+        const sceneId = chooseTransitionScene(rng, [TRANSITION_SCENES.urbanCruise, TRANSITION_SCENES.ruralCruise]);
+        addTransition(sceneId, 'driving');
+      }
     }
   }
 

@@ -234,6 +234,24 @@ test('schema 4 round-trips an active-session-v3 continuity cursor without attemp
   const imported = importState(exportState(state));
   assert.deepEqual(imported.activeSession.continuity, activeSession.continuity);
   assert.deepEqual(imported.attempts, []);
+
+  const withNullEvent = {
+    ...activeSession,
+    items: [
+      ...activeSession.items,
+      { commandId: 'c-izq', phrasingId: 'c-izq-canonical', voiceId: 'voice-es', speed: 0.9 }
+    ],
+    continuity: {
+      nextRouteStepIndex: 0,
+      route: [
+        { kind: 'command', itemIndex: 0, commandId: 'c-der', chapter: 'driving' },
+        { kind: 'null-event', id: 'null-0', sceneId: 'four-way-intersection-photo-v1', chapter: 'driving' },
+        { kind: 'command', itemIndex: 1, commandId: 'c-izq', chapter: 'driving' }
+      ]
+    }
+  };
+  const importedNull = importState(exportState({ ...defaultState(), activeSession: withNullEvent }));
+  assert.deepEqual(importedNull.activeSession.continuity, withNullEvent.continuity);
 });
 
 test('schema 4 accepts only stable experience, examiner, and nullable theme IDs', () => {

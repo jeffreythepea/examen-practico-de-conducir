@@ -93,7 +93,7 @@ function validateContinuity(continuity, items, nextIndex) {
   }
 
   const commandIndexes = new Set();
-  const transitionIds = new Set();
+  const nonCommandIds = new Set();
   continuity.route.forEach((step, routeIndex) => {
     const path = `activeSession.continuity.route[${routeIndex}]`;
     record(step, path);
@@ -111,13 +111,13 @@ function validateContinuity(continuity, items, nextIndex) {
       commandIndexes.add(step.itemIndex);
       return;
     }
-    if (step.kind === 'transition') {
+    if (step.kind === 'transition' || step.kind === 'null-event') {
       const allowed = ['chapter', 'id', 'kind', 'sceneId'];
       if (Object.keys(step).some(key => !allowed.includes(key))) throw new Error(`Invalid ${path}`);
       nonempty(step.id, `${path}.id`);
       nonempty(step.sceneId, `${path}.sceneId`);
-      if (transitionIds.has(step.id)) throw new Error(`Invalid duplicate ${path}.id`);
-      transitionIds.add(step.id);
+      if (nonCommandIds.has(step.id)) throw new Error(`Invalid duplicate ${path}.id`);
+      nonCommandIds.add(step.id);
       return;
     }
     throw new Error(`Invalid ${path}.kind`);
@@ -272,11 +272,15 @@ export function advanceActiveSession(session, { nextIndex, attemptId }) {
   });
 }
 
+// Advances over either non-command step kind (transition or null event);
+// neither ever creates an attempt or moves the command cursor.
 export function advanceActiveSessionTransition(session) {
   const current = validateStoredActiveSession(session);
   if (!current.continuity) throw new Error('Active session continuity is disabled');
   const step = current.continuity.route[current.continuity.nextRouteStepIndex];
-  if (step?.kind !== 'transition') throw new Error('Active session is not at a transition');
+  if (step?.kind !== 'transition' && step?.kind !== 'null-event') {
+    throw new Error('Active session is not at a transition or null event');
+  }
   return validateStoredActiveSession({
     ...current,
     continuity: {

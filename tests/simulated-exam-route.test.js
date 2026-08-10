@@ -32,6 +32,10 @@ function transitionSteps(route) {
   return route.filter(step => step.kind === 'transition');
 }
 
+function nullEventSteps(route) {
+  return route.filter(step => step.kind === 'null-event');
+}
+
 test('rejects malformed planner inputs and session items', () => {
   assert.throws(() => buildSimulatedExamRoute(null, commands), /items.*array/i);
   assert.throws(() => buildSimulatedExamRoute([], commands), /items.*empty/i);
@@ -184,6 +188,59 @@ test('uses injected randomness only to select an approved cruise scene', () => {
   assert.equal(transitionSteps(urban).find(step => step.sceneId.endsWith('-cruise')).sceneId, 'urban-cruise');
   assert.equal(transitionSteps(rural).find(step => step.sceneId.endsWith('-cruise')).sceneId, 'rural-cruise');
   assert.throws(() => buildSimulatedExamRoute(items, commands, () => 1), /between 0 and 1/i);
+});
+
+test('converts at most one cruise slot into a silent null-event junction between ordinary driving commands', () => {
+  const route = buildSimulatedExamRoute(
+    [item('c-cint'), item('c-arr'), item('c-incorp'), item('c-der'), item('c-izq'), item('c-recto'), item('c-final'), item('c-inmov')],
+    commands,
+    () => 0.999
+  );
+  const nullEvents = nullEventSteps(route);
+  assert.equal(nullEvents.length, 1);
+  assert.deepEqual(nullEvents[0], {
+    kind: 'null-event',
+    id: 'null-0',
+    sceneId: 'four-way-intersection-photo-v1',
+    chapter: 'driving'
+  });
+  const nullIndex = route.findIndex(step => step.kind === 'null-event');
+  assert.equal(route[nullIndex - 1].kind, 'command');
+  assert.equal(route[nullIndex + 1].kind, 'command');
+  assert.deepEqual(
+    [route[nullIndex - 1].commandId, route[nullIndex + 1].commandId].map(id =>
+      ['c-der', 'c-izq', 'c-recto'].includes(id)
+    ),
+    [true, true],
+    'null events sit only between ordinary driving commands'
+  );
+  assert.equal(transitionSteps(route).filter(step => step.sceneId.endsWith('-cruise')).length, 1,
+    'a real cruise transition always remains');
+});
+
+test('emits no null event when rng declines or fewer than two cruise slots exist', () => {
+  const declined = buildSimulatedExamRoute(
+    [item('c-der'), item('c-izq'), item('c-recto')],
+    commands,
+    () => 0
+  );
+  assert.equal(nullEventSteps(declined).length, 0);
+  assert.equal(transitionSteps(declined).filter(step => step.sceneId.endsWith('-cruise')).length, 2);
+
+  const singleSlot = buildSimulatedExamRoute(
+    [item('c-der'), item('c-izq')],
+    commands,
+    () => 0.999
+  );
+  assert.equal(nullEventSteps(singleSlot).length, 0);
+});
+
+test('null-event placement is deterministic for identical injected randomness', () => {
+  const items = [item('c-der'), item('c-izq'), item('c-recto')];
+  const first = buildSimulatedExamRoute(items, commands, () => 0.6);
+  const second = buildSimulatedExamRoute(items, commands, () => 0.6);
+  assert.equal(nullEventSteps(first).length, 1);
+  assert.deepEqual(first, second);
 });
 
 test('is deterministic for identical inputs and injected randomness', () => {
