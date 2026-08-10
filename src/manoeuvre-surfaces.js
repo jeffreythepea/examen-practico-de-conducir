@@ -404,7 +404,9 @@ function manoeuvreDrawing(model, photoBacked = false) {
 function featureDrawing(target, photoBacked = false) {
   const x = target.x;
   const y = target.y;
-  if (photoBacked && (target.feature === 'crosswalk' || target.feature === 'driveway')) return '';
+  if (photoBacked && (target.feature === 'crosswalk' || target.feature === 'driveway' || target.feature === 'restricted-marking')) {
+    return '';
+  }
   if (target.feature === 'crosswalk') {
     return `<path d="M ${x - 8} ${y - 5} H ${x + 8} M ${x - 8} ${y} H ${x + 8} M ${x - 8} ${y + 5} H ${x + 8}" class="scenario-crosswalk"/>`;
   }
@@ -412,11 +414,6 @@ function featureDrawing(target, photoBacked = false) {
     return `<path d="M ${x - 9} ${y + 7} V ${y - 7} H ${x + 9} V ${y + 7}" class="scenario-driveway"/>`;
   }
   if (target.feature === 'restricted-marking') {
-    if (photoBacked) {
-      return `<g transform="translate(${x} ${y}) scale(0.666667 1)">
-        <path d="M -7 -6 L 7 6 M 7 -6 L -7 6" class="scenario-restriction"/>
-      </g>`;
-    }
     return `<path d="M ${x - 7} ${y - 6} L ${x + 7} ${y + 6} M ${x + 7} ${y - 6} L ${x - 7} ${y + 6}" class="scenario-restriction"/>`;
   }
   if (target.feature === 'no-parking-sign') return prohibitionSign(x, y, 'no-parking', photoBacked);
