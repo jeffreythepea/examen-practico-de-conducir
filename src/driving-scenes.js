@@ -2,7 +2,6 @@ export const DRIVING_SCENE_IDS = Object.freeze([
   'u-turn-photo-v1',
   'overtaking-photo-v1',
   'four-way-intersection-photo-v1',
-  'roundabout-four-photo-v1',
   'roundabout-four-photo-v2',
   'roundabout-five-photo-v1',
   'parallel-parking-gap-photo-v1',
@@ -36,15 +35,6 @@ export const DRIVING_SCENES = deepFreeze({
     alt: {
       en: 'Illustrative four-way intersection with left, straight, and right roads ahead of the learner car',
       es: 'Intersección ilustrativa de cuatro vías con opciones a la izquierda, de frente y a la derecha ante el coche del alumno'
-    }
-  },
-  'roundabout-four-photo-v1': {
-    id: 'roundabout-four-photo-v1',
-    asset: './assets/driving/roundabout-four-photo-v1.webp',
-    provenance: 'ai-generated-illustrative',
-    alt: {
-      en: 'Illustrative roundabout with a bottom entry and four outgoing exits',
-      es: 'Glorieta ilustrativa con entrada inferior y cuatro salidas'
     }
   },
   'roundabout-four-photo-v2': {

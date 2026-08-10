@@ -14,7 +14,6 @@ import {
 
 const SCENE_PROFILES = Object.freeze({
   'four-way-intersection-photo-v1': [1.06, 50, 82],
-  'roundabout-four-photo-v1': [1.03, 50, 80],
   'roundabout-four-photo-v2': [1.03, 50, 80],
   'roundabout-five-photo-v1': [1.03, 50, 80],
   'u-turn-photo-v1': [1.05, 50, 84],
