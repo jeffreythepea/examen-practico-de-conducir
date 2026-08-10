@@ -288,6 +288,17 @@ Boundaries:
   mid-intro. The transition's auto-advance delay stretches by the intro's
   duration.
 
+Deepened 2026-08-10 (same session, approved escalation of the cheap tier):
+the flat slide became a **two-beat perspective move** over 1.4s — an approach
+push toward the junction, then a CSS 3D swing (`perspective()` + `rotateY`,
+yaw 8–16° toward the chosen road) with a small motion-blur ramp (≤ 2px) over
+the fastest stretch of the turn. The cruise photo underneath starts slightly
+counter-offset and settles to centre over the same duration, so the crossfade
+reads as one continuous camera move. All four layers are CSS transforms and
+filters on the existing scene photos; every boundary above is unchanged
+(presentation only, correct answers only, absent in mock and under reduced
+motion), and the rendered-road tier remains rejected.
+
 ## Approved New-Command Content Contract
 
 The two new commands are separate catalog changes, not cutscene details.
