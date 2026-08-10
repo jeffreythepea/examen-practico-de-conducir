@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   EXAMINERS,
   EXAMINER_CHOICE_IDS,
+  assignExaminerRotation,
   examinerById,
   examinerForVoiceId,
   filterVariantsForExaminer,
@@ -126,4 +127,29 @@ test('coverage reports exactly the missing production examiner voice IDs', () =>
   const variants = EXAMINERS.slice(0, 3).map(examiner => ({ voiceId: examiner.voiceId }));
   assert.deepEqual(missingExaminerVoiceIds(variants), EXAMINERS.slice(3).map(({ voiceId }) => voiceId));
   assert.deepEqual(missingExaminerVoiceIds(EXAMINERS.map(({ voiceId }) => ({ voiceId }))), []);
+});
+
+test('assignExaminerRotation gives a full shuffled permutation before repeating', () => {
+  let calls = 0;
+  const rng = () => {
+    calls += 1;
+    return 0.999999 - calls * 0.0001;
+  };
+  const five = assignExaminerRotation(5, rng);
+  assert.equal(five.length, 5);
+  assert.deepEqual([...five].sort(), EXAMINERS.map(({ id }) => id).sort());
+  assert.equal(Object.isFrozen(five), true);
+
+  const seven = assignExaminerRotation(7, rng);
+  assert.equal(seven.length, 7);
+  assert.deepEqual([...seven.slice(0, 5)].sort(), EXAMINERS.map(({ id }) => id).sort());
+  assert.ok(EXAMINERS.some(({ id }) => id === seven[5]));
+  assert.ok(EXAMINERS.some(({ id }) => id === seven[6]));
+
+  assert.deepEqual(assignExaminerRotation(0, rng), []);
+});
+
+test('assignExaminerRotation rejects an invalid count', () => {
+  assert.throws(() => assignExaminerRotation(-1), /invalid examiner rotation count/i);
+  assert.throws(() => assignExaminerRotation(1.5), /invalid examiner rotation count/i);
 });

@@ -3,6 +3,7 @@ import test from 'node:test';
 import { readFile } from 'node:fs/promises';
 
 import { translate } from '../src/i18n.js';
+import { CHALLENGE_IDS } from '../src/challenges.js';
 import { EXAMINERS, selectTodaysExaminer } from '../src/examiners.js';
 import { SESSION_PRESET_IDS } from '../src/session-presets.js';
 import { THEME_IDS } from '../src/session-themes.js';
@@ -21,11 +22,12 @@ function render(locale = 'en', overrides = {}) {
   });
 }
 
-test('renders semantic radio groups for all experience modes, examiner choices, and themes', () => {
+test('renders semantic radio groups for all experience modes, examiner choices, themes, and challenges', () => {
   const html = render();
-  assert.equal((html.match(/<fieldset/g) ?? []).length, 3);
+  assert.equal((html.match(/<fieldset/g) ?? []).length, 4);
   assert.match(html, /<legend[^>]*>Choose an experience</);
   assert.match(html, /<legend[^>]*>Choose your examiner</);
+  assert.match(html, /<legend[^>]*>Challenge cabinet</);
 
   for (const id of SESSION_PRESET_IDS) {
     assert.match(html, new RegExp(`type="radio"[^>]*name="experience-mode"[^>]*value="${id}"`));
@@ -41,19 +43,30 @@ test('renders semantic radio groups for all experience modes, examiner choices, 
     assert.match(html, new RegExp(`type="radio"[^>]*name="theme-choice"[^>]*value="${id}"`));
     assert.match(html, new RegExp(`data-action="select-theme"[^>]*data-theme="${id}"`));
   }
+  for (const id of ['none', ...CHALLENGE_IDS]) {
+    assert.match(html, new RegExp(`type="radio"[^>]*name="challenge-choice"[^>]*value="${id}"`));
+    assert.match(html, new RegExp(`data-action="select-challenge"[^>]*data-challenge="${id}"`));
+  }
 });
 
 test('marks exactly the supplied choices and exposes a visible selected cue', () => {
   const html = render('en', {
     selectedPresetId: 'mock',
     selectedExaminerChoiceId: 'matilda',
-    selectedThemeId: 'full-mock'
+    selectedThemeId: 'full-mock',
+    selectedChallengeId: 'audio-only'
   });
-  assert.equal((html.match(/ checked/g) ?? []).length, 3);
+  assert.equal((html.match(/ checked/g) ?? []).length, 4);
   assert.match(html, /value="mock"[^>]* checked/);
   assert.match(html, /value="matilda"[^>]* checked/);
   assert.match(html, /value="full-mock"[^>]* checked/);
-  assert.equal((html.match(/>Selected</g) ?? []).length, 3);
+  assert.match(html, /value="audio-only"[^>]* checked/);
+  assert.equal((html.match(/>Selected</g) ?? []).length, 4);
+});
+
+test('defaults to no challenge when none is selected', () => {
+  const html = render();
+  assert.match(html, /value="none"[^>]* checked/);
 });
 
 test('maps the null domain theme to an Adaptive practice radio choice', () => {
@@ -106,6 +119,7 @@ test('rejects unsupported locale, choices, date, and translation function', () =
   assert.throws(() => render('en', { selectedPresetId: 'arcade' }), /experience mode/i);
   assert.throws(() => render('en', { selectedExaminerChoiceId: 'mystery' }), /examiner choice/i);
   assert.throws(() => render('en', { selectedThemeId: 'mystery' }), /theme/i);
+  assert.throws(() => render('en', { selectedChallengeId: 'mystery' }), /challenge/i);
   assert.throws(() => render('en', { dateParts: { year: 2026, month: 2, day: 30 } }), /calendar date/i);
   assert.throws(() => renderSoloSetupView({ locale: 'en' }), /translation function/i);
 });

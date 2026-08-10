@@ -176,7 +176,7 @@ test('app enables incomplete static-audio sessions only through supported browse
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
   assert.match(source, /sessionStartEligibility\([\s\S]*?player\.supportsFallback\(\)/);
-  assert.match(source, /selectPlaybackVariant\([\s\S]*?examinerChoice:\s*experience\.resolvedExaminerId \?\? 'mixed'/);
+  assert.match(source, /selectPlaybackVariant\([\s\S]*?examinerChoice:\s*examinerRotation \? examinerRotation\[index\] : \(experience\.resolvedExaminerId \?\? 'mixed'\)/);
   assert.match(source, /player\.play\([\s\S]*?variant,[\s\S]*?\{ text: phrasing\.es, speed: variant\.speed \}/);
 });
 
@@ -414,7 +414,7 @@ test('setup exposes only recommended and free modes and playback receives prior 
   assert.match(source, /\['recommended',\s*'mode\.recommended'\]/);
   assert.match(source, /\['free',\s*'mode\.free'\]/);
   assert.doesNotMatch(source, /\['weakest-first',\s*'mode\.weak'\]/);
-  assert.match(source, /selectPlaybackVariant\([\s\S]*?state\.attempts[\s\S]*?examinerChoice:\s*experience\.resolvedExaminerId \?\? 'mixed'/);
+  assert.match(source, /selectPlaybackVariant\([\s\S]*?state\.attempts[\s\S]*?examinerChoice:\s*examinerRotation \? examinerRotation\[index\] : \(experience\.resolvedExaminerId \?\? 'mixed'\)/);
 });
 
 test('targeted practice filters selection without rewriting saved setup preferences', async () => {

@@ -21,6 +21,7 @@ import { createFeedbackCuePlayer } from './feedback-audio.js';
 import { createAmbiencePlayer, pickAmbienceClip } from './ambience.js';
 import {
   EXAMINERS,
+  assignExaminerRotation,
   examinerById,
   filterVariantsForExaminer,
   selectTodaysExaminer
@@ -40,6 +41,13 @@ import {
   postAnswerMotionView
 } from './post-answer-motion.js';
 import { compactAttempts } from './attempt-compaction.js';
+import {
+  challengeById,
+  evaluateChallengeSession,
+  evaluateCleanSession,
+  personalBestKey,
+  recordPersonalBest
+} from './challenges.js';
 import { readinessForCatalog } from './readiness.js';
 import { renderLessonFlagEditor, renderReadinessView } from './readiness-view.js';
 import { sessionPresetById } from './session-presets.js';
@@ -164,12 +172,7 @@ export function ambienceEligible(model) {
 }
 
 export function mockResultStatus(attempts, expectedCount) {
-  if (!Array.isArray(attempts) || !Number.isSafeInteger(expectedCount) || expectedCount < 1) {
-    return 'needs-practice';
-  }
-  return attempts.length === expectedCount && attempts.every(attempt => attempt.outcome === 'unaided')
-    ? 'clean'
-    : 'needs-practice';
+  return evaluateCleanSession(attempts, expectedCount);
 }
 
 export function nextSurfaceSeed(cryptoRef = globalThis.crypto) {
@@ -719,7 +722,9 @@ export function selectPlaybackVariant(
 }
 
 export function resolveSessionExperience(settings, dateParts) {
-  const preset = sessionPresetById(settings?.experienceMode);
+  const challengeId = settings?.challengeId ?? null;
+  const challenge = challengeId === null ? null : challengeById(challengeId);
+  const preset = sessionPresetById(challenge ? challenge.basePresetId : settings?.experienceMode);
   const examinerChoice = settings?.examinerChoice;
   const resolvedExaminerId = examinerChoice === 'mixed'
     ? null
@@ -728,25 +733,28 @@ export function resolveSessionExperience(settings, dateParts) {
       : examinerById(examinerChoice).id;
   return Object.freeze({
     modeId: preset.id,
+    challengeId,
     examinerChoice,
     resolvedExaminerId,
     themeId: settings?.themeId ?? null,
-    replayPolicy: preset.replayPolicy,
-    revealPolicy: preset.revealPolicy,
+    replayPolicy: challenge?.overrides.replayPolicy ?? preset.replayPolicy,
+    revealPolicy: challenge?.overrides.revealPolicy ?? preset.revealPolicy,
     simulated: preset.simulated
   });
 }
 
 export function sessionIdentityData(experience) {
   const preset = sessionPresetById(experience?.modeId);
+  const challenge = experience?.challengeId ? challengeById(experience.challengeId) : null;
   const theme = experience?.themeId === null
     ? null
     : SESSION_THEMES.find(candidate => candidate.id === experience?.themeId);
   if (experience?.themeId !== null && !theme) throw new Error(`Unknown theme: ${String(experience?.themeId)}`);
+  const modeTitleKey = challenge?.titleKey ?? preset.titleKey;
 
   if (experience?.examinerChoice === 'mixed') {
     return Object.freeze({
-      modeTitleKey: preset.titleKey,
+      modeTitleKey,
       themeTitleKey: theme?.titleKey ?? 'theme.adaptive.title',
       examinerTitleKey: 'examiner.mixed.title',
       examinerDescriptionKey: 'examiner.mixed.description',
@@ -756,7 +764,7 @@ export function sessionIdentityData(experience) {
 
   const examiner = examinerById(experience?.resolvedExaminerId);
   return Object.freeze({
-    modeTitleKey: preset.titleKey,
+    modeTitleKey,
     themeTitleKey: theme?.titleKey ?? 'theme.adaptive.title',
     examinerTitleKey: examiner.nameKey,
     examinerDescriptionKey: examiner.descriptionKey,
@@ -765,6 +773,11 @@ export function sessionIdentityData(experience) {
 }
 
 export function effectiveSessionSettings(settings) {
+  const challengeId = settings?.challengeId ?? null;
+  if (challengeId !== null) {
+    const challenge = challengeById(challengeId);
+    return Object.freeze({ ...settings, ...(challenge.overrides.settings ?? {}) });
+  }
   const preset = sessionPresetById(settings?.experienceMode);
   if (preset.id === 'practice') return Object.freeze({ ...settings });
   return Object.freeze({
@@ -1067,10 +1080,10 @@ async function bootstrap() {
   function renderSetup() {
     const dateParts = localDateParts(new Date());
     const effectiveSettings = effectiveSessionSettings(state.settings);
-    const themed = state.settings.themeId === null
+    const themed = effectiveSettings.themeId === null
       ? selectableCommands
-      : eligibleCommandsForTheme(selectableCommands, state.settings.themeId);
-    const pool = commandsForPhase(themed, state.settings.phase);
+      : eligibleCommandsForTheme(selectableCommands, effectiveSettings.themeId);
+    const pool = commandsForPhase(themed, effectiveSettings.phase);
     const eligibility = sessionStartEligibility(
       selectableCommands,
       manifest,
@@ -1094,6 +1107,7 @@ async function bootstrap() {
         selectedPresetId: state.settings.experienceMode,
         selectedExaminerChoiceId: state.settings.examinerChoice,
         selectedThemeId: state.settings.themeId,
+        selectedChallengeId: state.settings.challengeId,
         dateParts
       })}
       <details class="advanced-practice-disclosure" ${state.settings.experienceMode === 'practice' ? '' : 'data-preset-owned="true"'}>
@@ -1348,6 +1362,11 @@ async function bootstrap() {
     const summary = summarizeSession(attempts, model.session);
     const isMock = model.experience?.revealPolicy === 'session-end';
     const mockStatus = isMock ? mockResultStatus(attempts, model.session.length) : null;
+    const challengeId = model.experience?.challengeId ?? null;
+    const challengeStatus = challengeId ? evaluateChallengeSession(challengeId, attempts, model.session.length) : null;
+    const personalBestNotice = challengeId === 'personal-best'
+      ? personalBestResultNotice(state.personalBests, model.experience.themeId, summary.averageResponseMs, challengeStatus)
+      : null;
     return `<section class="panel results" aria-labelledby="results-title">
       <h2 id="results-title" role="status" aria-live="polite" aria-describedby="results-headline" data-screen-focus tabindex="-1">${translate(locale(), 'screen.results')}</h2>
       ${renderSessionIdentity()}
@@ -1355,6 +1374,8 @@ async function bootstrap() {
         ? translate(locale(), `mock.result.${mockStatus}`)
         : translate(locale(), 'summary.unaidedPercent', { percent: summary.unaidedPercentage })}</p>
       ${isMock ? `<p class="notice">${translate(locale(), 'mock.result.nonOfficial')}</p>` : ''}
+      ${challengeId && challengeId !== 'personal-best' ? `<p class="notice">${translate(locale(), `challenge.result.${challengeStatus}`)}</p>` : ''}
+      ${personalBestNotice ? `<p class="notice">${personalBestNotice}</p>` : ''}
       ${!isMock && summary.counts.assisted > summary.counts.unaided ? `<p class="notice">${translate(locale(), 'results.hintNotice')}</p>` : ''}
       <div class="result-counts">
         ${countCard('unaided', summary.counts.unaided)}
@@ -1362,7 +1383,7 @@ async function bootstrap() {
         ${countCard('incorrect', summary.counts.incorrect)}
       </div>
       <dl class="summary-details">
-        <div><dt>${translate(locale(), 'summary.averageTime')}</dt><dd>${summary.averageResponseMs === null ? '—' : translate(locale(), 'summary.milliseconds', { seconds: new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(summary.averageResponseMs / 1000) })}</dd></div>
+        <div><dt>${translate(locale(), 'summary.averageTime')}</dt><dd>${summary.averageResponseMs === null ? '—' : translate(locale(), 'summary.milliseconds', { seconds: formatSeconds(summary.averageResponseMs) })}</dd></div>
         <div><dt>${translate(locale(), 'summary.replays')}</dt><dd>${summary.replayCount}</dd></div>
         <div><dt>${translate(locale(), 'summary.hints')}</dt><dd>${summary.hintCount}</dd></div>
       </dl>
@@ -1395,7 +1416,7 @@ async function bootstrap() {
           <p><strong>${translate(locale(), 'mock.review.outcome')}:</strong> ${translate(locale(), `result.${attempt.outcome}`)}</p>
           <p><strong>${translate(locale(), 'mock.review.response')}:</strong> ${attempt.responseMs === null
             ? '—'
-            : translate(locale(), 'summary.milliseconds', { seconds: new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(attempt.responseMs / 1000) })}</p>
+            : translate(locale(), 'summary.milliseconds', { seconds: formatSeconds(attempt.responseMs) })}</p>
           <p><strong>${translate(locale(), 'summary.replays')}:</strong> ${attempt.replays ?? 0}</p>
           ${attempt.outcome === 'incorrect' ? `<fieldset class="diagnosis">
             <legend>${translate(locale(), 'miss.title')}</legend>
@@ -1418,6 +1439,23 @@ async function bootstrap() {
     return `<div class="count-card ${outcome}"><strong>${count}</strong><span>${translate(locale(), `result.${outcome}`)}</span></div>`;
   }
 
+  function formatSeconds(responseMs) {
+    return new Intl.NumberFormat(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(responseMs / 1000);
+  }
+
+  function personalBestResultNotice(personalBests, themeId, averageResponseMs, challengeStatus) {
+    if (challengeStatus !== 'clean' || averageResponseMs === null) {
+      return translate(locale(), 'challenge.personalBest.notClean');
+    }
+    const record = personalBests[personalBestKey(themeId)];
+    return record?.averageResponseMs === averageResponseMs
+      ? translate(locale(), 'challenge.personalBest.newRecord', { seconds: formatSeconds(averageResponseMs) })
+      : translate(locale(), 'challenge.personalBest.comparison', {
+          seconds: formatSeconds(averageResponseMs),
+          best: formatSeconds(record.averageResponseMs)
+        });
+  }
+
   function bindCommonEvents() {
     app.querySelectorAll('[data-locale]').forEach(button => button.addEventListener('click', () => {
       const editor = lessonEditorDraftFromForm(app.querySelector('.lesson-editor form'));
@@ -1436,6 +1474,11 @@ async function bootstrap() {
     app.querySelectorAll('[data-action="select-theme"]').forEach(control => {
       control.addEventListener('change', () => updateSettings({
         themeId: control.value === 'adaptive' ? null : control.value
+      }));
+    });
+    app.querySelectorAll('[data-action="select-challenge"]').forEach(control => {
+      control.addEventListener('change', () => updateSettings({
+        challengeId: control.value === 'none' ? null : control.value
       }));
     });
     app.querySelectorAll('[data-setting]').forEach(control => control.addEventListener('change', () => {
@@ -1567,6 +1610,18 @@ async function bootstrap() {
     completeTrial({ type: 'SURFACE_EVENT', surfaceEvent, completedAt: Date.now() });
   }
 
+  function settlePersonalBest() {
+    if (model.experience?.challengeId !== 'personal-best') return;
+    const attempts = state.attempts.filter(attempt => sessionAttemptIds.includes(attempt.id));
+    if (evaluateChallengeSession('personal-best', attempts, model.session.length) !== 'clean') return;
+    const summary = summarizeSession(attempts, model.session);
+    const key = personalBestKey(model.experience.themeId);
+    const updated = recordPersonalBest(state.personalBests, key, summary.averageResponseMs, Date.now());
+    if (updated === state.personalBests) return;
+    state = { ...state, personalBests: updated };
+    persistState();
+  }
+
   function bindRevealEvents() {
     app.querySelector('[data-action="open-reveal-lesson-flag"]')?.addEventListener('click', () => {
       openLessonFlagEditor(currentCommand().id);
@@ -1581,6 +1636,7 @@ async function bootstrap() {
       readinessFilters = { ...readinessFilters, editor: null };
       currentAttemptId = null;
       model = reduceScreen(model, { type: 'CONTINUE' });
+      if (model.screen === 'results') settlePersonalBest();
       render();
       if (model.screen === 'loading-audio') void playCurrentCommand();
     });
@@ -1743,7 +1799,10 @@ async function bootstrap() {
       return;
     }
     readinessFilters = { ...readinessFilters, noticeKey: '' };
-    let session = selectedCommands.map(command => ({
+    const examinerRotation = experience.challengeId === 'five-examiners'
+      ? assignExaminerRotation(selectedCommands.length)
+      : null;
+    let session = selectedCommands.map((command, index) => ({
       ...command,
       audioVariant: selectPlaybackVariant(
         manifest,
@@ -1753,7 +1812,7 @@ async function bootstrap() {
         state.attempts,
         Math.random,
         {
-          examinerChoice: experience.resolvedExaminerId ?? 'mixed',
+          examinerChoice: examinerRotation ? examinerRotation[index] : (experience.resolvedExaminerId ?? 'mixed'),
           dateParts: sessionDateParts,
           manifestIndex
         }
