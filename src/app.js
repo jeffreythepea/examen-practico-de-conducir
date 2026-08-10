@@ -16,6 +16,7 @@ import {
   CONTINUITY_SCENE_FAMILIES,
   renderContinuityTransition
 } from './continuity-transition-view.js';
+import { turnThroughIntro } from './turn-through.js';
 import { commandsForPhase, validateCatalog } from './catalog.js';
 import {
   ACCOMPLISHMENTS,
@@ -741,7 +742,13 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
   }
   if (event.type === 'CONTINUE' && model.screen === 'reveal') {
     const nextIndex = model.index + 1;
-    if (event.stepKind === 'transition') return resetTrial({ ...model, screen: 'mock-transition' }, nextIndex);
+    if (event.stepKind === 'transition') {
+      const turnThrough = turnThroughSource(model);
+      return {
+        ...resetTrial({ ...model, screen: 'mock-transition' }, nextIndex),
+        turnThrough
+      };
+    }
     if (event.stepKind === 'null-event' && nextIndex < model.session.length) {
       return enterNullEventScreen(model, nextIndex, event, surfaceGenerator);
     }
@@ -983,7 +990,24 @@ function resetTrial(model, index) {
     allowedMissReasons: [],
     replayPending: false,
     replayOperationId: null,
-    nullEvent: null
+    nullEvent: null,
+    turnThrough: null
+  };
+}
+
+// Source data for the first-person turn-through intro on the next transition:
+// pure presentation state, never persisted, correct answers only.
+function turnThroughSource(model) {
+  if (!['unaided', 'assisted'].includes(model.outcome)) return null;
+  const surfaceModel = model.activeSurfaceModel;
+  const target = surfaceModel?.targets?.find(candidate => candidate.id === model.selectedTargetId);
+  if (!target) return null;
+  return {
+    sceneId: surfaceModel.geometry?.sceneId ?? null,
+    family: surfaceModel.family,
+    targetX: target.x,
+    targetY: target.y,
+    outcome: model.outcome
   };
 }
 
@@ -1564,9 +1588,11 @@ async function bootstrap() {
     const step = currentContinuityStep(state.activeSession);
     if (step?.kind === 'transition') {
       const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+      const motionEnabled = state.settings.roadMovement === true && !reducedMotion;
       const transition = continuityTransitionViewModel(step, {
-        motionEnabled: state.settings.roadMovement && !reducedMotion,
-        progressText: continuityProgressText()
+        motionEnabled,
+        progressText: continuityProgressText(),
+        intro: mockTransitionIntro(motionEnabled)
       });
       return `<section class="panel mock-transition" aria-label="${translate(locale(), 'screen.mockTransition')}">
         ${renderSessionIdentity()}
@@ -1583,6 +1609,24 @@ async function bootstrap() {
       <p class="notice">${translate(locale(), 'mock.simulated')}</p>
       <button type="button" data-action="end-session">${translate(locale(), 'session.end')}</button>
     </section>`;
+  }
+
+  // Rebuilds the eligibility inputs from the turn-through source data the
+  // CONTINUE reducer carried over from the answered reveal.
+  function mockTransitionIntro(motionEnabled) {
+    const source = model.turnThrough;
+    if (!source) return null;
+    return turnThroughIntro({
+      surfaceModel: {
+        family: source.family,
+        targets: [{ id: 'chosen', x: source.targetX, y: source.targetY }],
+        geometry: { sceneId: source.sceneId }
+      },
+      selectedTargetId: 'chosen',
+      outcome: source.outcome,
+      motionEnabled,
+      nextStepKind: 'transition'
+    });
   }
 
   function renderNullEvent() {
@@ -1967,7 +2011,10 @@ async function bootstrap() {
         motionEnabled: true,
         progressText: continuityProgressText()
       }).family;
-      const delay = Math.max(1_200, CONTINUITY_SCENE_FAMILIES[family].camera.durationMs + 250);
+      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+      const intro = mockTransitionIntro(state.settings.roadMovement === true && !reducedMotion);
+      const delay = Math.max(1_200, CONTINUITY_SCENE_FAMILIES[family].camera.durationMs + 250)
+        + (intro?.durationMs ?? 0);
       window.setTimeout(advance, delay);
       return;
     }

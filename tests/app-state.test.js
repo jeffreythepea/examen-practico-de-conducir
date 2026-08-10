@@ -1872,3 +1872,60 @@ test('deferred replay restoration does not override a deliberate move outside th
   assert.equal(replayFocused, 0);
   assert.strictEqual(documentRef.activeElement, outsideControl);
 });
+
+test('a correct Continue into a transition carries turn-through source data', () => {
+  const revealed = reduceScreen(promptModel(), {
+    type: 'SELECT_RESULT', selectedResult: 'turn-right', completedAt: 1_500
+  });
+  assert.equal(revealed.outcome, 'unaided');
+  const target = revealed.activeSurfaceModel.targets
+    .find(candidate => candidate.id === revealed.selectedTargetId);
+  const transitioned = reduceScreen(revealed, { type: 'CONTINUE', stepKind: 'transition' });
+  assert.equal(transitioned.screen, 'mock-transition');
+  assert.deepEqual(transitioned.turnThrough, {
+    sceneId: revealed.activeSurfaceModel.geometry.sceneId ?? null,
+    family: 'junction',
+    targetX: target.x,
+    targetY: target.y,
+    outcome: 'unaided'
+  });
+
+  const assisted = reduceScreen(promptModel({ textShown: true }), {
+    type: 'SELECT_RESULT', selectedResult: 'turn-right', completedAt: 1_500
+  });
+  assert.equal(
+    reduceScreen(assisted, { type: 'CONTINUE', stepKind: 'transition' }).turnThrough.outcome,
+    'assisted'
+  );
+});
+
+test('wrong answers and timeouts continue into a plain transition', () => {
+  const incorrect = reduceScreen(promptModel(), {
+    type: 'SELECT_RESULT', selectedResult: 'turn-left', completedAt: 1_500
+  });
+  assert.equal(incorrect.outcome, 'incorrect');
+  assert.equal(reduceScreen(incorrect, { type: 'CONTINUE', stepKind: 'transition' }).turnThrough, null);
+
+  const timedOut = reduceScreen(promptModel(), { type: 'TIMEOUT', completedAt: 5_500 });
+  assert.equal(reduceScreen(timedOut, { type: 'CONTINUE', stepKind: 'transition' }).turnThrough, null);
+});
+
+test('continuity sync and non-transition Continues never leave turn-through data behind', () => {
+  const revealed = reduceScreen(promptModel(), {
+    type: 'SELECT_RESULT', selectedResult: 'turn-right', completedAt: 1_500
+  });
+  const transitioned = reduceScreen(revealed, { type: 'CONTINUE', stepKind: 'transition' });
+  assert.ok(transitioned.turnThrough);
+  const synced = reduceScreen(transitioned, { type: 'CONTINUITY_SYNC', index: 1, stepKind: 'transition' });
+  assert.equal(synced.turnThrough, null);
+  assert.equal(reduceScreen(revealed, { type: 'CONTINUE' }).turnThrough, null);
+});
+
+test('mock reveals withhold the turn-through because they bypass CONTINUE entirely', () => {
+  const mockPrompt = { ...promptModel(), experience: { revealPolicy: 'session-end' } };
+  const mockTransition = reduceScreen(mockPrompt, {
+    type: 'SELECT_RESULT', selectedResult: 'turn-right', completedAt: 1_500
+  });
+  assert.equal(mockTransition.screen, 'mock-transition');
+  assert.equal(mockTransition.turnThrough, null, 'mock must never leak correctness through the intro');
+});

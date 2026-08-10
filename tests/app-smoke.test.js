@@ -500,3 +500,20 @@ test('app routes model-aware responses, reveal provenance, and unscored surface 
   assert.match(source, /type:\s*'SURFACE_EVENT',\s*surfaceEvent/);
   assert.doesNotMatch(source, /SURFACE_RESPONSE_UPDATED/);
 });
+
+test('the mock-transition screen wires the correct-answer turn-through intro', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const mockTransitionSection = source.slice(
+    source.indexOf('function renderMockTransition()'),
+    source.indexOf('function renderNullEvent()')
+  );
+  assert.match(mockTransitionSection, /intro: mockTransitionIntro\(motionEnabled\)/);
+  assert.match(mockTransitionSection, /turnThroughIntro\(\{/);
+  assert.match(mockTransitionSection, /outcome: source\.outcome/);
+  const bindSection = source.slice(
+    source.indexOf('function bindMockTransitionEvents()'),
+    source.indexOf('function bindNullEventEvents()')
+  );
+  assert.match(bindSection, /\+ \(intro\?\.durationMs \?\? 0\)/,
+    'the auto-advance delay must stretch to cover a playing intro');
+});
