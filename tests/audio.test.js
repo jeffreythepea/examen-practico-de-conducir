@@ -148,14 +148,16 @@ test('replay increments only after a successful playback start', async () => {
   assert.deepEqual(await player.replay(), { scored: false, reason: 'no-audio' });
 
   const playing = player.play(variant);
-  await fixture.instances[1].started;
-  fixture.instances[1].emit('ended');
+  await fixture.instances[0].started;
+  fixture.instances[0].emit('ended');
   assert.deepEqual(await playing, { scored: true, replays: 0 });
 
   const replay = player.replay();
-  await fixture.instances[2].started;
-  fixture.instances[2].emit('ended');
+  await fixture.instances[0].started;
+  fixture.instances[0].emit('ended');
   assert.deepEqual(await replay, { scored: true, replays: 1 });
+
+  assert.equal(fixture.instances.length, 1, 'the player must reuse one gesture-activated element');
 });
 
 test('does not replay a prior command after the next command fails to start', async () => {
@@ -170,7 +172,8 @@ test('does not replay a prior command after the next command fails to start', as
   const unavailable = player.play({ ...variant, id: 'different-command', path: './audio/different.mp3' });
   assert.deepEqual(await unavailable, { scored: false, reason: 'error' });
   assert.deepEqual(await player.replay(), { scored: false, reason: 'no-audio' });
-  assert.equal(fixture.instances.length, 2);
+  assert.equal(fixture.instances.length, 1, 'the player must reuse one gesture-activated element');
+  assert.equal(fixture.instances[0].path, './audio/different.mp3');
 });
 
 test('prefers a recorded asset and does not invoke browser speech when the MP3 completes', async () => {
@@ -314,14 +317,30 @@ test('reports whether browser speech fallback is supported', () => {
 function audioFixture({ rejectStarts = [] } = {}) {
   const instances = [];
   const document = eventTarget({ hidden: false });
+  // The player reuses one element across commands (iPadOS gesture activation),
+  // so start outcomes are consumed per play() call, not per construction, and
+  // assigning src re-arms the started promise for the next playback.
   class FakeAudio {
     constructor(path) {
       this.path = path;
       this.events = new Map();
       this.paused = false;
+      this.loads = 0;
       this.started = new Promise(resolve => { this.resolveStarted = resolve; });
-      this.rejectStart = rejectStarts.shift() ?? false;
       instances.push(this);
+    }
+
+    set src(value) {
+      this.path = value;
+      this.started = new Promise(resolve => { this.resolveStarted = resolve; });
+    }
+
+    get src() {
+      return this.path;
+    }
+
+    load() {
+      this.loads += 1;
     }
 
     addEventListener(type, listener) {
@@ -333,8 +352,10 @@ function audioFixture({ rejectStarts = [] } = {}) {
     }
 
     play() {
+      this.paused = false;
       this.resolveStarted();
-      return this.rejectStart ? Promise.reject(new Error('start failed')) : Promise.resolve();
+      const rejectStart = rejectStarts.shift() ?? false;
+      return rejectStart ? Promise.reject(new Error('start failed')) : Promise.resolve();
     }
 
     pause() {

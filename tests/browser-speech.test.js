@@ -33,6 +33,26 @@ test('speaks Spanish at the requested speed and prefers an es-ES voice', async (
   assert.deepEqual(await result, { scored: true });
 });
 
+test('speech that never starts fails after the watchdog window instead of hanging', async () => {
+  const fixture = speechFixture();
+  const player = createBrowserSpeechPlayer({ ...fixture.dependencies, startTimeoutMs: 20 });
+
+  const result = player.play({ text: 'Gire a la izquierda', speed: 1 });
+  assert.equal(fixture.spoken.length, 1);
+  assert.deepEqual(await result, { scored: false, reason: 'timeout' });
+});
+
+test('speech that starts within the watchdog window is not timed out', async () => {
+  const fixture = speechFixture();
+  const player = createBrowserSpeechPlayer({ ...fixture.dependencies, startTimeoutMs: 20 });
+
+  const result = player.play({ text: 'Gire a la derecha', speed: 1 });
+  fixture.utterances[0].emit('start');
+  await new Promise(resolve => setTimeout(resolve, 40));
+  fixture.utterances[0].emit('end');
+  assert.deepEqual(await result, { scored: true });
+});
+
 test('falls back to another Spanish voice, then the browser language default', async () => {
   for (const [voices, expectedVoice] of [
     [[{ name: 'Mexican Spanish', lang: 'es-MX' }, { name: 'English', lang: 'en-GB' }], 'Mexican Spanish'],

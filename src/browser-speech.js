@@ -7,10 +7,17 @@ export function supportsBrowserSpeech({ speechSynthesis, UtteranceCtor } = {}) {
   );
 }
 
+// If the engine has not begun speaking within this window, treat the attempt
+// as failed. WebKit silently queues utterances that lack user activation and
+// never fires 'end' or 'error' for them; without this watchdog the play
+// promise would hang forever and the trial could never offer Retry.
+export const SPEECH_START_TIMEOUT_MS = 4_000;
+
 export function createBrowserSpeechPlayer({
   speechSynthesis = globalThis.speechSynthesis,
   UtteranceCtor = globalThis.SpeechSynthesisUtterance,
-  document = globalThis.document
+  document = globalThis.document,
+  startTimeoutMs = SPEECH_START_TIMEOUT_MS
 } = {}) {
   const dependencies = { speechSynthesis, UtteranceCtor };
   let active = null;
@@ -33,15 +40,22 @@ export function createBrowserSpeechPlayer({
 
     return new Promise(resolve => {
       let settled = false;
+      let startTimer = null;
       const finish = result => {
         if (settled) return;
         settled = true;
+        if (startTimer !== null) clearTimeout(startTimer);
+        utterance.removeEventListener?.('start', onStart);
         utterance.removeEventListener?.('end', onEnd);
         utterance.removeEventListener?.('error', onError);
         document?.removeEventListener?.('visibilitychange', onVisibilityChange);
         if (!result.scored) speechSynthesis.cancel();
         if (active?.finish === finish) active = null;
         resolve(result);
+      };
+      const onStart = () => {
+        if (startTimer !== null) clearTimeout(startTimer);
+        startTimer = null;
       };
       const onEnd = () => finish({ scored: true });
       const onError = () => finish({ scored: false, reason: 'error' });
@@ -50,9 +64,11 @@ export function createBrowserSpeechPlayer({
       };
 
       active = { finish };
+      utterance.addEventListener?.('start', onStart);
       utterance.addEventListener?.('end', onEnd);
       utterance.addEventListener?.('error', onError);
       document?.addEventListener?.('visibilitychange', onVisibilityChange);
+      startTimer = setTimeout(() => finish({ scored: false, reason: 'timeout' }), startTimeoutMs);
 
       try {
         speechSynthesis.speak(utterance);

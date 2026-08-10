@@ -60,6 +60,12 @@ export function createAudioPlayer(options = {}) {
   let active = null;
   let lastPlayback = null;
   let replayCount = 0;
+  // One persistent element, reused across commands. iPadOS WebKit only lets
+  // an element start playback from a user gesture; once a tap has activated
+  // this element, later programmatic plays (e.g. after an auto-advancing
+  // continuity transition) stay permitted. A fresh element per command would
+  // lose that activation and be silently blocked.
+  let sharedAudio = null;
 
   function play(variant, speechRequest, lifecycle = {}) {
     lastPlayback = null;
@@ -133,8 +139,17 @@ export function createAudioPlayer(options = {}) {
 
       let audio;
       try {
-        audio = new AudioCtor(variant.path);
+        if (sharedAudio) {
+          audio = sharedAudio;
+          audio.pause?.();
+          audio.src = variant.path;
+          audio.load?.();
+        } else {
+          audio = new AudioCtor(variant.path);
+          sharedAudio = audio;
+        }
       } catch {
+        sharedAudio = null;
         startSpeech('error');
         return;
       }
