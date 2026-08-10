@@ -58,7 +58,17 @@ const ROAD_LABELS = Object.freeze({
     'roundabout-exit-2': 'second exit',
     'roundabout-exit-3': 'third exit',
     'roundabout-exit-4': 'fourth exit',
-    'roundabout-exit-5': 'fifth exit'
+    'roundabout-exit-5': 'fifth exit',
+    targetLabel: Object.freeze({
+      left: 'Left road',
+      straight: 'Road straight ahead',
+      right: 'Right road',
+      'roundabout-exit-1': 'First exit',
+      'roundabout-exit-2': 'Second exit',
+      'roundabout-exit-3': 'Third exit',
+      'roundabout-exit-4': 'Fourth exit',
+      'roundabout-exit-5': 'Fifth exit'
+    })
   }),
   es: Object.freeze({
     select: 'Seleccione esta vía',
@@ -72,7 +82,17 @@ const ROAD_LABELS = Object.freeze({
     'roundabout-exit-2': 'segunda salida',
     'roundabout-exit-3': 'tercera salida',
     'roundabout-exit-4': 'cuarta salida',
-    'roundabout-exit-5': 'quinta salida'
+    'roundabout-exit-5': 'quinta salida',
+    targetLabel: Object.freeze({
+      left: 'Vía izquierda',
+      straight: 'Vía recta al frente',
+      right: 'Vía derecha',
+      'roundabout-exit-1': 'Primera salida',
+      'roundabout-exit-2': 'Segunda salida',
+      'roundabout-exit-3': 'Tercera salida',
+      'roundabout-exit-4': 'Cuarta salida',
+      'roundabout-exit-5': 'Quinta salida'
+    })
   })
 });
 
@@ -322,7 +342,8 @@ function roadTargetButton(target, labels, expectedResult, state) {
   const selected = Boolean(state.reveal && target.id === state.selectedTargetId);
   const selectionState = selected ? (correct ? 'correct' : 'wrong') : null;
   const selectionLabel = selectionState === 'correct' ? labels.correctSelection : labels.wrongSelection;
-  const ariaLabel = selected ? `${labels.select} — ${selectionLabel}` : labels.select;
+  const targetLabel = labels.targetLabel[target.id] ?? labels.targetLabel[target.resultId] ?? labels.select;
+  const ariaLabel = selected ? `${targetLabel} — ${selectionLabel}` : targetLabel;
   const current = state.reveal && correct ? ' aria-current="true"' : '';
   const selectedAttributes = selected
     ? ` data-selected="true" data-selection-state="${selectionState}"`

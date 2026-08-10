@@ -345,9 +345,15 @@ test('renderer keeps pre-response targets visibly unlabeled with bilingual instr
   assert.match(english, /class="surface-instruction">Select a suitable space</);
   assert.match(spanish, /class="surface-instruction">Seleccione un espacio adecuado</);
   assert.equal((english.match(/class="manoeuvre-target"/g) ?? []).length, park.targets.length);
-  assert.equal((english.match(/ aria-label="Select this space"/g) ?? []).length, park.targets.length);
+  const englishLabels = [...english.matchAll(/ aria-label="([^"]+)"/g)].map(([, label]) => label);
+  assert.equal(englishLabels.length, park.targets.length);
+  assert.ok(englishLabels.every(label => label.length > 0));
+  assert.equal(new Set(englishLabels).size, englishLabels.length, 'every target label must be distinct');
   assert.equal((english.match(/ disabled/g) ?? []).length, park.targets.length);
-  assert.doesNotMatch(english, /surface-result-label|surface-restriction-label|Blocked access|Crossing/);
+  // Feature-descriptive accessible names (e.g. "Blocked access") are expected
+  // pre-reveal now — they describe a fixed visible feature, not the answer.
+  // Only the reveal-only result/restriction elements must stay absent.
+  assert.doesNotMatch(english, /surface-result-label|surface-restriction-label/);
 
   const turn = generateManoeuvreSurface(command('change-direction', 'u-turn-v1'), 5);
   assert.match(renderManoeuvreSurface(turn, 'es'), /Seleccione esta vía/);
@@ -387,7 +393,7 @@ test('reveal distinguishes correct and wrong selections without marking a correc
   const correctButton = targetButtonMarkup(correctMarkup, correct.id);
   assert.match(correctButton, /data-selected="true" data-selection-state="correct"/);
   assert.match(correctButton, /aria-pressed="true"/);
-  assert.match(correctButton, /aria-label="Select this space — Correct selection"/);
+  assert.match(correctButton, /aria-label="Open parking space — Correct selection"/);
   assert.doesNotMatch(correctButton, /aria-describedby|class="sr-status"/);
   assert.match(correctButton, /class="target-status-marker correct"[^>]*>✓</);
   assert.doesNotMatch(correctButton, /data-selection-state="wrong"|target-status-marker wrong/);
@@ -397,7 +403,7 @@ test('reveal distinguishes correct and wrong selections without marking a correc
   const revealedCorrectButton = targetButtonMarkup(wrongMarkup, correct.id);
   assert.match(wrongButton, /data-selected="true" data-selection-state="wrong"/);
   assert.match(wrongButton, /aria-pressed="true"/);
-  assert.match(wrongButton, /aria-label="Seleccione este espacio — Selección incorrecta"/);
+  assert.match(wrongButton, /aria-label="Acceso bloqueado — Selección incorrecta"/);
   assert.doesNotMatch(wrongButton, /aria-describedby|class="sr-status"/);
   assert.match(wrongButton, /class="target-status-marker wrong"[^>]*>×</);
   assert.match(revealedCorrectButton, /class="target-status-marker correct"[^>]*>✓</);
@@ -431,6 +437,29 @@ test('parking and stopping templates render distinct audited prohibition signs',
   assert.equal((stoppingMarkup.match(/class="road-sign-prohibition"/g) ?? []).length, 2);
   assert.match(stoppingMarkup, /Señal de prohibido parar/);
   assert.doesNotMatch(stoppingMarkup, /data-road-sign="no-parking"/);
+});
+
+test('every manoeuvre target exposes a non-empty, distinct, bilingual accessible name that never reveals the answer', () => {
+  for (const [action, surfaceId] of CASES) {
+    for (let seed = 1; seed <= 12; seed += 1) {
+      const model = generateManoeuvreSurface(command(action, surfaceId), seed);
+      for (const [locale, correctWord] of [['en', 'correct'], ['es', 'correct']]) {
+        const markup = renderManoeuvreSurface(model, locale, { disabled: true });
+        const labels = [...markup.matchAll(/ aria-label="([^"]+)"/g)].map(([, label]) => label);
+        assert.equal(labels.length, model.targets.length, `${surfaceId} seed ${seed} (${locale}) must label every target`);
+        assert.ok(labels.every(label => label.trim().length > 0), `${surfaceId} seed ${seed} (${locale}) labels must be non-empty`);
+        assert.equal(
+          new Set(labels).size,
+          labels.length,
+          `${surfaceId} seed ${seed} (${locale}) labels must be pairwise distinct`
+        );
+        assert.ok(
+          labels.every(label => !label.toLowerCase().includes(correctWord)),
+          `${surfaceId} seed ${seed} (${locale}) labels must not claim correctness: ${labels.join(', ')}`
+        );
+      }
+    }
+  }
 });
 
 test('road motion wraps every photo-backed manoeuvre scene with its calibrated transform', () => {

@@ -17,7 +17,7 @@ Status values: `todo` / `in-progress` / `green` (tests pass, awaiting Jeffrey's 
 | B3 end-session control (play P2) | B | review-mechanical (merged) | Sonnet 5 | merged | |
 | B4 stratified mixed shuffle (play P4) | B | review-mechanical (merged) | Sonnet 5 | merged | |
 | C attempts compaction (code P2) | C | attempts-compaction (merged) | Claude Fable 5 | merged | Kept-attempts approach, no schema bump |
-| D spatial a11y labels (play P1) | D | a11y-labels | — | todo | B is now merged — unblocked; Ultra first, Sonnet fallback |
+| D spatial a11y labels (play P1) | D | a11y-labels | Sonnet 5 | green | Junction/roundabout labeled by position (`Left road`/`First exit`...); u-turn/overtake/join-traffic/parking/stopping labeled by visible feature, reusing existing `explanationKey` strings for decoys. New comprehensive tests assert every target's label is non-empty, distinct, present in both locales, and never contains "correct" — across all templates/seeds, not just one sampled case. |
 | — SW state memoization (code P6) | not written | — | — | deferred | Sonnet, after the above |
 | — event delegation (code P8) | not written | — | — | deferred | Only with future feature work |
 | — Follow-up backlog (visual/content bugs, motion redesign scoping) | not written | — | — | deferred | See `docs/reviews/2026-08-09-followup-backlog.md` |

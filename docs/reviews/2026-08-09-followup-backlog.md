@@ -5,7 +5,16 @@ scoping question. None of these are regressions from that merge — all predate 
 scheduled against any prompt/session yet; each needs its own scoping pass before
 implementation.
 
-## F1 — `hatched-bay` target misaligned with its photo (parking scenario, medium)
+## F1 — `hatched-bay` target misaligned with its photo (parking scenario, medium) — RESOLVED 2026-08-10
+
+Fixed by removing the synthetic `restricted-marking` overlay entirely on photo-backed
+scenes (same treatment as the already-suppressed `crosswalk`/`driveway` overlays),
+rather than repositioning it — the target's location (mid opposing-lane) already reads
+as clearly wrong without an icon. See `src/manoeuvre-surfaces.js` (`featureDrawing`)
+and the merged fix. The sibling scenario's `crosswalk-bay`/`no-parking-bay` targets were
+checked and were already correctly suppressed/rendered — no change needed there.
+
+Original report below, kept for context.
 
 Command `c-est` (Realice un estacionamiento / park), surfaceId `parking-v1`, scenario
 variant `marked-bays-clear-entry` (`src/manoeuvre-surfaces.js`,
