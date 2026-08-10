@@ -35,6 +35,7 @@ export function defaultState() {
       feedbackSounds: true,
       roadMovement: true,
       ambience: false,
+      continuousDrive: true,
       length: 'medium',
       mode: 'recommended',
       experienceMode: 'practice',
@@ -167,6 +168,7 @@ function validateSettings(settings) {
   if (settings.feedbackSounds === undefined) settings.feedbackSounds = true;
   if (settings.roadMovement === undefined) settings.roadMovement = true;
   if (settings.ambience === undefined) settings.ambience = false;
+  if (settings.continuousDrive === undefined) settings.continuousDrive = true;
   if (settings.challengeId === undefined) settings.challengeId = null;
   if (!LOCALES.has(settings.locale)) throw new Error('Invalid settings.locale');
   if (!PHASES.has(settings.phase)) throw new Error('Invalid settings.phase');
@@ -176,6 +178,7 @@ function validateSettings(settings) {
   if (typeof settings.feedbackSounds !== 'boolean') throw new Error('Invalid settings.feedbackSounds');
   if (typeof settings.roadMovement !== 'boolean') throw new Error('Invalid settings.roadMovement');
   if (typeof settings.ambience !== 'boolean') throw new Error('Invalid settings.ambience');
+  if (typeof settings.continuousDrive !== 'boolean') throw new Error('Invalid settings.continuousDrive');
   if (!LENGTHS.has(settings.length)) throw new Error('Invalid settings.length');
   if (!MODES.has(settings.mode)) throw new Error('Invalid settings.mode');
   if (!EXPERIENCE_MODES.has(settings.experienceMode)) throw new Error('Invalid settings.experienceMode');

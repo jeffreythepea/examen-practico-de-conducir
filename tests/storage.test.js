@@ -84,6 +84,7 @@ test('creates fresh version 4 defaults with recommended practice and an empty le
       feedbackSounds: true,
       roadMovement: true,
       ambience: false,
+      continuousDrive: true,
       length: 'medium',
       mode: 'recommended',
       experienceMode: 'practice',
@@ -405,6 +406,26 @@ test('road movement defaults on, round-trips false, and rejects invalid values',
       settings: { ...defaultState().settings, roadMovement: 'on' }
     })),
     /Invalid settings\.roadMovement/
+  );
+});
+
+test('continuous drive defaults on, round-trips false, and rejects invalid values', () => {
+  const disabled = {
+    ...defaultState(),
+    settings: { ...defaultState().settings, continuousDrive: false }
+  };
+  assert.equal(importState(exportState(disabled)).settings.continuousDrive, false);
+
+  const older = defaultState();
+  delete older.settings.continuousDrive;
+  assert.equal(importState(JSON.stringify(older)).settings.continuousDrive, true);
+
+  assert.throws(
+    () => importState(JSON.stringify({
+      ...defaultState(),
+      settings: { ...defaultState().settings, continuousDrive: 'on' }
+    })),
+    /Invalid settings\.continuousDrive/
   );
 });
 

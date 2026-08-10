@@ -142,8 +142,11 @@ punitive streak, daily quota, or retention mechanic. The 2026-08-06
 permits examiner identity, themed drives, self-selected challenges, and
 evidence-backed accomplishments without changing readiness rules.
 
-Sequential exam mode—realistic prechecks followed by driving—is deferred until
-practical lessons or an instructor establish credible counts and ordering.
+Sessions play in a simulated narrative exam order—prechecks, departure,
+driving, arrival—with unscored cruise transitions between commands (the
+continuous-drive default, adopted 2026-08-10). The sequence remains a
+provisional training narrative, not a claim about authentic DGT counts or
+ordering; instructor evidence may still correct it.
 
 ## Command and Action Model
 
@@ -474,8 +477,11 @@ validation.
 - Automatic difficulty progression
 - Community-authored command content
 - Instructor portal
-- Sequential exam simulation
 - Removing the existing Piso Asturiano drill
+
+Sequential exam simulation was originally a non-goal for the initial release;
+the 2026-08-07 continuity design and its 2026-08-10 promotion to the default
+continuous-drive session structure superseded that exclusion.
 
 ## Current Source References
 

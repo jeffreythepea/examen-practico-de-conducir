@@ -15,11 +15,24 @@ function command(id, phase) {
   });
 }
 
-test('continuity is restricted to the simulated Full Mock experience', () => {
-  assert.equal(continuityEnabledForExperience({ modeId: 'mock', themeId: 'full-mock' }), true);
-  assert.equal(continuityEnabledForExperience({ modeId: 'mock', themeId: 'city-circuit' }), false);
-  assert.equal(continuityEnabledForExperience({ modeId: 'practice', themeId: 'full-mock' }), false);
-  assert.equal(continuityEnabledForExperience(null), false);
+test('continuity is the default for every experience behind the Continuous drive setting', () => {
+  assert.equal(continuityEnabledForExperience({ modeId: 'mock', themeId: 'full-mock' }, { continuousDrive: true }), true);
+  assert.equal(continuityEnabledForExperience({ modeId: 'mock', themeId: 'city-circuit' }, { continuousDrive: true }), true);
+  assert.equal(continuityEnabledForExperience({ modeId: 'practice', themeId: 'full-mock' }, { continuousDrive: true }), true);
+  assert.equal(continuityEnabledForExperience({ modeId: 'learn', themeId: null }, {}), true);
+  assert.equal(continuityEnabledForExperience({ modeId: 'practice', themeId: null }, { continuousDrive: false }), false);
+  assert.equal(continuityEnabledForExperience({ modeId: 'mock', themeId: 'full-mock' }, { continuousDrive: false }), false);
+  assert.equal(continuityEnabledForExperience(null, { continuousDrive: true }), false);
+});
+
+test('continuity never applies to the pair-adjacent confusion drill', () => {
+  assert.equal(
+    continuityEnabledForExperience(
+      { modeId: 'practice', themeId: null, challengeId: 'confusion-pairs' },
+      { continuousDrive: true }
+    ),
+    false
+  );
 });
 
 test('session preparation orders selected commands into the narrative route', () => {

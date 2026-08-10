@@ -37,6 +37,17 @@ Learners may choose one of five neutral examiner characters, rotate with
 or select First drive, City circuit, Roundabout circuit, Manoeuvres, Precheck
 inspection, or Full mock themed drives.
 
+The app opens on a photo title screen; one tap enters setup. The setup screen
+leads with a single **Simulated test drive** card — vehicle
+prechecks followed by a continuous exam route, with one visible option to show
+written Spanish as a hint — while modes, examiners, themes, challenges, and
+the remaining settings live behind **Advanced options**. Every session runs as
+a continuous drive by default: commands play in narrative exam order
+(precheck → departure → driving → arrival) with brief unscored cruise
+transitions between them. The **Continuous drive** setting in Advanced options
+turns this off and restores isolated per-command practice; the confusion-pairs
+challenge always runs without it.
+
 The app has no runtime dependency on Piso Asturiano and no backend. The source remains a plain static browser application; public releases use a deterministic build step to select and verify only runtime assets. Stage 2 is implemented with an action-matched response model and optional moving-road approaches on suitable realistic scenes. The current working catalog contains 39 commands and 81 Spanish phrasings, with its complete 1,215-recording corpus ready for integration. Deeper phrasing/voice mastery reporting, an instructor-validated sequential examination, and automatic difficulty progression remain deferred.
 
 ## Readiness and targeted practice

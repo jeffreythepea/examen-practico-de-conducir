@@ -22,21 +22,29 @@ test. Real lesson evidence may later replace its provisional sequence.
 
 ## Product Boundary
 
-The first production slice applies only when both of these are true:
+The first production slice applied only when both of these were true:
 
 - experience mode is Mock;
 - theme is Full mock.
 
-Learn, Practice, Adaptive practice, and the other themed drives retain their
-current construction, ordering, prompt, reveal, and persistence behavior.
+On 2026-08-10 Jeffrey approved promoting continuity to the default session
+structure for every mode and theme ("a session is a drive, not a deck of
+cards"). Sessions in Learn, Practice, and Mock now order commands into the
+narrative exam route and insert unscored transitions, governed by the
+`continuousDrive` setting (default On, surfaced in the setup screen's Advanced
+options). Turning it Off restores the previous per-mode construction,
+ordering, prompt, reveal, and persistence behavior exactly. The
+confusion-pairs challenge is excluded because its pair-adjacent command order
+must not be narratively reordered.
 Road movement On animates the transitions. Turning it Off retains the ordered
 simulated route but renders
 static, short transition frames. Reduced-motion preference removes camera
 movement while preserving the same sequence and readable context.
 
-The complete feature must remain easy to roll back by removing the continuity
-planner and controller integration without rewriting attempts, readiness, or
-the command catalog.
+The complete feature must remain easy to roll back: the `continuousDrive`
+setting disables it per save, and removing the continuity planner and
+controller integration remains possible without rewriting attempts,
+readiness, or the command catalog.
 
 ## Protected Invariants
 

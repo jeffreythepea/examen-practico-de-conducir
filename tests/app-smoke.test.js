@@ -107,7 +107,7 @@ test('app shell persists setup settings and exposes atomic backup controls', asy
   assert.match(source, /from '\.\/audio\.js'/);
   assert.match(source, /selectControl\('feedbackSounds', 'setting\.feedbackSounds'/);
   assert.match(source, /selectControl\('roadMovement', 'setting\.roadMovement'/);
-  assert.match(source, /\['timed', 'feedbackSounds', 'roadMovement', 'ambience'\]\.includes\(setting\)/);
+  assert.match(source, /\['timed', 'feedbackSounds', 'roadMovement', 'continuousDrive', 'ambience'\]\.includes\(setting\)/);
   assert.match(source, /roadMovement/);
   assert.match(source, /from '\.\/surfaces\.js'/);
   assert.match(source, /data\/commands\.json/);
@@ -139,7 +139,7 @@ test('Mock hides replay and answer feedback during the drive and advances throug
 test('Full Mock continuity persists a narrative route and renders skippable unscored transitions', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
-  assert.match(source, /continuityEnabledForExperience\(experience\)/);
+  assert.match(source, /continuityEnabledForExperience\(experience, sessionSettings\)/);
   assert.match(source, /prepareContinuitySession\(session, selectableCommands\)/);
   assert.match(source, /continuity,\s*\n\s*experience:/);
   assert.match(source, /currentContinuityStep\(state\.activeSession\)/);
@@ -314,6 +314,35 @@ test('End session is a small secondary control on the prompt and mock-transition
   assert.match(i18n, /'session\.endConfirm': 'End this session\? Progress on answered commands is kept\.'/);
   assert.match(i18n, /'session\.end': 'Terminar sesión'/);
   assert.match(i18n, /'session\.endConfirm': '¿Terminar esta sesión\? Se conserva el progreso de las órdenes respondidas\.'/);
+});
+
+test('the app opens on a bilingual title screen that enters setup on one tap', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.match(source, /model = \{ screen: 'title', settings: state\.settings, session: \[\], index: 0 \}/);
+  assert.match(source, /model\.screen === 'title'\s*\n?\s*\? renderTitle\(\)/);
+  assert.match(source, /class="title-scene"/);
+  assert.match(source, /data-action="enter"[^>]*>\$\{translate\(locale\(\), 'title\.enter'\)\}/);
+  assert.match(source, /if \(model\.screen === 'title'\) bindTitleEvents\(\);/);
+  assert.match(source, /type: 'GO_TO_SETUP'/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\n\s*\.title-scene img,\s*\n\s*\.title-overlay \{\s*\n\s*animation: none;/);
+});
+
+test('setup leads with the simulated-drive primary card and hides configuration behind Advanced options', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /\$\{renderPrimaryDriveCard\(dateParts\)\}/);
+  assert.match(source, /experienceMode: 'practice',\s*\n\s*themeId: 'full-mock',\s*\n\s*challengeId: null,\s*\n\s*phase: 'mixed'/);
+  assert.match(source, /data-action="start-drive"/);
+  assert.match(source, /data-action="toggle-primary-hint"/);
+  assert.match(source, /hintPolicy: event\.target\.checked \? 'available' : 'unavailable'/);
+
+  const advancedMatch = source.match(/<details class="setup-advanced">[\s\S]*?<p class="pool-count">/);
+  assert.ok(advancedMatch, 'setup must wrap configuration in a setup-advanced <details> element');
+  assert.doesNotMatch(advancedMatch[0], /<details class="setup-advanced"[^>]* open/, 'Advanced must never render pre-opened');
+  assert.match(advancedMatch[0], /renderSoloSetupView/);
+  assert.match(advancedMatch[0], /'continuousDrive', 'setting\.continuousDrive'/);
 });
 
 test('setup hides data-management actions behind a collapsed-by-default Settings disclosure', async () => {

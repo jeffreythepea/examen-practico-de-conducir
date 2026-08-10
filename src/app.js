@@ -167,17 +167,29 @@ export function feedbackCueForTransition(before, after, event) {
 const AMBIENCE_ACTIVE_SCREENS = Object.freeze(['loading-audio', 'prompt', 'reveal', 'mock-transition']);
 
 /**
- * Cabin ambience is Mock-test-only and strictly opt-in: it plays only while a
- * session is actually in progress, only in the simulated Mock experience, and
- * only when the learner has turned it on. Any other screen, mode, or setting
- * state stops it.
+ * Cabin ambience is strictly opt-in: it plays only while a session is actually
+ * in progress, only in the simulated Mock experience or a continuous-drive
+ * session, and only when the learner has turned it on. Any other screen, mode,
+ * or setting state stops it.
  *
- * @param {{ screen: string, settings: { experienceMode: string, ambience: boolean } }} model
+ * @param {{ screen: string, continuityActive?: boolean, settings: { experienceMode: string, ambience: boolean } }} model
  * @returns {boolean}
  */
+/**
+ * The primary setup card starts the fundamental use case — a simulated
+ * precheck-plus-drive with hints optionally available — using the existing
+ * Practice preset and Full mock theme rather than any new session concept.
+ */
+export const PRIMARY_DRIVE_RECIPE = Object.freeze({
+  experienceMode: 'practice',
+  themeId: 'full-mock',
+  challengeId: null,
+  phase: 'mixed'
+});
+
 export function ambienceEligible(model) {
   return AMBIENCE_ACTIVE_SCREENS.includes(model?.screen)
-    && model?.settings?.experienceMode === 'mock'
+    && (model?.settings?.experienceMode === 'mock' || model?.continuityActive === true)
     && model?.settings?.ambience === true;
 }
 
@@ -349,7 +361,8 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       ...model,
       screen: event.atTransition ? 'mock-transition' : 'loading-audio',
       session: [...event.session],
-      experience: event.experience ?? model.experience ?? null
+      experience: event.experience ?? model.experience ?? null,
+      continuityActive: event.continuityActive === true
     }, 0);
   }
   if (event.type === 'RESUME_SESSION') {
@@ -362,7 +375,8 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       ...model,
       screen,
       session: [...event.session],
-      experience: event.experience ?? model.experience ?? null
+      experience: event.experience ?? model.experience ?? null,
+      continuityActive: event.continuityActive === true
     }, event.index);
   }
   if (event.type === 'AUDIO_STARTED'
@@ -652,6 +666,7 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
   }
   if (event.type === 'CONTINUE' && model.screen === 'reveal') {
     const nextIndex = model.index + 1;
+    if (event.atTransition) return resetTrial({ ...model, screen: 'mock-transition' }, nextIndex);
     if (nextIndex >= model.session.length) return resetTrial({ ...model, screen: 'results' }, nextIndex);
     return resetTrial({ ...model, screen: 'loading-audio' }, nextIndex);
   }
@@ -959,7 +974,7 @@ async function bootstrap() {
         sessionRecoveryError = true;
       }
     }
-    model = { screen: 'setup', settings: state.settings, session: [], index: 0 };
+    model = { screen: 'title', settings: state.settings, session: [], index: 0 };
     player = createAudioPlayer({ AudioCtor: window.Audio, document });
     feedbackPlayer = createFeedbackCuePlayer();
     ambiencePlayer = createAmbiencePlayer({ AudioCtor: window.Audio });
@@ -1012,7 +1027,9 @@ async function bootstrap() {
     setDocumentLocale(locale());
     document.title = translate(locale(), 'app.title');
     document.querySelector('#skip-link').textContent = translate(locale(), 'app.skip');
-    const screen = model.screen === 'setup'
+    const screen = model.screen === 'title'
+      ? renderTitle()
+      : model.screen === 'setup'
       ? renderSetup()
       : model.screen === 'readiness'
         ? renderReadiness()
@@ -1029,6 +1046,7 @@ async function bootstrap() {
               : renderResults();
     app.innerHTML = `${renderHeader()}${screen}`;
     bindCommonEvents();
+    if (model.screen === 'title') bindTitleEvents();
     if (model.screen === 'setup') bindSetupEvents();
     if (model.screen === 'readiness') bindReadinessEvents();
     if (model.screen === 'collection') bindCollectionEvents();
@@ -1090,6 +1108,26 @@ async function bootstrap() {
     </aside>`;
   }
 
+  function renderTitle() {
+    return `<section class="panel title-screen" aria-labelledby="title-screen-heading">
+      <div class="title-scene">
+        <img src="./assets/driving/urban-roadside-photo-v1.webp" alt="" aria-hidden="true">
+        <div class="title-overlay">
+          <h2 id="title-screen-heading" data-screen-focus tabindex="-1">${translate(locale(), 'app.title')}</h2>
+          <p>${translate(locale(), 'app.subtitle')}</p>
+          <button class="primary title-enter" type="button" data-action="enter">${translate(locale(), 'title.enter')}</button>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function bindTitleEvents() {
+    app.querySelector('[data-action="enter"]')?.addEventListener('click', () => {
+      model = reduceScreen(model, { type: 'GO_TO_SETUP' });
+      render();
+    });
+  }
+
   function renderSetup() {
     const dateParts = localDateParts(new Date());
     const effectiveSettings = effectiveSessionSettings(state.settings);
@@ -1123,60 +1161,93 @@ async function bootstrap() {
       ${sessionRecoveryError ? `<p class="notice" role="alert">${translate(locale(), 'resume.recovery')}</p>` : ''}
       ${persistError ? `<p class="notice" role="alert">${translate(locale(), 'error.persistence')} <button type="button" data-action="dismiss-persist-error">${translate(locale(), 'notice.dismiss')}</button></p>` : ''}
       ${renderResumeCard()}
-      ${renderSoloSetupView({
-        locale: locale(),
-        t: (key, variables) => translate(locale(), key, variables),
-        selectedPresetId: state.settings.experienceMode,
-        selectedExaminerChoiceId: state.settings.examinerChoice,
-        selectedThemeId: state.settings.themeId,
-        selectedChallengeId: state.settings.challengeId,
-        dateParts
-      })}
-      <details class="advanced-practice-disclosure" ${state.settings.experienceMode === 'practice' ? '' : 'data-preset-owned="true"'}>
-        <summary>${translate(locale(), 'practice.advanced.title')}</summary>
-        <p>${translate(locale(), state.settings.experienceMode === 'practice'
-          ? 'practice.advanced.description'
-          : 'practice.advanced.presetOwned')}</p>
-        <div class="setup-grid">
-          ${selectControl('phase', 'setting.phase', [
-            ['driving', 'phase.driving'], ['precheck', 'phase.precheck'], ['mixed', 'phase.mixed']
-          ])}
-          ${selectControl('speed', 'setting.speed', [[0.75, '0.75×'], [0.9, '0.9×'], [1, '1×']], true)}
-          ${selectControl('hintPolicy', 'setting.hint', [
-            ['available', 'hint.available'], ['shown', 'hint.shown'], ['unavailable', 'hint.unavailable']
-          ])}
-          ${selectControl('timed', 'setting.timing', [[false, 'timing.off'], [true, 'timing.on']])}
-          ${selectControl('feedbackSounds', 'setting.feedbackSounds', [
-            [true, 'feedbackSounds.on'], [false, 'feedbackSounds.off']
-          ])}
-          ${selectControl('roadMovement', 'setting.roadMovement', [
-            [true, 'roadMovement.on'], [false, 'roadMovement.off']
-          ])}
-          ${selectControl('ambience', 'setting.ambience', [
-            [false, 'ambience.off'], [true, 'ambience.on']
-          ])}
-          ${selectControl('length', 'setting.length', [
-            ['short', 'length.short'], ['medium', 'length.medium'], ['all', 'length.all']
-          ])}
-          ${selectControl('mode', 'setting.mode', [['recommended', 'mode.recommended'], ['free', 'mode.free']])}
-        </div>
-      </details>
-      <p class="pool-count">${translate(locale(), 'summary.count', { count: pool.length })}</p>
+      ${renderPrimaryDriveCard(dateParts)}
       <button type="button" data-action="open-readiness">${translate(locale(), 'screen.readiness')}</button>
       <button type="button" data-action="open-collection">${translate(locale(), 'screen.collection')}</button>
-      <button class="primary" type="button" data-action="start" ${eligibility.canStart ? '' : 'disabled'}>${translate(locale(), 'action.start')}</button>
-      ${eligibility.canStart ? '' : `<p class="notice error" role="alert">${translate(locale(), startErrorKey)}</p>`}
-      ${renderOfflineCard()}
-      <details class="settings-disclosure">
-        <summary><span aria-hidden="true">⚙️</span> ${translate(locale(), 'settings.title')}</summary>
-        <div class="data-controls" role="group" aria-label="${translate(locale(), 'data.management')}">
-          <button type="button" data-action="export">${translate(locale(), 'data.export')}</button>
-          <button type="button" data-action="import">${translate(locale(), 'data.import')}</button>
-          <button class="danger" type="button" data-action="reset">${translate(locale(), 'data.reset')}</button>
-          <input type="file" data-import-file accept="application/json" hidden>
-        </div>
+      <details class="setup-advanced">
+        <summary>${translate(locale(), 'setup.advanced.title')}</summary>
+        ${renderSoloSetupView({
+          locale: locale(),
+          t: (key, variables) => translate(locale(), key, variables),
+          selectedPresetId: state.settings.experienceMode,
+          selectedExaminerChoiceId: state.settings.examinerChoice,
+          selectedThemeId: state.settings.themeId,
+          selectedChallengeId: state.settings.challengeId,
+          dateParts
+        })}
+        <details class="advanced-practice-disclosure" ${state.settings.experienceMode === 'practice' ? '' : 'data-preset-owned="true"'}>
+          <summary>${translate(locale(), 'practice.advanced.title')}</summary>
+          <p>${translate(locale(), state.settings.experienceMode === 'practice'
+            ? 'practice.advanced.description'
+            : 'practice.advanced.presetOwned')}</p>
+          <div class="setup-grid">
+            ${selectControl('phase', 'setting.phase', [
+              ['driving', 'phase.driving'], ['precheck', 'phase.precheck'], ['mixed', 'phase.mixed']
+            ])}
+            ${selectControl('speed', 'setting.speed', [[0.75, '0.75×'], [0.9, '0.9×'], [1, '1×']], true)}
+            ${selectControl('hintPolicy', 'setting.hint', [
+              ['available', 'hint.available'], ['shown', 'hint.shown'], ['unavailable', 'hint.unavailable']
+            ])}
+            ${selectControl('timed', 'setting.timing', [[false, 'timing.off'], [true, 'timing.on']])}
+            ${selectControl('feedbackSounds', 'setting.feedbackSounds', [
+              [true, 'feedbackSounds.on'], [false, 'feedbackSounds.off']
+            ])}
+            ${selectControl('roadMovement', 'setting.roadMovement', [
+              [true, 'roadMovement.on'], [false, 'roadMovement.off']
+            ])}
+            ${selectControl('continuousDrive', 'setting.continuousDrive', [
+              [true, 'continuousDrive.on'], [false, 'continuousDrive.off']
+            ])}
+            ${selectControl('ambience', 'setting.ambience', [
+              [false, 'ambience.off'], [true, 'ambience.on']
+            ])}
+            ${selectControl('length', 'setting.length', [
+              ['short', 'length.short'], ['medium', 'length.medium'], ['all', 'length.all']
+            ])}
+            ${selectControl('mode', 'setting.mode', [['recommended', 'mode.recommended'], ['free', 'mode.free']])}
+          </div>
+        </details>
+        <p class="pool-count">${translate(locale(), 'summary.count', { count: pool.length })}</p>
+        <button class="primary" type="button" data-action="start" ${eligibility.canStart ? '' : 'disabled'}>${translate(locale(), 'setup.advanced.start')}</button>
+        ${eligibility.canStart ? '' : `<p class="notice error" role="alert">${translate(locale(), startErrorKey)}</p>`}
+        ${renderOfflineCard()}
+        <details class="settings-disclosure">
+          <summary><span aria-hidden="true">⚙️</span> ${translate(locale(), 'settings.title')}</summary>
+          <div class="data-controls" role="group" aria-label="${translate(locale(), 'data.management')}">
+            <button type="button" data-action="export">${translate(locale(), 'data.export')}</button>
+            <button type="button" data-action="import">${translate(locale(), 'data.import')}</button>
+            <button class="danger" type="button" data-action="reset">${translate(locale(), 'data.reset')}</button>
+            <input type="file" data-import-file accept="application/json" hidden>
+          </div>
+        </details>
       </details>
       ${importError ? `<p class="notice error" role="alert">${importError}</p>` : ''}
+    </section>`;
+  }
+
+  function renderPrimaryDriveCard(dateParts) {
+    const recipeSettings = effectiveSessionSettings({
+      ...state.settings,
+      ...PRIMARY_DRIVE_RECIPE
+    });
+    const eligibility = sessionStartEligibility(
+      selectableCommands,
+      manifest,
+      recipeSettings,
+      player.supportsFallback(),
+      dateParts,
+      manifestIndex
+    );
+    const hintsOn = state.settings.hintPolicy !== 'unavailable';
+    return `<section class="primary-drive-card" aria-labelledby="primary-drive-title">
+      <h3 id="primary-drive-title">${translate(locale(), 'setup.primary.title')}</h3>
+      <p>${translate(locale(), 'setup.primary.description')}</p>
+      <label class="primary-drive-hint">
+        <input type="checkbox" data-action="toggle-primary-hint" ${hintsOn ? 'checked' : ''}>
+        <span>${translate(locale(), 'setup.primary.hint')}</span>
+      </label>
+      <button class="primary" type="button" data-action="start-drive" ${eligibility.canStart ? '' : 'disabled'}>${translate(locale(), 'setup.primary.start')}</button>
+      ${eligibility.canStart ? '' : `<p class="notice error" role="alert">${translate(locale(), eligibility.reason === 'no-commands' ? 'setup.start.noCommands' : 'setup.start.examinerAudio')}</p>`}
     </section>`;
   }
 
@@ -1526,11 +1597,18 @@ async function bootstrap() {
       const setting = control.dataset.setting;
       const value = setting === 'speed'
         ? Number(control.value)
-        : ['timed', 'feedbackSounds', 'roadMovement', 'ambience'].includes(setting)
+        : ['timed', 'feedbackSounds', 'roadMovement', 'continuousDrive', 'ambience'].includes(setting)
           ? control.value === 'true'
           : control.value;
       updateSettings({ [setting]: value });
     }));
+    app.querySelector('[data-action="toggle-primary-hint"]')?.addEventListener('change', event => {
+      updateSettings({ hintPolicy: event.target.checked ? 'available' : 'unavailable' });
+    });
+    app.querySelector('[data-action="start-drive"]')?.addEventListener('click', () => {
+      updateSettings(PRIMARY_DRIVE_RECIPE);
+      startSession();
+    });
     app.querySelector('[data-action="start"]')?.addEventListener('click', () => startSession());
     app.querySelector('[data-action="open-readiness"]')?.addEventListener('click', openReadiness);
     app.querySelector('[data-action="open-collection"]')?.addEventListener('click', openCollection);
@@ -1659,6 +1737,11 @@ async function bootstrap() {
     completeTrial({ type: 'SURFACE_EVENT', surfaceEvent, completedAt: Date.now() });
   }
 
+  function settleSessionEnd() {
+    settlePersonalBest();
+    settleCompletions();
+  }
+
   function settlePersonalBest() {
     if (model.experience?.challengeId !== 'personal-best') return;
     const attempts = state.attempts.filter(attempt => sessionAttemptIds.includes(attempt.id));
@@ -1703,11 +1786,11 @@ async function bootstrap() {
     app.querySelector('[data-action="continue"]').addEventListener('click', () => {
       readinessFilters = { ...readinessFilters, editor: null };
       currentAttemptId = null;
-      model = reduceScreen(model, { type: 'CONTINUE' });
-      if (model.screen === 'results') {
-        settlePersonalBest();
-        settleCompletions();
-      }
+      model = reduceScreen(model, {
+        type: 'CONTINUE',
+        atTransition: currentContinuityStep(state.activeSession)?.kind === 'transition'
+      });
+      if (model.screen === 'results') settleSessionEnd();
       render();
       if (model.screen === 'loading-audio') void playCurrentCommand();
     });
@@ -1738,10 +1821,7 @@ async function bootstrap() {
     window.setTimeout(() => {
       if (model.screen !== 'mock-transition') return;
       model = reduceScreen(model, { type: 'MOCK_CONTINUE' });
-      if (model.screen === 'results') {
-        settlePersonalBest();
-        settleCompletions();
-      }
+      if (model.screen === 'results') settleSessionEnd();
       render();
       if (model.screen === 'loading-audio') void playCurrentCommand();
     }, 600);
@@ -1918,7 +1998,7 @@ async function bootstrap() {
       )
     }));
     let continuity;
-    if (continuityEnabledForExperience(experience)) {
+    if (continuityEnabledForExperience(experience, sessionSettings)) {
       const prepared = prepareContinuitySession(session, selectableCommands);
       session = [...prepared.session];
       continuity = prepared.continuity;
@@ -1945,7 +2025,8 @@ async function bootstrap() {
         type: 'START_SESSION',
         session,
         experience,
-        atTransition: currentContinuityStep(activeSession)?.kind === 'transition'
+        atTransition: currentContinuityStep(activeSession)?.kind === 'transition',
+        continuityActive: Boolean(activeSession.continuity)
       }
     );
     render();
@@ -1963,7 +2044,8 @@ async function bootstrap() {
         session: resumableSession.sessionItems,
         index: resumableSession.index,
         experience: resumableSession.experience,
-        atTransition: currentContinuityStep(state.activeSession)?.kind === 'transition'
+        atTransition: currentContinuityStep(state.activeSession)?.kind === 'transition',
+        continuityActive: Boolean(state.activeSession?.continuity)
       }
     );
     render();
@@ -1981,6 +2063,7 @@ async function bootstrap() {
       index: advanced.nextIndex,
       atTransition: nextStep?.kind === 'transition'
     });
+    if (model.screen === 'results') settleSessionEnd();
     render();
     if (model.screen === 'loading-audio') void playCurrentCommand();
   }
@@ -2121,7 +2204,7 @@ async function bootstrap() {
     if (result.scored) {
       const progress = { nextIndex: before.index + 1, attemptId: result.attempt.id };
       const continuityEnabled = Boolean(state.activeSession?.continuity);
-      let activeSession = before.experience?.revealPolicy === 'session-end'
+      let activeSession = continuityEnabled || before.experience?.revealPolicy === 'session-end'
         ? advanceActiveSession(state.activeSession, progress)
         : persistedActiveSessionAfterAttempt(state.activeSession, progress);
       const nextStep = continuityEnabled ? currentContinuityStep(activeSession) : null;
@@ -2137,6 +2220,7 @@ async function bootstrap() {
           index: continuityIndex,
           atTransition: nextStep?.kind === 'transition'
         });
+        if (model.screen === 'results') settleSessionEnd();
       }
       const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
       model = reduceScreen(model, {

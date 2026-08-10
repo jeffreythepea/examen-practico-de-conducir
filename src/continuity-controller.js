@@ -10,8 +10,12 @@ const ROUTE_FAMILY = Object.freeze({
   'parked-closure': 'parked'
 });
 
-export function continuityEnabledForExperience(experience) {
-  return experience?.modeId === 'mock' && experience?.themeId === 'full-mock';
+export function continuityEnabledForExperience(experience, settings) {
+  if (!experience) return false;
+  // Confusion pairs depends on pair-adjacent ordering, which narrative
+  // reordering would break.
+  if (experience.challengeId === 'confusion-pairs') return false;
+  return settings?.continuousDrive !== false;
 }
 
 export function prepareContinuitySession(session, commands, rng = Math.random) {

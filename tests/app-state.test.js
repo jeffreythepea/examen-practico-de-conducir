@@ -913,7 +913,7 @@ test('accepted answer transitions choose correct and incorrect feedback cues but
   assert.equal(feedbackCueForTransition(timeoutBefore, timeoutAfter, timeoutEvent), null);
 });
 
-test('cabin ambience is eligible only mid-session, in Mock mode, with the setting on', () => {
+test('cabin ambience is eligible only mid-session, in Mock or a continuous drive, with the setting on', () => {
   const eligible = { screen: 'prompt', settings: { experienceMode: 'mock', ambience: true } };
   assert.equal(ambienceEligible(eligible), true);
 
@@ -927,11 +927,29 @@ test('cabin ambience is eligible only mid-session, in Mock mode, with the settin
   assert.equal(
     ambienceEligible({ ...eligible, settings: { experienceMode: 'practice', ambience: true } }),
     false,
-    'Practice mode never gets ambience, even with the setting on'
+    'Practice mode without continuity never gets ambience, even with the setting on'
   );
   assert.equal(
     ambienceEligible({ ...eligible, settings: { experienceMode: 'learn', ambience: true } }),
     false
+  );
+  assert.equal(
+    ambienceEligible({
+      ...eligible,
+      continuityActive: true,
+      settings: { experienceMode: 'practice', ambience: true }
+    }),
+    true,
+    'A continuous-drive session is eligible in any mode with the setting on'
+  );
+  assert.equal(
+    ambienceEligible({
+      ...eligible,
+      continuityActive: true,
+      settings: { experienceMode: 'practice', ambience: false }
+    }),
+    false,
+    'Continuity never overrides the opt-in setting'
   );
   assert.equal(
     ambienceEligible({ ...eligible, settings: { experienceMode: 'mock', ambience: false } }),
@@ -1308,6 +1326,37 @@ test('Full Mock continuity synchronizes transition, command, and completed route
   model = reduceScreen(model, { type: 'CONTINUITY_SYNC', index: 2, atTransition: false });
   assert.equal(model.screen, 'results');
   assert.equal(model.index, 2);
+});
+
+test('immediate-reveal Continue can enter a continuity transition before the next command', () => {
+  const revealed = reduceScreen(promptModel(), { type: 'TIMEOUT', completedAt: 5_000 });
+  assert.equal(revealed.screen, 'reveal');
+
+  const atTransition = reduceScreen(revealed, { type: 'CONTINUE', atTransition: true });
+  assert.equal(atTransition.screen, 'mock-transition');
+  assert.equal(atTransition.index, 1);
+  assert.equal(atTransition.selectedResult, null);
+
+  const synced = reduceScreen(atTransition, { type: 'CONTINUITY_SYNC', index: 1, atTransition: false });
+  assert.equal(synced.screen, 'loading-audio');
+  assert.equal(synced.index, 1);
+
+  const legacy = reduceScreen(revealed, { type: 'CONTINUE' });
+  assert.equal(legacy.screen, 'loading-audio');
+  assert.equal(legacy.index, 1);
+});
+
+test('a trailing continuity transition after the last reveal still reaches results', () => {
+  let model = reduceScreen(promptModel(), { type: 'TIMEOUT', completedAt: 5_000 });
+  model = { ...model, index: model.session.length - 1 };
+  model = reduceScreen(model, { type: 'CONTINUE', atTransition: true });
+  assert.equal(model.screen, 'mock-transition');
+  assert.equal(model.index, model.session.length);
+
+  model = reduceScreen(model, {
+    type: 'CONTINUITY_SYNC', index: model.session.length, atTransition: false
+  });
+  assert.equal(model.screen, 'results');
 });
 
 test('resuming Full Mock continuity can restore an unscored transition', () => {
