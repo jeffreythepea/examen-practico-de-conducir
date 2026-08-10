@@ -421,7 +421,7 @@ test('targeted practice filters selection without rewriting saved setup preferen
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
   assert.match(source, /function startSession\(target = null, selectionPhase = state\.settings\.phase\)/);
-  assert.match(source, /const sessionSettings = effectiveSessionSettings\(state\.settings\);/);
+  assert.match(source, /const baseSessionSettings = effectiveSessionSettings\(state\.settings\);/);
   assert.match(source, /createSession\(selectableCommands, \{[\s\S]*?phase: selectionPhase/);
   assert.match(source, /themeId:\s*sessionSettings\.themeId/);
   assert.match(source, /experience:\s*experience/);

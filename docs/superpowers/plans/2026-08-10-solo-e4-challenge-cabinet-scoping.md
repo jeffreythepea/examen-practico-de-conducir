@@ -110,9 +110,16 @@ Roughly increasing cost, per the direction above:
    `speed: 1` settings override, extending the same challenge-override
    mechanism; no active-session.js changes needed since speed already lives
    on `activeSession.settings`. Browser-verified.
-6. **Confusion pairs** — not started; largest; needs new attempt-level
-   tracking, a schema migration to v5, and time to accumulate real data
-   before the challenge is meaningful. Deliberately last and not started now —
-   it's a poor fit to build blind: the "what wrong answer was picked instead"
-   tracking needs to exist and collect real data before this challenge is
-   even meaningful to evaluate against.
+6. **Confusion pairs** — done, `feature/e4-confusion-pairs`. The "needs a new
+   schema migration" assumption above was wrong — checked the actual attempt
+   schema before building anything, and every surfaced attempt already
+   stores both `selectedResult` and `expectedResult` (training.js), so an
+   incorrect attempt whose `selectedResult` is a different real command's
+   actionId already *is* a confusion pair. No new field, no migration —
+   `src/confusion-pairs.js` derives pairs from existing data. This challenge
+   dynamically builds its own command set (the top confused pairs, ranked by
+   frequency) rather than using a themeId/settings override like every other
+   challenge, so it's wired directly into `startSession`'s selection branch.
+   Browser-verified for both the empty-history and populated-history states.
+
+All eight Solo E4 challenges from the roadmap are now complete.

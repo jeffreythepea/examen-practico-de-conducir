@@ -77,6 +77,13 @@ const RAW_CHALLENGES = [
     overrides: {
       settings: { speed: 1 }
     }
+  },
+  {
+    id: 'confusion-pairs',
+    titleKey: 'challenge.confusionPairs.title',
+    descriptionKey: 'challenge.confusionPairs.description',
+    basePresetId: 'practice',
+    passRule: 'clean'
   }
 ];
 

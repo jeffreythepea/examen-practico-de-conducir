@@ -22,13 +22,14 @@ const TITLE_KEYS = Object.freeze({
   'personal-best': 'personalBest',
   'perfect-roundabouts': 'perfectRoundabouts',
   'five-examiners': 'fiveExaminers',
-  'brisk-examiner': 'briskExaminer'
+  'brisk-examiner': 'briskExaminer',
+  'confusion-pairs': 'confusionPairs'
 });
 
-test('exports all seven challenges in stable order', () => {
+test('exports all eight challenges in stable order', () => {
   assert.deepEqual(CHALLENGE_IDS, [
     'audio-only', 'one-listen', 'control-check', 'personal-best',
-    'perfect-roundabouts', 'five-examiners', 'brisk-examiner'
+    'perfect-roundabouts', 'five-examiners', 'brisk-examiner', 'confusion-pairs'
   ]);
   assert.deepEqual(CHALLENGES.map(({ id }) => id), CHALLENGE_IDS);
 });
@@ -47,6 +48,7 @@ test('each challenge carries a title/description key, a known base preset, and a
   assert.equal(challengeById('perfect-roundabouts').passRule, 'clean');
   assert.equal(challengeById('five-examiners').passRule, 'clean');
   assert.equal(challengeById('brisk-examiner').passRule, 'clean');
+  assert.equal(challengeById('confusion-pairs').passRule, 'clean');
 });
 
 test('challenge registry and every nested record are deeply frozen', () => {
@@ -137,6 +139,17 @@ test('brisk-examiner forces speed 1 on top of Practice, leaving theme, hints, an
   assert.equal(result.settings.themeId, 'city-circuit');
   assert.equal(result.settings.hintPolicy, 'available');
   assert.equal(result.replayPolicy, 'unlimited');
+});
+
+test('confusion-pairs applies Practice unmodified: its command set is computed at session start, not via a settings override', () => {
+  const base = { ...defaultState().settings, themeId: 'city-circuit' };
+  const result = applyChallenge(base, 'confusion-pairs');
+
+  assert.equal(result.challengeId, 'confusion-pairs');
+  assert.equal(result.settings.themeId, 'city-circuit');
+  assert.equal(result.settings.hintPolicy, 'available');
+  assert.equal(result.replayPolicy, 'unlimited');
+  assert.equal(result.revealPolicy, 'immediate');
 });
 
 test('applying a challenge never mutates caller-owned settings', () => {
