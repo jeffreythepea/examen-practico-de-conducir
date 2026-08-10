@@ -197,6 +197,19 @@ export function mockResultStatus(attempts, expectedCount) {
   return evaluateCleanSession(attempts, expectedCount);
 }
 
+// B: the scene appears first; the examiner's voice lands at a randomized moment
+// during the approach. Moving-road trials draw from the front of the 6000 ms
+// approach window so late commands still land with the junction visibly growing.
+export const COMMAND_ONSET_RANGES_MS = Object.freeze({
+  motion: Object.freeze({ min: 0, max: 2_500 }),
+  static: Object.freeze({ min: 400, max: 1_500 })
+});
+
+export function commandOnsetDelayMs(motionEnabled, rng = Math.random) {
+  const range = motionEnabled ? COMMAND_ONSET_RANGES_MS.motion : COMMAND_ONSET_RANGES_MS.static;
+  return Math.round(range.min + rng() * (range.max - range.min));
+}
+
 export function nextSurfaceSeed(cryptoRef = globalThis.crypto) {
   if (!cryptoRef || typeof cryptoRef.getRandomValues !== 'function') {
     throw new Error('Cryptographic surface seed generation is unavailable');
@@ -379,14 +392,17 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       continuityActive: event.continuityActive === true
     }, event.index);
   }
-  if (event.type === 'AUDIO_STARTED' && model.screen === 'loading-audio') {
+  if (['SCENE_STARTED', 'AUDIO_STARTED'].includes(event.type) && model.screen === 'loading-audio') {
+    const continuingTrial = event.type === 'AUDIO_STARTED' && Boolean(model.activeSurfaceModel);
     let generated;
     try {
-      generated = generateSurfaceWithRetries(
-        model.session[model.index],
-        event.seed ?? nextSurfaceSeed(),
-        surfaceGenerator
-      );
+      generated = continuingTrial
+        ? { model: model.activeSurfaceModel, error: null }
+        : generateSurfaceWithRetries(
+            model.session[model.index],
+            event.seed ?? nextSurfaceSeed(),
+            surfaceGenerator
+          );
     } catch {
       return model;
     }
@@ -399,10 +415,10 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       variant: event.variant ? Object.freeze({ ...event.variant }) : model.variant,
       audioError: null,
       activeSurfaceModel: generated.model,
-      surfaceResponse: {},
+      surfaceResponse: continuingTrial ? model.surfaceResponse : {},
       surfaceError: null,
-      textShown: model.settings.hintPolicy === 'shown',
-      replays: 0,
+      textShown: continuingTrial ? model.textShown : model.settings.hintPolicy === 'shown',
+      replays: continuingTrial ? model.replays : 0,
       promptStartedAt: null,
       initialAudioPending: true,
       roadMotion: motionEligible
@@ -420,6 +436,12 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       allowedMissReasons: [],
       replayPending: false,
       replayOperationId: null
+    };
+  }
+  if (event.type === 'AUDIO_STARTED' && model.screen === 'prompt' && model.initialAudioPending) {
+    return {
+      ...model,
+      variant: event.variant ? Object.freeze({ ...event.variant }) : model.variant
     };
   }
   if (event.type === 'AUDIO_COMPLETED'
@@ -2105,6 +2127,26 @@ async function bootstrap() {
         variant = selectPlaybackVariant(manifest, command, model.settings.speed, player.supportsFallback(), state.attempts, Math.random, { manifestIndex });
       }
       const phrasing = resolvePhrasing(command, variant);
+      const motionEnabled = movingRoadEnabled(command);
+      const beforeScene = model;
+      try {
+        model = reduceScreen(model, {
+          type: 'SCENE_STARTED',
+          variant,
+          startedAt: Date.now(),
+          seed: nextSurfaceSeed(),
+          motionEnabled
+        });
+      } catch {
+        model = beforeScene;
+      }
+      if (model !== beforeScene) {
+        render();
+        await new Promise(resolve => setTimeout(resolve, commandOnsetDelayMs(motionEnabled)));
+        if (operation !== audioOperation
+            || model.screen !== 'prompt'
+            || !model.initialAudioPending) return;
+      }
       const result = await player.play(
         variant,
         { text: phrasing.es, speed: variant.speed },
@@ -2118,7 +2160,7 @@ async function bootstrap() {
                 variant,
                 startedAt: Date.now(),
                 seed: nextSurfaceSeed(),
-                motionEnabled: movingRoadEnabled(command)
+                motionEnabled
               });
             } catch {
               model = before;

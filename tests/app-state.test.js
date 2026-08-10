@@ -4,6 +4,7 @@ import {
   ambienceEligible,
   buildManifestIndex,
   captureFocusSnapshot,
+  commandOnsetDelayMs,
   createSavedPostAnswerMotion,
   effectiveSessionSettings,
   feedbackCueForTransition,
@@ -180,10 +181,10 @@ test('a trial creates one immutable surface model and preserves its reference th
   assert.strictEqual(model.activeSurfaceModel, activeSurfaceModel, 'same-trial retry must not regenerate');
 });
 
-test('moving junction starts during initial audio, locks choices, then unlocks the same surface', () => {
+test('moving junction starts at scene start, locks choices, then unlocks the same surface', () => {
   const loading = reduceScreen(setupModel(), { type: 'START_SESSION', session });
   let model = reduceScreen(loading, {
-    type: 'AUDIO_STARTED',
+    type: 'SCENE_STARTED',
     variant: rightVariant,
     startedAt: 1_000,
     seed: 123,
@@ -219,6 +220,71 @@ test('moving junction starts during initial audio, locks choices, then unlocks t
   assert.strictEqual(model.activeSurfaceModel, surface);
 });
 
+test('audio start on a pending prompt merges the variant without regenerating the surface', () => {
+  const loading = reduceScreen(setupModel(), { type: 'START_SESSION', session });
+  const scene = reduceScreen(loading, {
+    type: 'SCENE_STARTED',
+    startedAt: 1_000,
+    seed: 123,
+    motionEnabled: true
+  });
+  assert.equal(scene.screen, 'prompt');
+  assert.equal(scene.initialAudioPending, true);
+
+  const started = reduceScreen(scene, {
+    type: 'AUDIO_STARTED',
+    variant: rightVariant,
+    startedAt: 2_200,
+    seed: 999,
+    motionEnabled: true
+  });
+  assert.strictEqual(started.activeSurfaceModel, scene.activeSurfaceModel);
+  assert.strictEqual(started.roadMotion, scene.roadMotion);
+  assert.equal(started.initialAudioPending, true);
+  assert.equal(started.promptStartedAt, null);
+  assert.deepEqual(started.variant, rightVariant);
+});
+
+test('audio start on loading-audio remains a retry fallback that keeps an existing surface', () => {
+  const loading = reduceScreen(setupModel(), { type: 'START_SESSION', session });
+  const fresh = reduceScreen(loading, {
+    type: 'AUDIO_STARTED',
+    variant: rightVariant,
+    startedAt: 1_000,
+    seed: 123,
+    motionEnabled: true
+  });
+  assert.equal(fresh.screen, 'prompt');
+  assert.equal(fresh.initialAudioPending, true);
+  assert.equal(fresh.activeSurfaceModel.seed, 123);
+
+  const failed = { ...fresh, screen: 'loading-audio', initialAudioPending: false, audioError: 'error' };
+  const retried = reduceScreen(failed, {
+    type: 'AUDIO_STARTED',
+    variant: rightVariant,
+    startedAt: 3_000,
+    seed: 999,
+    motionEnabled: true
+  });
+  assert.equal(retried.screen, 'prompt');
+  assert.strictEqual(retried.activeSurfaceModel, fresh.activeSurfaceModel, 'retry must not regenerate');
+  assert.equal(retried.initialAudioPending, true);
+});
+
+test('command onset delay draws from the motion or static range under an injected rng', () => {
+  assert.equal(commandOnsetDelayMs(true, () => 0), 0);
+  assert.equal(commandOnsetDelayMs(true, () => 1), 2_500);
+  assert.equal(commandOnsetDelayMs(true, () => 0.5), 1_250);
+  assert.equal(commandOnsetDelayMs(false, () => 0), 400);
+  assert.equal(commandOnsetDelayMs(false, () => 1), 1_500);
+  for (let i = 0; i < 20; i += 1) {
+    const motion = commandOnsetDelayMs(true);
+    const still = commandOnsetDelayMs(false);
+    assert.ok(motion >= 0 && motion <= 2_500);
+    assert.ok(still >= 400 && still <= 1_500);
+  }
+});
+
 test('every approved photo-backed road family starts one generic locked motion lifecycle', () => {
   for (const [command, expectedSceneId] of motionCommands) {
     const loading = reduceScreen(setupModel(), {
@@ -226,7 +292,7 @@ test('every approved photo-backed road family starts one generic locked motion l
       session: [command]
     });
     const model = reduceScreen(loading, {
-      type: 'AUDIO_STARTED',
+      type: 'SCENE_STARTED',
       variant: rightVariant,
       startedAt: 1_000,
       seed: 123,
@@ -241,10 +307,10 @@ test('every approved photo-backed road family starts one generic locked motion l
   }
 });
 
-test('audio start shows every surface early, with motion only where eligible', () => {
+test('scene start shows every surface before audio, with motion only where eligible', () => {
   const junctionLoading = reduceScreen(setupModel(), { type: 'START_SESSION', session });
   const staticJunction = reduceScreen(junctionLoading, {
-    type: 'AUDIO_STARTED',
+    type: 'SCENE_STARTED',
     variant: rightVariant,
     startedAt: 1_000,
     seed: 123,
@@ -261,7 +327,7 @@ test('audio start shows every surface early, with motion only where eligible', (
     session: [wheelCommand]
   });
   const staticControl = reduceScreen(controlLoading, {
-    type: 'AUDIO_STARTED',
+    type: 'SCENE_STARTED',
     variant: rightVariant,
     startedAt: 1_000,
     seed: 123,
@@ -283,7 +349,7 @@ test('audio start shows every surface early, with motion only where eligible', (
   assert.equal(completed.roadMotion, null);
 
   const failed = reduceScreen(junctionLoading, {
-    type: 'AUDIO_STARTED',
+    type: 'SCENE_STARTED',
     variant: rightVariant,
     startedAt: 1_000,
     seed: 123,
@@ -299,7 +365,7 @@ test('audio start shows every surface early, with motion only where eligible', (
 test('moving junction waits at approach end and freezes on answers and timeouts', () => {
   const loading = reduceScreen(setupModel(), { type: 'START_SESSION', session });
   let model = reduceScreen(loading, {
-    type: 'AUDIO_STARTED',
+    type: 'SCENE_STARTED',
     variant: rightVariant,
     startedAt: 1_000,
     seed: 123,
@@ -411,7 +477,7 @@ test('post-answer motion reducer state survives locale rerender and clears on Co
 test('initial moving audio failure is unscored and all trial resets clear motion fields', () => {
   const loading = reduceScreen(setupModel(), { type: 'START_SESSION', session });
   const started = reduceScreen(loading, {
-    type: 'AUDIO_STARTED',
+    type: 'SCENE_STARTED',
     variant: rightVariant,
     startedAt: 1_000,
     seed: 123,

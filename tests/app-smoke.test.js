@@ -186,6 +186,8 @@ test('browser controller coordinates moving junction audio, rendering, animation
   assert.match(source, /roadMotionView\(model\.roadMotion, Date\.now\(\)\)/);
   assert.match(source, /matchMedia\?\.\('\(prefers-reduced-motion: reduce\)'\)/);
   assert.match(source, /onStarted/);
+  assert.match(source, /type:\s*'SCENE_STARTED'/);
+  assert.match(source, /commandOnsetDelayMs\(motionEnabled\)/);
   assert.match(source, /type:\s*'AUDIO_STARTED'/);
   assert.match(source, /type:\s*'ROAD_APPROACH_ENDED'/);
   assert.match(source, /initialAudioPending/);
