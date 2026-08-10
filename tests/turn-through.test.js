@@ -1,0 +1,108 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { turnThroughIntro } from '../src/turn-through.js';
+
+const TARGETS = Object.freeze([
+  Object.freeze({ id: 'left', resultId: 'turn-left', kind: 'road', x: 15, y: 50, width: 18, height: 18 }),
+  Object.freeze({ id: 'right', resultId: 'turn-right', kind: 'road', x: 85, y: 50, width: 18, height: 18 }),
+  Object.freeze({ id: 'straight', resultId: 'go-straight', kind: 'road', x: 50, y: 15, width: 18, height: 18 })
+]);
+
+const JUNCTION_MODEL = Object.freeze({
+  family: 'junction',
+  expectedResult: 'turn-right',
+  targets: TARGETS,
+  geometry: Object.freeze({ sceneId: 'four-way-intersection-photo-v1' })
+});
+
+function intro(overrides = {}) {
+  return turnThroughIntro({
+    surfaceModel: JUNCTION_MODEL,
+    selectedTargetId: 'right',
+    outcome: 'unaided',
+    motionEnabled: true,
+    nextStepKind: 'transition',
+    ...overrides
+  });
+}
+
+test('produces a frozen intro toward the chosen road on a correct answer', () => {
+  const result = intro();
+  assert.ok(Object.isFrozen(result));
+  assert.deepEqual(result, {
+    sceneId: 'four-way-intersection-photo-v1',
+    asset: './assets/driving/four-way-intersection-photo-v1.webp',
+    dx: 12.25,
+    dy: 0,
+    scale: 1.22,
+    rotate: -2,
+    durationMs: 900
+  });
+});
+
+test('assisted answers also earn the intro', () => {
+  assert.ok(intro({ outcome: 'assisted' }));
+});
+
+test('is deterministic for identical inputs', () => {
+  assert.deepEqual(intro(), intro());
+});
+
+test('direction follows the chosen target: left, right, straight', () => {
+  const left = intro({ selectedTargetId: 'left' });
+  assert.ok(left.dx < 0);
+  assert.equal(left.rotate, 2);
+  const right = intro({ selectedTargetId: 'right' });
+  assert.ok(right.dx > 0);
+  assert.equal(right.rotate, -2);
+  const straight = intro({ selectedTargetId: 'straight' });
+  assert.equal(straight.dx, 0);
+  assert.equal(straight.rotate, 0);
+  assert.ok(straight.dy < 0);
+});
+
+test('roundabout exits pan toward the exit anchor', () => {
+  const roundabout = {
+    family: 'roundabout',
+    expectedResult: 'take-exit-2',
+    targets: [{ id: 'exit-2', resultId: 'take-exit-2', kind: 'road', x: 78, y: 30, width: 16, height: 16 }],
+    geometry: { sceneId: 'roundabout-four-photo-v2' }
+  };
+  const result = intro({ surfaceModel: roundabout, selectedTargetId: 'exit-2' });
+  assert.equal(result.sceneId, 'roundabout-four-photo-v2');
+  assert.equal(result.dx, 9.8);
+  assert.equal(result.dy, -7);
+  assert.equal(result.rotate, -2);
+});
+
+test('returns null for wrong or missing outcomes', () => {
+  assert.equal(intro({ outcome: 'incorrect' }), null);
+  assert.equal(intro({ outcome: null }), null);
+  assert.equal(intro({ outcome: undefined }), null);
+});
+
+test('returns null unless the next step is a transition', () => {
+  assert.equal(intro({ nextStepKind: 'command' }), null);
+  assert.equal(intro({ nextStepKind: 'null-event' }), null);
+  assert.equal(intro({ nextStepKind: null }), null);
+});
+
+test('returns null when motion is disabled', () => {
+  assert.equal(intro({ motionEnabled: false }), null);
+  assert.equal(intro({ motionEnabled: undefined }), null);
+});
+
+test('returns null for ineligible families and missing surface models', () => {
+  assert.equal(intro({ surfaceModel: { ...JUNCTION_MODEL, family: 'listen-only' } }), null);
+  assert.equal(intro({ surfaceModel: null }), null);
+});
+
+test('returns null when the selected target is unknown', () => {
+  assert.equal(intro({ selectedTargetId: 'no-such-road' }), null);
+  assert.equal(intro({ selectedTargetId: null }), null);
+});
+
+test('returns null when the scene does not resolve to a photo asset', () => {
+  assert.equal(intro({ surfaceModel: { ...JUNCTION_MODEL, geometry: { sceneId: 'unknown-scene' } } }), null);
+  assert.equal(intro({ surfaceModel: { ...JUNCTION_MODEL, geometry: {} } }), null);
+});

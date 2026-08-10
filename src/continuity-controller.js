@@ -41,7 +41,7 @@ export function currentContinuityStep(activeSession) {
   return continuity.route[continuity.nextRouteStepIndex] ?? null;
 }
 
-export function continuityTransitionViewModel(step, { motionEnabled, progressText }) {
+export function continuityTransitionViewModel(step, { motionEnabled, progressText, intro = null }) {
   if (!step || step.kind !== 'transition') throw new Error('Invalid continuity transition step');
   const family = ROUTE_FAMILY[step.sceneId];
   if (!family) throw new Error(`Unknown continuity route scene: ${String(step.sceneId)}`);
@@ -50,7 +50,8 @@ export function continuityTransitionViewModel(step, { motionEnabled, progressTex
     sceneId: CONTINUITY_SCENE_FAMILIES[family].sceneId,
     progressText,
     motionEnabled,
-    sceneTappable: true
+    sceneTappable: true,
+    intro
   });
 }
 

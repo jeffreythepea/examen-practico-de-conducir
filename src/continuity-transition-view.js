@@ -43,7 +43,8 @@ export const CONTINUITY_SCENE_FAMILIES = deepFreeze({
  *   progressText: string,
  *   motionEnabled: boolean,
  *   sceneTappable?: boolean,
- *   camera?: { startScale: number, endScale: number, originX: number, originY: number, durationMs: number }
+ *   camera?: { startScale: number, endScale: number, originX: number, originY: number, durationMs: number },
+ *   intro?: { sceneId: string, asset: string, dx: number, dy: number, scale: number, rotate: number, durationMs: number }
  * }} viewModel
  * @param {'en'|'es'} locale
  * @returns {string}
@@ -57,9 +58,16 @@ export function renderContinuityTransition(viewModel, locale) {
   const copy = COPY[locale];
   const camera = model.camera ?? scene.camera;
   const style = model.motionEnabled ? ` style="${cameraStyle(camera)}"` : '';
+  // The intro is a decorative overlay of the answered scene that pans into the
+  // chosen road and fades out over the cruise push already running underneath.
+  const intro = model.motionEnabled && model.intro
+    ? `<span class="continuity-transition-image-frame turn-through-intro" aria-hidden="true" data-turn-through-scene="${escapeAttribute(model.intro.sceneId)}" style="${introStyle(model.intro)}">
+          <img src="${escapeAttribute(model.intro.asset)}" alt="" aria-hidden="true">
+        </span>`
+    : '';
   const image = `<span class="continuity-transition-image-frame"${style}>
           <img src="${escapeAttribute(scene.asset)}" alt="" aria-hidden="true">
-        </span>`;
+        </span>${intro}`;
   const sceneMarkup = model.sceneTappable
     ? `<button type="button" class="continuity-transition-scene" data-action="skip-continuity-transition" aria-label="${escapeAttribute(copy.skipTransition)}">
         ${image}
@@ -94,6 +102,7 @@ function validateViewModel(viewModel) {
     throw new Error('Continuity sceneTappable must be boolean');
   }
   if (viewModel.camera !== undefined) validateCamera(viewModel.camera);
+  if (viewModel.intro !== undefined && viewModel.intro !== null) validateIntro(viewModel.intro);
 
   return {
     family: viewModel.family,
@@ -101,8 +110,26 @@ function validateViewModel(viewModel) {
     progressText: viewModel.progressText,
     motionEnabled: viewModel.motionEnabled,
     sceneTappable: viewModel.sceneTappable ?? true,
-    camera: viewModel.camera
+    camera: viewModel.camera,
+    intro: viewModel.intro ?? null
   };
+}
+
+function validateIntro(intro) {
+  if (!intro || typeof intro !== 'object' || Array.isArray(intro)) {
+    throw new Error('Invalid turn-through intro');
+  }
+  if (typeof intro.sceneId !== 'string' || intro.sceneId.length === 0
+      || typeof intro.asset !== 'string' || intro.asset.length === 0) {
+    throw new Error('Invalid turn-through intro');
+  }
+  const numbers = [intro.dx, intro.dy, intro.scale, intro.rotate, intro.durationMs];
+  if (!numbers.every(value => typeof value === 'number' && Number.isFinite(value))) {
+    throw new Error('Invalid turn-through intro');
+  }
+  if (intro.scale <= 0 || intro.durationMs <= 0 || intro.durationMs > 10_000) {
+    throw new Error('Invalid turn-through intro');
+  }
 }
 
 function validateCamera(camera) {
@@ -119,6 +146,16 @@ function validateCamera(camera) {
       || camera.durationMs < 0 || camera.durationMs > 10_000) {
     throw new Error('Invalid continuity camera');
   }
+}
+
+function introStyle(intro) {
+  return [
+    `--turn-dx:${intro.dx}%`,
+    `--turn-dy:${intro.dy}%`,
+    `--turn-scale:${intro.scale}`,
+    `--turn-rotate:${intro.rotate}deg`,
+    `--turn-duration:${intro.durationMs}ms`
+  ].join(';');
 }
 
 function cameraStyle(camera) {

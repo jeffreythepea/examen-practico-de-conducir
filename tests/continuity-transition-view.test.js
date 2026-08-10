@@ -135,3 +135,60 @@ test('scoped CSS supplies touch, focus, landscape, lower-edge, and reduced-motio
   assert.match(section, /@media \(orientation: landscape\)[\s\S]*\.continuity-transition-stage/);
   assert.match(section, /@media \(prefers-reduced-motion: reduce\)[\s\S]*animation:\s*none/);
 });
+
+const INTRO = Object.freeze({
+  sceneId: 'four-way-intersection-photo-v1',
+  asset: './assets/driving/four-way-intersection-photo-v1.webp',
+  dx: 12.25,
+  dy: 0,
+  scale: 1.22,
+  rotate: -2,
+  durationMs: 900
+});
+
+test('renders a decorative turn-through intro overlay when supplied', () => {
+  const html = render({ intro: INTRO });
+  assert.match(html, /class="continuity-transition-image-frame turn-through-intro"[^>]*aria-hidden="true"/);
+  assert.match(html, /data-turn-through-scene="four-way-intersection-photo-v1"/);
+  assert.match(html, /--turn-dx:12\.25%/);
+  assert.match(html, /--turn-dy:0%/);
+  assert.match(html, /--turn-scale:1\.22/);
+  assert.match(html, /--turn-rotate:-2deg/);
+  assert.match(html, /--turn-duration:900ms/);
+  assert.match(html, /src="\.\/assets\/driving\/four-way-intersection-photo-v1\.webp"/);
+});
+
+test('omits the intro overlay when absent, null, or motion is disabled', () => {
+  assert.doesNotMatch(render(), /turn-through-intro/);
+  assert.doesNotMatch(render({ intro: null }), /turn-through-intro/);
+  assert.doesNotMatch(render({ intro: INTRO, motionEnabled: false }), /turn-through-intro/);
+});
+
+test('keeps the main camera frame unchanged when the intro is present', () => {
+  const camera = { startScale: 1, endScale: 1.08, originX: 52, originY: 86, durationMs: 2100 };
+  const plain = render({ camera });
+  const withIntro = render({ camera, intro: INTRO });
+  const mainFrame = /<span class="continuity-transition-image-frame"[^>]*>[\s\S]*?<\/span>/;
+  assert.equal(withIntro.match(mainFrame)?.[0], plain.match(mainFrame)?.[0]);
+  assert.match(withIntro, /--continuity-end-scale:1\.08/);
+});
+
+test('rejects malformed turn-through intros', () => {
+  assert.throws(() => render({ intro: 'zoom' }), /turn-through intro/i);
+  assert.throws(() => render({ intro: { ...INTRO, asset: '' } }), /turn-through intro/i);
+  assert.throws(() => render({ intro: { ...INTRO, dx: Number.NaN } }), /turn-through intro/i);
+  assert.throws(() => render({ intro: { ...INTRO, scale: 0 } }), /turn-through intro/i);
+  assert.throws(() => render({ intro: { ...INTRO, durationMs: 60_000 } }), /turn-through intro/i);
+});
+
+test('scoped CSS animates the intro and hides it under reduced motion', async () => {
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  const section = css.slice(
+    css.indexOf('/* continuity-transition:start */'),
+    css.indexOf('/* continuity-transition:end */')
+  );
+  assert.match(section, /@keyframes turn-through-pan/);
+  assert.match(section, /\.turn-through-intro[\s\S]*pointer-events:\s*none/);
+  assert.match(section, /calc\(var\(--turn-dx, 0%\) \* -1\)/);
+  assert.match(section, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.turn-through-intro[\s\S]*display:\s*none/);
+});
