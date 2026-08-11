@@ -127,6 +127,15 @@ button:disabled {
   color: var(--muted);
 }
 
+.app-header.compact {
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.app-header.compact h1 {
+  font-size: clamp(1.05rem, 2.5vw, 1.3rem);
+}
+
 .language-switch {
   display: flex;
   flex: 0 0 auto;
@@ -499,6 +508,39 @@ hr {
   grid-column: 1 / -1;
 }
 
+/* Mid-drive the read-only session facts collapse to one quiet line; the
+   chip labels and examiner description stay in the accessibility tree. */
+.session-identity.compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.session-identity.compact .identity-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.session-identity.compact .identity-chip > span:first-child,
+.session-identity.compact .identity-chip small {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.session-identity.compact .identity-chip strong {
+  font-size: 0.85rem;
+}
+
 .examiner-token-stack {
   display: inline-flex;
   gap: 2px;
@@ -581,6 +623,26 @@ hr {
   width: min(100%, 620px);
   margin: 1.5rem auto 0;
   aspect-ratio: 1;
+}
+
+/* Mid-drive the stage takes the width the collapsed chrome freed up,
+   height-capped per aspect ratio so tall viewports never overflow. */
+.gameplay-surface .surface-stage {
+  width: min(100%, 76vh);
+  margin-top: 1rem;
+}
+
+.gameplay-surface .surface-stage.precheck {
+  width: min(100%, 96vh);
+}
+
+.gameplay-surface .surface-stage.driving-photo-stage {
+  width: min(100%, 108vh);
+}
+
+.gameplay-surface .yaris-surface {
+  max-width: min(100%, 102vh);
+  padding-inline: 0;
 }
 
 .surface-stage.precheck {
@@ -2285,7 +2347,7 @@ dd {
   }
 
   .prompt-layout {
-    grid-template-columns: minmax(250px, 0.75fr) minmax(0, 1.25fr);
+    grid-template-columns: minmax(220px, 0.55fr) minmax(0, 1.45fr);
   }
 
   .reveal-layout {
@@ -2302,8 +2364,16 @@ dd {
   }
 
   .gameplay-surface .surface-stage {
-    width: min(100%, 60vh);
+    width: min(100%, 66vh);
     margin-top: 0;
+  }
+
+  .gameplay-surface .surface-stage.precheck {
+    width: min(100%, 88vh);
+  }
+
+  .gameplay-surface .surface-stage.driving-photo-stage {
+    width: min(100%, 99vh);
   }
 
   .gameplay-feedback .answer-details {
@@ -2314,7 +2384,7 @@ dd {
 /* continuity-transition:start */
 .continuity-transition {
   display: grid;
-  width: min(100%, 760px);
+  width: min(100%, 110vh);
   justify-items: center;
   gap: 0.75rem;
   margin-inline: auto;
@@ -2329,7 +2399,7 @@ dd {
 }
 
 .continuity-transition-stage {
-  width: min(100%, 720px);
+  width: min(100%, 108vh);
   aspect-ratio: 3 / 2;
   overflow: hidden;
   contain: layout paint;
@@ -2479,8 +2549,8 @@ button.continuity-transition-scene {
 
 @media (orientation: landscape) and (min-width: 900px) {
   .continuity-transition-stage {
-    width: min(100%, 72vh, 720px);
-    max-height: min(66vh, 480px);
+    width: min(100%, 100vh, 900px);
+    max-height: min(70vh, 600px);
   }
 }
 

@@ -1272,24 +1272,38 @@ async function bootstrap() {
     }
   }
 
+  // Screens rendered mid-drive collapse the chrome so the scene gets the
+  // space; the full header (subtitle + bilingual AI-voice disclosure) stays
+  // on every setup/results surface, so the disclosure moves, never disappears.
+  function gameplayScreen() {
+    return ['loading-audio', 'prompt', 'reveal', 'mock-transition', 'null-event'].includes(model.screen);
+  }
+
   function renderHeader() {
+    const languageSwitch = `<div class="language-switch" role="group" aria-label="${translate(locale(), 'setting.language')}">
+        <button type="button" data-locale="en" aria-pressed="${locale() === 'en'}">EN</button>
+        <button type="button" data-locale="es" aria-pressed="${locale() === 'es'}">ES</button>
+      </div>`;
+    if (gameplayScreen()) {
+      return `<header class="app-header compact">
+      <h1>${translate(locale(), 'app.shortTitle')}</h1>
+      ${languageSwitch}
+    </header>`;
+    }
     return `<header class="app-header">
       <div>
         <h1>${translate(locale(), 'app.shortTitle')}</h1>
         <p>${translate(locale(), 'app.subtitle')}</p>
         <p class="audio-disclosure">${translate(locale(), 'audio.disclosure')}</p>
       </div>
-      <div class="language-switch" role="group" aria-label="${translate(locale(), 'setting.language')}">
-        <button type="button" data-locale="en" aria-pressed="${locale() === 'en'}">EN</button>
-        <button type="button" data-locale="es" aria-pressed="${locale() === 'es'}">ES</button>
-      </div>
+      ${languageSwitch}
     </header>`;
   }
 
   function renderSessionIdentity() {
     if (!model.experience) return '';
     const identity = sessionIdentityData(model.experience);
-    return `<aside class="session-identity" aria-label="${translate(locale(), 'session.identity')}">
+    return `<aside class="session-identity${gameplayScreen() ? ' compact' : ''}" aria-label="${translate(locale(), 'session.identity')}">
       <div class="identity-chip"><span>${translate(locale(), 'session.mode')}</span><strong>${translate(locale(), identity.modeTitleKey)}</strong></div>
       <div class="identity-chip"><span>${translate(locale(), 'session.theme')}</span><strong>${translate(locale(), identity.themeTitleKey)}</strong></div>
       <div class="identity-chip examiner-identity">
@@ -1559,7 +1573,6 @@ async function bootstrap() {
       <div class="gameplay-layout prompt-layout">
         <div class="gameplay-copy">
           <h2 id="prompt-title" data-screen-focus tabindex="-1">${translate(locale(), 'screen.prompt')}</h2>
-          <p>${translate(locale(), 'prompt.listen')}</p>
           <p class="sr-status" role="status">${translate(locale(), model.initialAudioPending ? 'status.audioPlaying' : 'status.audioReady')}</p>
           <div class="prompt-actions">
             ${model.experience?.replayPolicy !== 'none'
@@ -1703,7 +1716,6 @@ async function bootstrap() {
       <div class="gameplay-layout prompt-layout">
         <div class="gameplay-copy">
           <h2 id="prompt-title" data-screen-focus tabindex="-1">${translate(locale(), 'screen.prompt')}</h2>
-          <p>${translate(locale(), 'prompt.listen')}</p>
           ${noticeKey ? `<p class="notice" role="status">${translate(locale(), noticeKey)}</p>` : ''}
         </div>
         ${model.activeSurfaceModel

@@ -42,9 +42,9 @@ test('the shared gameplay layout becomes two columns only in wide landscape', as
   assert.doesNotMatch(globalCss, /\.gameplay-layout\s*\{[^}]*display:\s*grid;/s);
   assert.match(landscapeCss, /#app\s*\{[^}]*width:\s*min\(100%,\s*1180px\);/s);
   assert.match(landscapeCss, /\.gameplay-layout\s*\{[^}]*display:\s*grid;/s);
-  assert.match(landscapeCss, /\.prompt-layout\s*\{[^}]*grid-template-columns:\s*minmax\(250px,\s*0\.75fr\)\s*minmax\(0,\s*1\.25fr\);/s);
+  assert.match(landscapeCss, /\.prompt-layout\s*\{[^}]*grid-template-columns:\s*minmax\(220px,\s*0\.55fr\)\s*minmax\(0,\s*1\.45fr\);/s);
   assert.match(landscapeCss, /\.reveal-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1\.25fr\)\s*minmax\(300px,\s*0\.75fr\);/s);
-  assert.match(landscapeCss, /\.gameplay-surface \.surface-stage\s*\{[^}]*width:\s*min\(100%,\s*60vh\);/s);
+  assert.match(landscapeCss, /\.gameplay-surface \.surface-stage\s*\{[^}]*width:\s*min\(100%,\s*66vh\);/s);
 });
 
 test('wrong answers get a brief, reduced-motion-safe bump distinct from the reveal outcome color', async () => {
@@ -172,6 +172,25 @@ test('prompts, neutral Mock transitions, and results show compact localized sess
   assert.match(css, /@media \(orientation: landscape\) and \(min-width: 900px\)[\s\S]*?\.session-identity/);
 });
 
+test('gameplay screens collapse the chrome and grow the stage while the AI-voice disclosure stays on setup surfaces', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+
+  assert.match(source, /function gameplayScreen\(\)/);
+  assert.match(source, /class="app-header compact"/);
+  assert.match(source, /class="audio-disclosure">\$\{translate\(locale\(\), 'audio\.disclosure'\)\}/,
+    'the bilingual AI-voice disclosure must stay in the full header');
+  assert.match(source, /class="session-identity\$\{gameplayScreen\(\) \? ' compact' : ''\}"/);
+  assert.doesNotMatch(source, /<p>\$\{translate\(locale\(\), 'prompt\.listen'\)\}<\/p>/,
+    'the prompt h2 is not restated as an instruction sentence mid-drive');
+
+  assert.match(css, /\.app-header\.compact/);
+  assert.match(css, /\.session-identity\.compact/);
+  assert.match(css, /\.gameplay-surface \.surface-stage\.driving-photo-stage\s*\{[^}]*width:\s*min\(100%,\s*108vh\);/s);
+  assert.match(css, /\.continuity-transition-stage\s*\{[^}]*width:\s*min\(100%,\s*108vh\);/s,
+    'transition clips get the same enlarged stage');
+});
+
 test('app enables incomplete static-audio sessions only through supported browser speech', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
@@ -203,7 +222,7 @@ test('null events render silently with live targets and never reach attempt reco
   assert.match(source, /function renderNullEvent\(\)/);
   const view = source.slice(source.indexOf('function renderNullEvent()'), source.indexOf('function renderResults()'));
   assert.doesNotMatch(view, /data-action="replay"|show-spanish|data-timer/);
-  assert.match(view, /prompt\.listen/, 'silence keeps the standard examiner framing');
+  assert.match(view, /id="prompt-title"[^>]*>\$\{translate\(locale\(\), 'screen\.prompt'\)\}/, 'silence keeps the standard examiner framing (same prompt heading as spoken commands)');
   assert.match(view, /nullEvent\.neutral/, 'mock mode withholds correct/incorrect framing');
 
   const binder = source.slice(source.indexOf('function bindNullEventEvents()'), source.indexOf('function bindResultsEvents()'));
