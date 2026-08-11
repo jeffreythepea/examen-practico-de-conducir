@@ -1887,7 +1887,8 @@ test('a correct Continue into a transition carries turn-through source data', ()
     family: 'junction',
     targetX: target.x,
     targetY: target.y,
-    outcome: 'unaided'
+    outcome: 'unaided',
+    pose: null
   });
 
   const assisted = reduceScreen(promptModel({ textShown: true }), {
@@ -1897,6 +1898,18 @@ test('a correct Continue into a transition carries turn-through source data', ()
     reduceScreen(assisted, { type: 'CONTINUE', stepKind: 'transition' }).turnThrough.outcome,
     'assisted'
   );
+});
+
+test('a motion-enabled correct Continue carries the frozen road-motion pose', () => {
+  let model = reduceScreen(setupModel(), { type: 'START_SESSION', session });
+  model = reduceScreen(model, { type: 'SCENE_STARTED', seed: 123, motionEnabled: true, startedAt: 0 });
+  model = reduceScreen(model, { type: 'AUDIO_COMPLETED', variant: rightVariant, completedAt: 1_000 });
+  model = reduceScreen(model, {
+    type: 'SELECT_RESULT', selectedResult: 'turn-right', completedAt: 6_001
+  });
+  assert.equal(model.outcome, 'unaided');
+  const transitioned = reduceScreen(model, { type: 'CONTINUE', stepKind: 'transition' });
+  assert.deepEqual(transitioned.turnThrough.pose, { scale: 1.06, originX: 50, originY: 82 });
 });
 
 test('wrong answers and timeouts continue into a plain transition', () => {

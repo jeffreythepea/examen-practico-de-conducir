@@ -2397,7 +2397,9 @@ button.continuity-transition-scene {
   position: absolute;
   inset: 0;
   transform: none;
-  transform-origin: 50% 50%;
+  /* The whole turn runs about the pose the answered scene froze in, so the
+     first frame matches the reveal exactly (no zoom-out pop at Continue). */
+  transform-origin: var(--turn-origin-x, 50%) var(--turn-origin-y, 50%);
   pointer-events: none;
 }
 
@@ -2411,7 +2413,7 @@ button.continuity-transition-scene {
   0% {
     opacity: 1;
     filter: blur(0);
-    transform: perspective(800px) translate(0, 0) scale(1) rotate(0deg);
+    transform: perspective(800px) translate(0, 0) scale(var(--turn-start-scale, 1)) rotate(0deg);
   }
 
   45% {
@@ -2420,7 +2422,7 @@ button.continuity-transition-scene {
     transform:
       perspective(800px)
       translate(calc(var(--turn-dx, 0%) * -0.3), calc(var(--turn-dy, 0%) * -0.3))
-      scale(1.12)
+      scale(var(--turn-mid-scale, 1.12))
       rotate(var(--turn-rotate, 0deg));
   }
 
@@ -2430,7 +2432,7 @@ button.continuity-transition-scene {
     transform:
       perspective(800px)
       translate(calc(var(--turn-dx, 0%) * -0.85), calc(var(--turn-dy, 0%) * -0.85))
-      scale(1.2)
+      scale(var(--turn-turn-scale, 1.2))
       rotate(var(--turn-rotate, 0deg))
       rotateY(var(--turn-yaw, 0deg));
   }

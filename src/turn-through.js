@@ -13,6 +13,14 @@ const YAW_MIN_DEGREES = 8;
 const YAW_MAX_DEGREES = 16;
 // Fraction of dx the cruise photo starts counter-offset by before settling.
 const SETTLE_GAIN = 0.25;
+// Scale checkpoints for the two-beat keyframes. The approach beat must never
+// zoom out, so the mid checkpoint rides above whatever pose the answered
+// scene froze at (road-motion profiles reach 1.18 on overtaking).
+const MID_SCALE_FLOOR = 1.12;
+const MID_SCALE_LIFT = 0.06;
+const END_SCALE = 1.3;
+const TURN_BEAT_FRACTION = 0.45;
+const MAX_START_SCALE = 1.5;
 
 /**
  * First-person "drive into the chosen road" intro for a cruise transition.
@@ -25,16 +33,18 @@ const SETTLE_GAIN = 0.25;
  *   selectedTargetId: string|null,
  *   outcome: string|null,
  *   motionEnabled: boolean,
- *   nextStepKind: string|null
+ *   nextStepKind: string|null,
+ *   startPose?: { scale: number, originX: number, originY: number }|null
  * }} input
- * @returns {Readonly<{ sceneId: string, asset: string, dx: number, dy: number, scale: number, rotate: number, yawDeg: number, settleDx: number, durationMs: number }>|null}
+ * @returns {Readonly<{ sceneId: string, asset: string, dx: number, dy: number, scale: number, rotate: number, yawDeg: number, settleDx: number, startScale: number, midScale: number, turnScale: number, originX: number, originY: number, durationMs: number }>|null}
  */
 export function turnThroughIntro({
   surfaceModel,
   selectedTargetId,
   outcome,
   motionEnabled,
-  nextStepKind
+  nextStepKind,
+  startPose = null
 } = {}) {
   if (!CORRECT_OUTCOMES.has(outcome)) return null;
   if (nextStepKind !== 'transition') return null;
@@ -60,6 +70,11 @@ export function turnThroughIntro({
     YAW_MAX_DEGREES,
     Math.max(YAW_MIN_DEGREES, Math.abs(dx) * YAW_GAIN)
   );
+  // The intro opens at the pose the answered scene froze in, so Continue
+  // reads as one camera move instead of a zoom-out pop. Invalid or missing
+  // poses fall back to the identity pose (today's behaviour).
+  const pose = normalizePose(startPose);
+  const midScale = round(Math.max(MID_SCALE_FLOOR, pose.scale + MID_SCALE_LIFT));
   return Object.freeze({
     sceneId,
     asset: scene.asset,
@@ -69,8 +84,27 @@ export function turnThroughIntro({
     rotate: dx === 0 ? 0 : dx > 0 ? -INTRO_LEAN_DEGREES : INTRO_LEAN_DEGREES,
     yawDeg: dx === 0 ? 0 : round(dx > 0 ? -yawMagnitude : yawMagnitude),
     settleDx: round(-dx * SETTLE_GAIN),
+    startScale: pose.scale,
+    midScale,
+    turnScale: round(midScale + (END_SCALE - midScale) * TURN_BEAT_FRACTION),
+    originX: pose.originX,
+    originY: pose.originY,
     durationMs: INTRO_DURATION_MS
   });
+}
+
+function normalizePose(startPose) {
+  const valid = startPose
+    && typeof startPose === 'object'
+    && typeof startPose.scale === 'number'
+    && Number.isFinite(startPose.scale)
+    && startPose.scale >= 1
+    && startPose.scale <= MAX_START_SCALE
+    && inStage(startPose.originX)
+    && inStage(startPose.originY);
+  return valid
+    ? { scale: round(startPose.scale), originX: round(startPose.originX), originY: round(startPose.originY) }
+    : { scale: 1, originX: 50, originY: 50 };
 }
 
 function inStage(value) {

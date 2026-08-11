@@ -44,7 +44,7 @@ export const CONTINUITY_SCENE_FAMILIES = deepFreeze({
  *   motionEnabled: boolean,
  *   sceneTappable?: boolean,
  *   camera?: { startScale: number, endScale: number, originX: number, originY: number, durationMs: number },
- *   intro?: { sceneId: string, asset: string, dx: number, dy: number, scale: number, rotate: number, yawDeg: number, settleDx: number, durationMs: number }
+ *   intro?: { sceneId: string, asset: string, dx: number, dy: number, scale: number, rotate: number, yawDeg: number, settleDx: number, startScale: number, midScale: number, turnScale: number, originX: number, originY: number, durationMs: number }
  * }} viewModel
  * @param {'en'|'es'} locale
  * @returns {string}
@@ -128,11 +128,20 @@ function validateIntro(intro) {
       || typeof intro.asset !== 'string' || intro.asset.length === 0) {
     throw new Error('Invalid turn-through intro');
   }
-  const numbers = [intro.dx, intro.dy, intro.scale, intro.rotate, intro.yawDeg, intro.settleDx, intro.durationMs];
+  const numbers = [
+    intro.dx, intro.dy, intro.scale, intro.rotate, intro.yawDeg, intro.settleDx,
+    intro.startScale, intro.midScale, intro.turnScale, intro.originX, intro.originY,
+    intro.durationMs
+  ];
   if (!numbers.every(value => typeof value === 'number' && Number.isFinite(value))) {
     throw new Error('Invalid turn-through intro');
   }
   if (intro.scale <= 0 || intro.durationMs <= 0 || intro.durationMs > 10_000) {
+    throw new Error('Invalid turn-through intro');
+  }
+  if (intro.startScale <= 0 || intro.midScale <= 0 || intro.turnScale <= 0
+      || intro.originX < 0 || intro.originX > 100
+      || intro.originY < 0 || intro.originY > 100) {
     throw new Error('Invalid turn-through intro');
   }
 }
@@ -160,6 +169,11 @@ function introStyle(intro) {
     `--turn-scale:${intro.scale}`,
     `--turn-rotate:${intro.rotate}deg`,
     `--turn-yaw:${intro.yawDeg}deg`,
+    `--turn-start-scale:${intro.startScale}`,
+    `--turn-mid-scale:${intro.midScale}`,
+    `--turn-turn-scale:${intro.turnScale}`,
+    `--turn-origin-x:${intro.originX}%`,
+    `--turn-origin-y:${intro.originY}%`,
     `--turn-duration:${intro.durationMs}ms`
   ].join(';');
 }

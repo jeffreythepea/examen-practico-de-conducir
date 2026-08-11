@@ -1007,8 +1007,22 @@ function turnThroughSource(model) {
     family: surfaceModel.family,
     targetX: target.x,
     targetY: target.y,
-    outcome: model.outcome
+    outcome: model.outcome,
+    pose: frozenRoadMotionPose(model.roadMotion)
   };
+}
+
+// The pose the answered scene froze in (correct answers always reach the
+// reveal with road motion frozen), so the turn-through can open from it.
+function frozenRoadMotionPose(roadMotion) {
+  if (!roadMotion) return null;
+  try {
+    const view = roadMotionView(roadMotion, Date.now());
+    if (view.scale <= 1) return null;
+    return { scale: view.scale, originX: view.origin.x, originY: view.origin.y };
+  } catch {
+    return null;
+  }
 }
 
 function reveal(model, { selectedResult, selectedTargetId, surfaceResponse, correct, timeout, completedAt }) {
@@ -1625,7 +1639,8 @@ async function bootstrap() {
       selectedTargetId: 'chosen',
       outcome: source.outcome,
       motionEnabled,
-      nextStepKind: 'transition'
+      nextStepKind: 'transition',
+      startPose: source.pose ?? null
     });
   }
 

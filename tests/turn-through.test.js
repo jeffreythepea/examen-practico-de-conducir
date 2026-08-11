@@ -38,8 +38,45 @@ test('produces a frozen intro toward the chosen road on a correct answer', () =>
     rotate: -2,
     yawDeg: -13.48,
     settleDx: -3.06,
+    startScale: 1,
+    midScale: 1.12,
+    turnScale: 1.2,
+    originX: 50,
+    originY: 50,
     durationMs: 1400
   });
+});
+
+test('a frozen road-motion pose carries into the intro start', () => {
+  const posed = intro({ startPose: { scale: 1.06, originX: 50, originY: 82 } });
+  assert.equal(posed.startScale, 1.06);
+  assert.equal(posed.midScale, 1.12);
+  assert.equal(posed.originX, 50);
+  assert.equal(posed.originY, 82);
+});
+
+test('the mid and turn beats never zoom out below a deep start pose', () => {
+  const deep = intro({ startPose: { scale: 1.18, originX: 54, originY: 86 } });
+  assert.equal(deep.startScale, 1.18);
+  assert.equal(deep.midScale, 1.24);
+  assert.ok(deep.turnScale > deep.midScale);
+  assert.ok(deep.turnScale < 1.3);
+});
+
+test('invalid start poses fall back to the identity pose', () => {
+  for (const startPose of [
+    null,
+    'pose',
+    { scale: 0.8, originX: 50, originY: 82 },
+    { scale: 2.4, originX: 50, originY: 82 },
+    { scale: 1.06, originX: -5, originY: 82 },
+    { scale: Number.NaN, originX: 50, originY: 82 }
+  ]) {
+    const result = intro({ startPose });
+    assert.equal(result.startScale, 1);
+    assert.equal(result.originX, 50);
+    assert.equal(result.originY, 50);
+  }
 });
 
 test('assisted answers also earn the intro', () => {

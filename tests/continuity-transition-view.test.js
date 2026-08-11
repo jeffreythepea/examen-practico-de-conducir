@@ -145,6 +145,11 @@ const INTRO = Object.freeze({
   rotate: -2,
   yawDeg: -13.48,
   settleDx: -3.06,
+  startScale: 1.06,
+  midScale: 1.12,
+  turnScale: 1.2,
+  originX: 50,
+  originY: 82,
   durationMs: 1400
 });
 
@@ -157,6 +162,11 @@ test('renders a decorative turn-through intro overlay when supplied', () => {
   assert.match(html, /--turn-scale:1\.22/);
   assert.match(html, /--turn-rotate:-2deg/);
   assert.match(html, /--turn-yaw:-13\.48deg/);
+  assert.match(html, /--turn-start-scale:1\.06/);
+  assert.match(html, /--turn-mid-scale:1\.12/);
+  assert.match(html, /--turn-turn-scale:1\.2/);
+  assert.match(html, /--turn-origin-x:50%/);
+  assert.match(html, /--turn-origin-y:82%/);
   assert.match(html, /--turn-duration:1400ms/);
   assert.match(html, /src="\.\/assets\/driving\/four-way-intersection-photo-v1\.webp"/);
 });
@@ -196,6 +206,9 @@ test('rejects malformed turn-through intros', () => {
   assert.throws(() => render({ intro: { ...INTRO, scale: 0 } }), /turn-through intro/i);
   assert.throws(() => render({ intro: { ...INTRO, yawDeg: 'right' } }), /turn-through intro/i);
   assert.throws(() => render({ intro: { ...INTRO, settleDx: Number.POSITIVE_INFINITY } }), /turn-through intro/i);
+  assert.throws(() => render({ intro: { ...INTRO, startScale: 0 } }), /turn-through intro/i);
+  assert.throws(() => render({ intro: { ...INTRO, originX: 120 } }), /turn-through intro/i);
+  assert.throws(() => render({ intro: { ...INTRO, originY: undefined } }), /turn-through intro/i);
   assert.throws(() => render({ intro: { ...INTRO, durationMs: 60_000 } }), /turn-through intro/i);
 });
 
@@ -219,6 +232,8 @@ test('scoped CSS drives the perspective turn, blur ramp, and cruise settle', asy
   );
   assert.match(section, /@keyframes turn-through-pan[\s\S]*perspective\(/);
   assert.match(section, /rotateY\(var\(--turn-yaw/);
+  assert.match(section, /scale\(var\(--turn-start-scale, 1\)\)/);
+  assert.match(section, /\.turn-through-intro[\s\S]*transform-origin:\s*var\(--turn-origin-x, 50%\) var\(--turn-origin-y, 50%\)/);
   assert.match(section, /@keyframes turn-through-pan[\s\S]*filter:\s*blur\(2px\)/);
   assert.match(section, /@keyframes cruise-settle[\s\S]*translateX\(var\(--settle-dx/);
   assert.match(section, /img\[data-turn-settle="true"\][\s\S]*animation:\s*cruise-settle/);
