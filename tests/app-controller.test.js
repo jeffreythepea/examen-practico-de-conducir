@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  adoptStableImages,
   captureFocusSnapshot,
   lessonEditorDraftFromForm,
   persistedActiveSessionAfterAttempt,
@@ -114,4 +115,61 @@ test('resolve and save actions restore focus to the corresponding lesson note co
     assert.equal(restoreFocusSnapshot(app, snapshot), true);
     assert.equal(focused, 1);
   }
+});
+
+function fakeImage(attributes) {
+  const map = new Map(Object.entries(attributes));
+  const node = {
+    get attributes() {
+      return [...map.entries()].map(([name, value]) => ({ name, value }));
+    },
+    getAttribute: name => (map.has(name) ? map.get(name) : null),
+    setAttribute(name, value) { map.set(name, value); },
+    removeAttribute(name) { map.delete(name); },
+    hasAttribute: name => map.has(name),
+    replacedWith: null,
+    replaceWith(replacement) { node.replacedWith = replacement; }
+  };
+  return node;
+}
+
+function fakeTree(images) {
+  return { querySelectorAll: selector => (selector === 'img' ? images : []) };
+}
+
+test('re-renders adopt the previous scene image node when the asset is unchanged', () => {
+  const previous = fakeImage({
+    src: './assets/driving/four-way-intersection-photo-v1.webp',
+    class: 'driving-scene-image',
+    alt: 'Junction ahead',
+    'data-stale': 'yes'
+  });
+  const next = fakeImage({
+    src: './assets/driving/four-way-intersection-photo-v1.webp',
+    class: 'driving-scene-image',
+    alt: 'Cruce más adelante'
+  });
+
+  assert.equal(adoptStableImages(fakeTree([previous]), fakeTree([next])), 1);
+  assert.equal(next.replacedWith, previous, 'live node keeps its identity across the re-render');
+  assert.equal(previous.getAttribute('alt'), 'Cruce más adelante');
+  assert.equal(previous.hasAttribute('data-stale'), false);
+});
+
+test('a scene change renders the new image instead of adopting the old node', () => {
+  const previous = fakeImage({ src: './assets/driving/urban-roadside-photo-v1.webp' });
+  const next = fakeImage({ src: './assets/driving/overtaking-photo-v1.webp' });
+
+  assert.equal(adoptStableImages(fakeTree([previous]), fakeTree([next])), 0);
+  assert.equal(next.replacedWith, null);
+});
+
+test('each retained image is adopted at most once', () => {
+  const previous = fakeImage({ src: './assets/a.webp' });
+  const first = fakeImage({ src: './assets/a.webp' });
+  const second = fakeImage({ src: './assets/a.webp' });
+
+  assert.equal(adoptStableImages(fakeTree([previous]), fakeTree([first, second])), 1);
+  assert.equal(first.replacedWith, previous);
+  assert.equal(second.replacedWith, null);
 });

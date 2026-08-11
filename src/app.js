@@ -365,6 +365,36 @@ export function focusScreen(documentRef, { previousScreen, nextScreen }) {
   return true;
 }
 
+/**
+ * Moves each already-painted <img> from the live tree into the freshly parsed
+ * tree when the next render shows the same asset, so WebKit keeps the decoded
+ * element instead of repainting a recreated one (the question-screen flicker).
+ * Attributes are synced from the new markup onto the retained node.
+ */
+export function adoptStableImages(previousRoot, nextRoot) {
+  const retained = new Map();
+  for (const image of previousRoot.querySelectorAll('img')) {
+    const src = image.getAttribute('src');
+    if (src && !retained.has(src)) retained.set(src, image);
+  }
+  let adopted = 0;
+  for (const image of [...nextRoot.querySelectorAll('img')]) {
+    const src = image.getAttribute('src');
+    const previous = src ? retained.get(src) : null;
+    if (!previous) continue;
+    retained.delete(src);
+    for (const { name, value } of [...image.attributes]) {
+      previous.setAttribute(name, value);
+    }
+    for (const { name } of [...previous.attributes]) {
+      if (!image.hasAttribute(name)) previous.removeAttribute(name);
+    }
+    image.replaceWith(previous);
+    adopted += 1;
+  }
+  return adopted;
+}
+
 function enterNullEventScreen(model, index, event, surfaceGenerator) {
   const base = resetTrial({ ...model, screen: 'null-event' }, index);
   let generated;
@@ -1198,7 +1228,15 @@ async function bootstrap() {
               : model.screen === 'null-event'
                 ? renderNullEvent()
                 : renderResults();
-    app.innerHTML = `${renderHeader()}${screen}`;
+    const template = document.createElement('template');
+    template.innerHTML = `${renderHeader()}${screen}`;
+    adoptStableImages(app, template.content);
+    // WebKit repaints reinserted images asynchronously, flashing the stage
+    // blank for a frame or two; synchronous decode commits the swap atomically.
+    for (const image of template.content.querySelectorAll('img')) {
+      image.decoding = 'sync';
+    }
+    app.replaceChildren(template.content);
     bindCommonEvents();
     if (model.screen === 'title') bindTitleEvents();
     if (model.screen === 'setup') bindSetupEvents();

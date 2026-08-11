@@ -238,7 +238,7 @@ test('screen changes expose managed focus and announced reveal/result headings w
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
   assert.match(source, /focusScreen\(document, \{ previousScreen, nextScreen: model\.screen \}\)/);
   const snapshotIndex = source.indexOf('captureFocusSnapshot(app, document)');
-  const replacementIndex = source.indexOf('app.innerHTML = `${renderHeader()}${screen}`');
+  const replacementIndex = source.indexOf('app.replaceChildren(template.content)');
   const restoreIndex = source.indexOf('restoreOrDeferFocus(app, document,');
   assert.ok(snapshotIndex >= 0 && snapshotIndex < replacementIndex);
   assert.ok(restoreIndex > replacementIndex);
@@ -249,6 +249,19 @@ test('screen changes expose managed focus and announced reveal/result headings w
   assert.match(source, /id="results-title"[^>]*aria-describedby="results-headline"/);
   assert.match(source, /id="results-headline" class="headline"/);
   assert.match(source, /promptControlsDisabled\(model\)/);
+});
+
+test('screen re-renders parse into a template and adopt stable images before swapping the DOM', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const parseIndex = source.indexOf('template.innerHTML = `${renderHeader()}${screen}`');
+  const adoptIndex = source.indexOf('adoptStableImages(app, template.content)');
+  const replaceIndex = source.indexOf('app.replaceChildren(template.content)');
+  assert.ok(parseIndex >= 0, 'render must parse the screen markup into a template');
+  assert.ok(parseIndex < adoptIndex, 'image adoption runs on the parsed template');
+  assert.ok(adoptIndex < replaceIndex, 'adoption happens before the live DOM swap');
+  const decodeIndex = source.indexOf("image.decoding = 'sync'");
+  assert.ok(adoptIndex < decodeIndex && decodeIndex < replaceIndex,
+    'images decode synchronously so the swap paints atomically (WebKit flicker fix)');
 });
 
 test('app selects only supported surfaces and uses normalized actions, localized vehicle procedures, and a data-management label', async () => {
