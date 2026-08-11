@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { isForbiddenPathname, parseServerOptions } from '../scripts/serve-options.mjs';
+import { isForbiddenPathname, parseByteRange, parseServerOptions } from '../scripts/serve-options.mjs';
 
 test('server options default to loopback and accept only the explicit all-interface LAN bind', () => {
   assert.deepEqual(parseServerOptions([], {}), { host: '127.0.0.1', port: 4173, root: 'project' });
@@ -35,6 +35,18 @@ test('server path policy rejects repository and nested dotfiles before filesyste
   }
   assert.equal(isForbiddenPathname('/'), false);
   assert.equal(isForbiddenPathname('/src/app.js'), false);
+});
+
+test('byte-range parsing serves iPadOS Safari video and stays lenient on bad headers', () => {
+  assert.deepEqual(parseByteRange('bytes=0-1023', 4096), { start: 0, end: 1023 });
+  assert.deepEqual(parseByteRange('bytes=1024-', 4096), { start: 1024, end: 4095 });
+  assert.deepEqual(parseByteRange('bytes=0-9999', 4096), { start: 0, end: 4095 });
+  assert.deepEqual(parseByteRange('bytes=-512', 4096), { start: 3584, end: 4095 });
+  assert.equal(parseByteRange('bytes=4096-', 4096), 'unsatisfiable');
+  assert.equal(parseByteRange('bytes=-0', 4096), 'unsatisfiable');
+  for (const invalid of [undefined, '', 'bytes=-', 'bytes=5-2', 'items=0-1', 'bytes=0-1,4-5']) {
+    assert.equal(parseByteRange(invalid, 4096), null, String(invalid));
+  }
 });
 
 test('package and same-Wi-Fi docs route LAN use through the hardened server', async () => {

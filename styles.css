@@ -2381,6 +2381,20 @@ button.continuity-transition-scene {
   object-position: center bottom;
 }
 
+/* The driving clip layers above the still inside the transformed frame (the
+   frame's transform makes it the containing block), so the camera push and
+   cruise settle apply to both layers as one. A clip that never plays paints
+   its poster or nothing, and the identical still underneath carries on. */
+.continuity-transition-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
+  pointer-events: none;
+}
+
 .continuity-transition-skip {
   min-width: 88px;
   min-height: 44px;
@@ -2453,7 +2467,8 @@ button.continuity-transition-scene {
    intro plays, so both scenes read as one continuous camera move. The frame's
    scale push and this translate compose because they animate different
    elements. */
-.continuity-transition[data-continuity-motion="true"] img[data-turn-settle="true"] {
+.continuity-transition[data-continuity-motion="true"] img[data-turn-settle="true"],
+.continuity-transition[data-continuity-motion="true"] video[data-turn-settle="true"] {
   animation: cruise-settle var(--settle-duration, 1400ms) ease-out both;
 }
 
@@ -2472,9 +2487,15 @@ button.continuity-transition-scene {
 @media (prefers-reduced-motion: reduce) {
   .continuity-transition-image-frame,
   .continuity-transition[data-continuity-motion="true"] .continuity-transition-image-frame,
-  .continuity-transition[data-continuity-motion="true"] img[data-turn-settle="true"] {
+  .continuity-transition[data-continuity-motion="true"] img[data-turn-settle="true"],
+  .continuity-transition[data-continuity-motion="true"] video[data-turn-settle="true"] {
     animation: none !important;
     transform: none !important;
+  }
+
+  /* Reduced motion shows the static poster still, never a playing clip. */
+  .continuity-transition-video {
+    display: none !important;
   }
 
   /* Without its animation the intro would sit opaque over the cruise scene. */

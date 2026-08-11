@@ -30,6 +30,28 @@ test('exports an immutable registry for all approved transition families', () =>
   for (const family of Object.values(CONTINUITY_SCENE_FAMILIES)) {
     assert.ok(Object.isFrozen(family));
     assert.match(family.asset, /^\.\/assets\/driving\/[a-z0-9-]+\.webp$/);
+    if (family.video) {
+      assert.ok(Object.isFrozen(family.video));
+      assert.match(family.video.asset, /^\.\/assets\/driving\/[a-z0-9-]+\.mp4$/);
+      assert.match(family.video.poster, /^\.\/assets\/driving\/[a-z0-9-]+-poster\.webp$/);
+      assert.match(family.video.videoId, /^[a-z0-9-]+-drive-v1$/);
+      assert.equal(family.video.provenance, 'ai-generated-illustrative');
+    }
+  }
+});
+
+test('registers driving clips for every cruise family except parked, with real assets under 2 MB', async () => {
+  const { stat } = await import('node:fs/promises');
+  const withClips = Object.entries(CONTINUITY_SCENE_FAMILIES)
+    .filter(([, scene]) => scene.video)
+    .map(([family]) => family);
+  assert.deepEqual(withClips, ['departure', 'urban-cruise', 'rural-cruise', 'arrival']);
+  for (const family of withClips) {
+    const { video } = CONTINUITY_SCENE_FAMILIES[family];
+    for (const asset of [video.asset, video.poster]) {
+      const info = await stat(new URL(`../${asset.replace('./', '')}`, import.meta.url));
+      assert.ok(info.size > 0 && info.size <= 2 * 1024 * 1024, `${asset} must exist and stay <= 2 MB`);
+    }
   }
 });
 
@@ -38,7 +60,12 @@ test('renders every approved family with stable family and scene attributes', ()
     const html = render({ family, sceneId: scene.sceneId });
     assert.match(html, new RegExp(`data-continuity-family="${family}"`));
     assert.match(html, new RegExp(`data-continuity-scene="${scene.sceneId}"`));
-    assert.match(html, new RegExp(`src="${scene.asset.replaceAll('.', '\\.')}`));
+    // With motion, clip families show the clip-derived poster in every layer;
+    // families without a clip (and all still renders) keep the original photo.
+    const still = scene.video ? scene.video.poster : scene.asset;
+    assert.match(html, new RegExp(`<img src="${still.replaceAll('.', '\\.')}"`));
+    assert.match(render({ family, sceneId: scene.sceneId, motionEnabled: false }),
+      new RegExp(`<img src="${scene.asset.replaceAll('.', '\\.')}"`));
   }
 });
 
@@ -222,6 +249,58 @@ test('scoped CSS animates the intro and hides it under reduced motion', async ()
   assert.match(section, /\.turn-through-intro[\s\S]*pointer-events:\s*none/);
   assert.match(section, /calc\(var\(--turn-dx, 0%\) \* -1\)/);
   assert.match(section, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.turn-through-intro[\s\S]*display:\s*none/);
+});
+
+test('layers a muted looping clip above the poster still only when motion is on', () => {
+  const html = render();
+  assert.match(html, /<video class="continuity-transition-video"[^>]*src="\.\/assets\/driving\/urban-roadside-drive-v1\.mp4"/);
+  assert.match(html, /<video[^>]*poster="\.\/assets\/driving\/urban-roadside-drive-v1-poster\.webp"/);
+  assert.match(html, /<video[^>]*muted[^>]*playsinline[^>]*autoplay[^>]*loop[^>]*preload="auto"[^>]*aria-hidden="true"/);
+  assert.doesNotMatch(html, /<video[^>]*controls/);
+  // The fallback still swaps to the clip-derived poster so every layer shows
+  // the same street the clip depicts.
+  assert.match(html, /<img src="\.\/assets\/driving\/urban-roadside-drive-v1-poster\.webp"[^>]*>\s*<video/);
+  const rural = render({ family: 'rural-cruise', sceneId: 'overtaking-photo-v1' });
+  assert.match(rural, /<video[^>]*src="\.\/assets\/driving\/overtaking-drive-v1\.mp4"/);
+});
+
+test('renders byte-identical clip-free markup when motion is off or the family has no clip', () => {
+  const still = render({ motionEnabled: false });
+  assert.doesNotMatch(still, /<video|drive-v1/);
+  assert.match(still, /<img src="\.\/assets\/driving\/urban-roadside-photo-v1\.webp"/);
+  const parked = render({ family: 'parked', sceneId: 'parallel-parking-gap-photo-v1' });
+  assert.doesNotMatch(parked, /<video|drive-v1/);
+});
+
+test('plays the clip on the plain cruise render used by mock and wrong answers (neutral)', () => {
+  // No intro means no correctness signal; the clip must appear anyway so its
+  // presence never leaks whether the answer was right.
+  const plain = render({ intro: null });
+  const withIntro = render({ intro: INTRO });
+  assert.match(plain, /<video class="continuity-transition-video"/);
+  assert.match(withIntro, /<video class="continuity-transition-video"/);
+});
+
+test('marks the clip to settle alongside the poster still while an intro plays', () => {
+  const html = render({ intro: INTRO });
+  assert.match(html, /<video[^>]*data-turn-settle="true"[^>]*--settle-dx:-3\.06%/);
+  assert.doesNotMatch(render(), /<video[^>]*data-turn-settle/);
+});
+
+test('scoped CSS overlays the clip, extends the settle to it, and hides it under reduced motion', async () => {
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  const section = css.slice(
+    css.indexOf('/* continuity-transition:start */'),
+    css.indexOf('/* continuity-transition:end */')
+  );
+  assert.match(section, /\.continuity-transition-video\s*\{[^}]*position:\s*absolute/);
+  assert.match(section, /\.continuity-transition-video\s*\{[^}]*object-fit:\s*cover/);
+  assert.match(section, /\.continuity-transition-video\s*\{[^}]*object-position:\s*center bottom/);
+  assert.match(section, /video\[data-turn-settle="true"\][\s\S]*animation:\s*cruise-settle/);
+  assert.match(
+    section,
+    /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.continuity-transition-video\s*\{[^}]*display:\s*none\s*!important/
+  );
 });
 
 test('scoped CSS drives the perspective turn, blur ramp, and cruise settle', async () => {

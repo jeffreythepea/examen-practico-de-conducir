@@ -80,7 +80,7 @@ test('all setup controls receive a 44px-capable layout', async () => {
 
 test('local server rejects dotfiles and resolves files within its real root', async () => {
   const source = await readFile(new URL('../scripts/serve.mjs', import.meta.url), 'utf8');
-  assert.match(source, /import \{ isForbiddenPathname, parseServerOptions \} from '\.\/serve-options\.mjs'/);
+  assert.match(source, /import \{ isForbiddenPathname, parseByteRange, parseServerOptions \} from '\.\/serve-options\.mjs'/);
   assert.match(source, /isForbiddenPathname\(pathname\)/);
   assert.match(source, /realpath\(/);
 });

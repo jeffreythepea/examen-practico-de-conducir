@@ -5,25 +5,43 @@ const COPY = Object.freeze({
   es: Object.freeze({ skip: 'Saltar', skipTransition: 'Saltar transición' })
 });
 
+const URBAN_DRIVE_VIDEO = {
+  videoId: 'urban-roadside-drive-v1',
+  asset: './assets/driving/urban-roadside-drive-v1.mp4',
+  poster: './assets/driving/urban-roadside-drive-v1-poster.webp',
+  provenance: 'ai-generated-illustrative'
+};
+
+const RURAL_DRIVE_VIDEO = {
+  videoId: 'overtaking-drive-v1',
+  asset: './assets/driving/overtaking-drive-v1.mp4',
+  poster: './assets/driving/overtaking-drive-v1-poster.webp',
+  provenance: 'ai-generated-illustrative'
+};
+
 export const CONTINUITY_SCENE_FAMILIES = deepFreeze({
   departure: {
     sceneId: 'urban-roadside-photo-v1',
     asset: './assets/driving/urban-roadside-photo-v1.webp',
+    video: URBAN_DRIVE_VIDEO,
     camera: { startScale: 1, endScale: 1.05, originX: 66, originY: 84, durationMs: 1900 }
   },
   'urban-cruise': {
     sceneId: 'urban-roadside-photo-v1',
     asset: './assets/driving/urban-roadside-photo-v1.webp',
+    video: URBAN_DRIVE_VIDEO,
     camera: { startScale: 1, endScale: 1.06, originX: 66, originY: 84, durationMs: 2000 }
   },
   'rural-cruise': {
     sceneId: 'overtaking-photo-v1',
     asset: './assets/driving/overtaking-photo-v1.webp',
+    video: RURAL_DRIVE_VIDEO,
     camera: { startScale: 1, endScale: 1.12, originX: 54, originY: 86, durationMs: 2000 }
   },
   arrival: {
     sceneId: 'urban-roadside-photo-v1',
     asset: './assets/driving/urban-roadside-photo-v1.webp',
+    video: URBAN_DRIVE_VIDEO,
     camera: { startScale: 1, endScale: 1.04, originX: 66, originY: 84, durationMs: 1800 }
   },
   parked: {
@@ -70,8 +88,16 @@ export function renderContinuityTransition(viewModel, locale) {
   const settle = model.motionEnabled && model.intro
     ? ` data-turn-settle="true" style="--settle-dx:${model.intro.settleDx}%;--settle-duration:${model.intro.durationMs}ms"`
     : '';
+  // The clip stacks above the still as a pure enhancement: if it 404s, fails
+  // to decode, or autoplay is refused, the layer underneath already shows the
+  // clip's own first frame, so every fallback matches what the video depicts.
+  const playsClip = model.motionEnabled && Boolean(scene.video);
+  const still = playsClip ? scene.video.poster : scene.asset;
+  const video = playsClip
+    ? `<video class="continuity-transition-video" src="${escapeAttribute(scene.video.asset)}" poster="${escapeAttribute(scene.video.poster)}" muted playsinline autoplay loop preload="auto" aria-hidden="true"${settle}></video>`
+    : '';
   const image = `<span class="continuity-transition-image-frame"${style}>
-          <img src="${escapeAttribute(scene.asset)}" alt="" aria-hidden="true"${settle}>
+          <img src="${escapeAttribute(still)}" alt="" aria-hidden="true"${settle}>${video}
         </span>${intro}`;
   const sceneMarkup = model.sceneTappable
     ? `<button type="button" class="continuity-transition-scene" data-action="skip-continuity-transition" aria-label="${escapeAttribute(copy.skipTransition)}">

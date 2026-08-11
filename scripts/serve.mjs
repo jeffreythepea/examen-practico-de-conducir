@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { readFile, realpath } from 'node:fs/promises';
 import { extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isForbiddenPathname, parseServerOptions } from './serve-options.mjs';
+import { isForbiddenPathname, parseByteRange, parseServerOptions } from './serve-options.mjs';
 
 const projectRoot = await realpath(fileURLToPath(new URL('..', import.meta.url)));
 const { host, port, root: rootOption } = parseServerOptions(process.argv.slice(2), process.env);
@@ -16,6 +16,7 @@ const mimeTypes = {
   '.json': 'application/json; charset=utf-8',
   '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.mp3': 'audio/mpeg',
+  '.mp4': 'video/mp4',
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
   '.webp': 'image/webp'
@@ -46,7 +47,28 @@ const server = createServer(async (request, response) => {
     }
 
     const body = await readFile(realFilePath);
-    response.writeHead(200, { 'content-type': mimeTypes[extname(realFilePath)] ?? 'application/octet-stream' });
+    const contentType = mimeTypes[extname(realFilePath)] ?? 'application/octet-stream';
+    const range = parseByteRange(request.headers.range, body.length);
+    if (range === 'unsatisfiable') {
+      response.writeHead(416, { 'content-range': `bytes */${body.length}` });
+      response.end();
+      return;
+    }
+    if (range) {
+      response.writeHead(206, {
+        'content-type': contentType,
+        'accept-ranges': 'bytes',
+        'content-range': `bytes ${range.start}-${range.end}/${body.length}`,
+        'content-length': range.end - range.start + 1
+      });
+      response.end(body.subarray(range.start, range.end + 1));
+      return;
+    }
+    response.writeHead(200, {
+      'content-type': contentType,
+      'accept-ranges': 'bytes',
+      'content-length': body.length
+    });
     response.end(body);
   } catch (error) {
     response.writeHead(error?.code === 'ENOENT' ? 404 : 400);
