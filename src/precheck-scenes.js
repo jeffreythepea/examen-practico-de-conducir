@@ -221,11 +221,11 @@ export const PRECHECK_SCENES = deepFreeze({
     reference: 'Generic manual hatchback lighting stalk — illustrative AI-generated photo',
     targets: {
       'high-beam': {
-        resultId: 'high-beams', x: 27, y: 46.5, width: 8, height: 15,
+        resultId: 'high-beams', x: 26.3, y: 46.9, width: 8, height: 15,
         kind: 'stalk-movement', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.highBeam', labelPlacement: { x: 17, y: 78, width: 28 },
         stateKind: 'power', initialState: false, desiredState: true,
-        anchorDescription: 'Offset left of the native high-beam symbol on the stalk movement ring'
+        anchorDescription: 'Centred on the dipped-beam symbol: main beam has no printed symbol on this stalk — it is a push of the stalk from the dipped position, so both headlight commands share this anchor'
       },
       'front-fog': {
         resultId: 'front-fog-lights', x: 37.2, y: 42, width: 8, height: 15,

@@ -107,7 +107,8 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
   assert.ok(Object.values(lighting.targets).every(target => target.iconKey === 'native-symbol'));
   assert.deepEqual(
     [lighting.targets['high-beam'].x, lighting.targets['high-beam'].y],
-    [27, 46.5]
+    [26.3, 46.9],
+    'main beam has no printed symbol on this stalk (it is a push from dipped), so its circle centres on the dipped-beam symbol'
   );
 
   const headlightRing = PRECHECK_SCENES['generic-headlight-ring'];
@@ -122,6 +123,11 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
       headlightRing.targets['dipped-headlights'].y
     ],
     [14.7, 38.8, 26.3, 46.9]
+  );
+  assert.deepEqual(
+    [lighting.targets['high-beam'].x, lighting.targets['high-beam'].y],
+    [headlightRing.targets['dipped-headlights'].x, headlightRing.targets['dipped-headlights'].y],
+    'both headlight commands anchor on the same dipped-beam symbol (main beam is a stalk push from that position)'
   );
   assert.deepEqual(
     [
@@ -152,7 +158,7 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
     ],
     'indicator-stalk reveal labels must remain visually separated'
   );
-  assert.match(lighting.targets['high-beam'].anchorDescription, /offset.*native high-beam symbol/i);
+  assert.match(lighting.targets['high-beam'].anchorDescription, /main beam has no printed symbol.*push of the stalk/i);
   assert.match(lighting.targets['front-fog'].anchorDescription, /front.*fog.*ring/i);
   assert.match(lighting.targets['rear-fog'].anchorDescription, /rear.*fog.*ring/i);
   assert.deepEqual(
