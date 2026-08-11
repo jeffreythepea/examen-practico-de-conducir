@@ -44,7 +44,8 @@ written Spanish as a hint — while modes, examiners, themes, challenges, and
 the remaining settings live behind **Advanced options**. Every session runs as
 a continuous drive by default: commands play in narrative exam order
 (precheck → departure → driving → arrival) with brief unscored cruise
-transitions between them; a correct answer carries you through the turn in
+transitions between them, where the road itself rolls past in short
+AI-generated driving clips; a correct answer carries you through the turn in
 first person — the camera pushes up to the junction and swings into the road
 you chose — before the cruise resumes. The **Continuous drive** setting in Advanced options
 turns this off and restores isolated per-command practice; the confusion-pairs

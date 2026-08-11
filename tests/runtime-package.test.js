@@ -24,6 +24,11 @@ test('runtime asset discovery is deterministic, complete, and excludes developme
   assert.ok(paths.includes('src/road-motion.js'));
   assert.equal(paths.includes('src/junction-motion.js'), false);
   assert.equal(paths.filter(path => path.endsWith('.mp3')).length, audioManifest.length);
+  assert.ok(paths.includes('assets/driving/urban-roadside-drive-v1.mp4'));
+  assert.ok(paths.includes('assets/driving/urban-roadside-drive-v1-poster.webp'));
+  assert.ok(paths.includes('assets/driving/overtaking-drive-v1.mp4'));
+  assert.ok(paths.includes('assets/driving/overtaking-drive-v1-poster.webp'));
+  assert.equal(paths.filter(path => path.endsWith('.mp4')).length, 2);
   assert.ok(paths.every(path => !path.startsWith('tests/')));
   assert.ok(paths.every(path => !path.startsWith('docs/')));
   assert.ok(paths.every(path => !path.includes('.superpowers')));

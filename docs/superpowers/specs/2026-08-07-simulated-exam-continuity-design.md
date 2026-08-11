@@ -383,3 +383,32 @@ Jeffrey approved these decisions on 2026-08-07:
    joining-traffic commands are implemented and recorded.
 5. Reusing audited road photography and existing camera motion for the first
    slice.
+
+## Tier 1 Motion: AI-Video Cruise Clips (2026-08-11)
+
+Jeffrey's 2026-08-11 exploration concluded that CSS wobble/parallax over the
+cruise photographs does not read as driving, and he approved escalating to
+newly generated assets — superseding the "Newly generated video or road
+imagery" deferral above for the cruise transitions only. Tier 1 replaces the
+cruise stills with short AI-generated driving clips (Veo 3.1 fast via the
+ElevenLabs playground, image-to-video from the scene masters, re-encoded to
+muted H.264 main ≤ 2 MB): `urban-roadside-drive-v1` for departure,
+urban-cruise, and arrival, and `overtaking-drive-v1` for rural-cruise, both
+registered with `provenance: 'ai-generated-illustrative'`.
+
+The frame layers the autoplaying looped clip above the still and swaps that
+still to the clip's first-frame poster, so a clip that 404s, fails to decode,
+or is refused autoplay degrades to the poster with today's camera push — no
+JS error handling. The clip is correctness-neutral and therefore plays in
+mock and after wrong answers alike (unlike the correct-only turn-through,
+which overlays and settles onto it unchanged). Reduced motion and Road
+movement off both suppress the video entirely; without a clip the markup is
+byte-identical to the pre-video renderer. Both clips and posters ship in the
+offline runtime package (+2.80 MB, 45.23 → 48.03 MB), and cached hits
+synthesize byte-range (206) responses — iPadOS Safari's media stack refuses
+video without them — which was verified end-to-end on the iPad simulator
+with the server stopped.
+
+Status of the remaining tiers: Tier 2 (generated mid-turn frames, dispatchable
+via the Codex MCP image bridge) is deferred pending judgment on Tier 1;
+Tier 3 (a full route graph) is rejected as too heavy during wind-down.

@@ -11,6 +11,7 @@ import {
   writeFile
 } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
+import { CONTINUITY_SCENE_FAMILIES } from '../src/continuity-transition-view.js';
 import { DRIVING_SCENES } from '../src/driving-scenes.js';
 import { PRECHECK_SCENES } from '../src/precheck-scenes.js';
 
@@ -93,6 +94,10 @@ export async function collectRuntimeAssets({ root, catalog, audioManifest }) {
     .map(entry => `src/${entry.name}`);
   const sceneAssets = [...Object.values(DRIVING_SCENES), ...Object.values(PRECHECK_SCENES)]
     .map(scene => scene.asset);
+  // Cruise driving clips and their derived posters, so offline installs play
+  // the same transitions as the hosted app.
+  const continuityVideoAssets = Object.values(CONTINUITY_SCENE_FAMILIES)
+    .flatMap(family => family.video ? [family.video.asset, family.video.poster] : []);
   const audioPaths = audioManifest.map(item => normalizeRuntimePath(item.path));
   if (new Set(audioPaths).size !== audioPaths.length) {
     throw new Error('Audio manifest contains duplicate runtime paths');
@@ -101,6 +106,7 @@ export async function collectRuntimeAssets({ root, catalog, audioManifest }) {
     ...STATIC_RUNTIME,
     ...srcFiles,
     ...sceneAssets,
+    ...continuityVideoAssets,
     ...audioPaths
   ].map(normalizeRuntimePath);
   const paths = [...new Set(candidates)].sort((a, b) => a.localeCompare(b));

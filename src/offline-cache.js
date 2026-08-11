@@ -1,3 +1,5 @@
+import { parseByteRange } from './byte-range.js';
+
 export const OFFLINE_PROTOCOL_VERSION = 1;
 export const META_CACHE = 'examen-practico-meta-v1';
 export const SHELL_CACHE = 'examen-practico-shell-v1';
@@ -289,7 +291,7 @@ export async function matchActiveRequest({ cacheStorage, request }) {
   if (!state.activeVersion) return undefined;
   const cache = await cacheStorage.open(runtimeCacheName(state.activeVersion));
   const direct = await cache.match(request);
-  if (direct) return direct;
+  if (direct) return applyRequestByteRange(direct, request);
   if (request.mode === 'navigate' || request.headers?.get?.('accept')?.includes('text/html')) {
     const manifest = await readStoredManifest(cache);
     if (!manifest) return undefined;
@@ -301,6 +303,31 @@ export async function matchActiveRequest({ cacheStorage, request }) {
     }
   }
   return undefined;
+}
+
+// The Cache API matches ranged requests against full stored responses, but
+// iPadOS Safari's media stack only accepts 206 replies for ranged video
+// loads, so cached hits synthesize the requested slice.
+async function applyRequestByteRange(response, request) {
+  const header = request.headers?.get?.('range');
+  if (!header) return response;
+  const body = await response.arrayBuffer();
+  const range = parseByteRange(header, body.byteLength);
+  if (range === 'unsatisfiable') {
+    return new Response(null, {
+      status: 416,
+      headers: { 'content-range': `bytes */${body.byteLength}` }
+    });
+  }
+  const headers = new Headers(response.headers);
+  headers.set('accept-ranges', 'bytes');
+  if (!range) {
+    headers.set('content-length', String(body.byteLength));
+    return new Response(body, { status: 200, headers });
+  }
+  headers.set('content-range', `bytes ${range.start}-${range.end}/${body.byteLength}`);
+  headers.set('content-length', String(range.end - range.start + 1));
+  return new Response(body.slice(range.start, range.end + 1), { status: 206, headers });
 }
 
 export async function confirmActivePackage({ cacheStorage, version }) {

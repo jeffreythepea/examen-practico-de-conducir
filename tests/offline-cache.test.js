@@ -163,6 +163,44 @@ test('activation isolates active fetches and retains prior version until confirm
   assert.equal((await cacheStorage.keys()).includes(runtimeCacheName('v1')), false);
 });
 
+test('cached hits honour byte ranges so iPadOS Safari plays offline video', async () => {
+  const cacheStorage = new MemoryCacheStorage();
+  const { manifest, files } = packageManifest('v1', { 'assets/clip.mp4': '0123456789' });
+  await downloadPackage({
+    packageManifest: manifest, packageUrl: 'https://example.test/app/offline-package.json',
+    cacheStorage, fetchImpl: fetchFiles(files)
+  });
+  await activatePackage({ cacheStorage, version: 'v1' });
+  const url = 'https://example.test/app/assets/clip.mp4';
+
+  const sliced = await matchActiveRequest({
+    cacheStorage,
+    request: new Request(url, { headers: { range: 'bytes=2-5' } })
+  });
+  assert.equal(sliced.status, 206);
+  assert.equal(sliced.headers.get('content-range'), 'bytes 2-5/10');
+  assert.equal(sliced.headers.get('content-length'), '4');
+  assert.equal(await sliced.text(), '2345');
+
+  const openEnded = await matchActiveRequest({
+    cacheStorage,
+    request: new Request(url, { headers: { range: 'bytes=8-' } })
+  });
+  assert.equal(openEnded.status, 206);
+  assert.equal(await openEnded.text(), '89');
+
+  const unsatisfiable = await matchActiveRequest({
+    cacheStorage,
+    request: new Request(url, { headers: { range: 'bytes=10-' } })
+  });
+  assert.equal(unsatisfiable.status, 416);
+  assert.equal(unsatisfiable.headers.get('content-range'), 'bytes */10');
+
+  const whole = await matchActiveRequest({ cacheStorage, request: new Request(url) });
+  assert.equal(whole.status, 200);
+  assert.equal(await whole.text(), '0123456789');
+});
+
 test('missing active entries invalidate readiness without deleting ordinary caches', async () => {
   const cacheStorage = new MemoryCacheStorage();
   const { manifest, files } = packageManifest();
