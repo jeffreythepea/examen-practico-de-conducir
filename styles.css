@@ -2491,6 +2491,30 @@ button.continuity-transition-scene {
   animation: turn-through-pan var(--turn-duration, 1400ms) ease-in-out forwards;
 }
 
+/* Clip-backed intros: the footage is the turn, so the frame does not warp -
+   it simply holds and fades into the cruise layer as the clip ends. The still
+   underneath keeps the pan keyframes as the no-clip fallback path. */
+.turn-through-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.continuity-transition[data-continuity-motion="true"] .continuity-transition-image-frame.turn-through-intro[data-turn-clip="true"] {
+  animation: turn-clip-fade var(--turn-duration, 3000ms) ease-in-out forwards;
+}
+
+@keyframes turn-clip-fade {
+  0% { opacity: 1; }
+
+  88% { opacity: 1; }
+
+  100% { opacity: 0; }
+}
+
 /* Two beats: an approach push toward the junction, then a perspective swing
    into the chosen road, with a small blur ramp over the fastest stretch. */
 @keyframes turn-through-pan {
@@ -2570,6 +2594,10 @@ button.continuity-transition-scene {
 
   /* Without its animation the intro would sit opaque over the cruise scene. */
   .continuity-transition-image-frame.turn-through-intro {
+    display: none !important;
+  }
+
+  .turn-through-video {
     display: none !important;
   }
 }

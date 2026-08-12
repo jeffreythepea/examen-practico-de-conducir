@@ -2,6 +2,28 @@ import { POST_ANSWER_MOTION_FAMILIES } from './post-answer-motion.js';
 import { drivingScene } from './driving-scenes.js';
 
 const CORRECT_OUTCOMES = new Set(['unaided', 'assisted']);
+
+// Real driving clips of the turn, per junction scene and chosen direction.
+// Only the four-way slice is registered; every other scene falls back to the
+// CSS turn-through-pan (the no-clip path, kept deliberately). Durations are
+// the trimmed clip lengths; auto-advance derives from them, never hardcoded.
+function turnClip(videoId, durationMs) {
+  return Object.freeze({
+    videoId,
+    asset: `./assets/driving/${videoId}.mp4`,
+    poster: `./assets/driving/${videoId}-poster.webp`,
+    provenance: 'ai-generated-illustrative',
+    durationMs
+  });
+}
+
+export const TURN_CLIPS = Object.freeze({
+  'four-way-intersection-photo-v1': Object.freeze({
+    'turn-left': turnClip('four-way-turn-left-v1', 3917),
+    'turn-right': turnClip('four-way-turn-right-v1', 3917),
+    'continue-forward': turnClip('four-way-straight-v1', 4000)
+  })
+});
 // Percent of frame translated per percent of target offset from stage centre.
 const DIRECTION_GAIN = 0.35;
 const INTRO_SCALE = 1.22;
@@ -44,7 +66,8 @@ export function turnThroughIntro({
   outcome,
   motionEnabled,
   nextStepKind,
-  startPose = null
+  startPose = null,
+  clipsEnabled = false
 } = {}) {
   if (!CORRECT_OUTCOMES.has(outcome)) return null;
   if (nextStepKind !== 'transition') return null;
@@ -75,6 +98,12 @@ export function turnThroughIntro({
   // poses fall back to the identity pose (today's behaviour).
   const pose = normalizePose(startPose);
   const midScale = round(Math.max(MID_SCALE_FLOOR, pose.scale + MID_SCALE_LIFT));
+  // A registered clip replaces the CSS pan as the turn itself: the intro
+  // runs for the clip's own duration, and the cruise settle collapses to a
+  // no-op because a real turn clip already ends on a straight road.
+  const clip = clipsEnabled === true
+    ? TURN_CLIPS[sceneId]?.[target.resultId] ?? null
+    : null;
   return Object.freeze({
     sceneId,
     asset: scene.asset,
@@ -83,13 +112,14 @@ export function turnThroughIntro({
     scale: INTRO_SCALE,
     rotate: dx === 0 ? 0 : dx > 0 ? -INTRO_LEAN_DEGREES : INTRO_LEAN_DEGREES,
     yawDeg: dx === 0 ? 0 : round(dx > 0 ? -yawMagnitude : yawMagnitude),
-    settleDx: round(-dx * SETTLE_GAIN),
+    settleDx: clip ? 0 : round(-dx * SETTLE_GAIN),
     startScale: pose.scale,
     midScale,
     turnScale: round(midScale + (END_SCALE - midScale) * TURN_BEAT_FRACTION),
     originX: pose.originX,
     originY: pose.originY,
-    durationMs: INTRO_DURATION_MS
+    durationMs: clip ? clip.durationMs : INTRO_DURATION_MS,
+    clip
   });
 }
 

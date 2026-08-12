@@ -6,16 +6,16 @@ const COPY = Object.freeze({
 });
 
 const URBAN_DRIVE_VIDEO = {
-  videoId: 'urban-roadside-drive-v1',
-  asset: './assets/driving/urban-roadside-drive-v1.mp4',
-  poster: './assets/driving/urban-roadside-drive-v1-poster.webp',
+  videoId: 'urban-roadside-drive-v2',
+  asset: './assets/driving/urban-roadside-drive-v2.mp4',
+  poster: './assets/driving/urban-roadside-drive-v2-poster.webp',
   provenance: 'ai-generated-illustrative'
 };
 
 const RURAL_DRIVE_VIDEO = {
-  videoId: 'overtaking-drive-v1',
-  asset: './assets/driving/overtaking-drive-v1.mp4',
-  poster: './assets/driving/overtaking-drive-v1-poster.webp',
+  videoId: 'overtaking-drive-v2',
+  asset: './assets/driving/overtaking-drive-v2.mp4',
+  poster: './assets/driving/overtaking-drive-v2-poster.webp',
   provenance: 'ai-generated-illustrative'
 };
 
@@ -78,9 +78,16 @@ export function renderContinuityTransition(viewModel, locale) {
   const style = model.motionEnabled ? ` style="${cameraStyle(camera)}"` : '';
   // The intro is a decorative overlay of the answered scene that pans into the
   // chosen road and fades out over the cruise push already running underneath.
+  // A clip-backed intro layers the real turn footage above the still; if the
+  // video can't load, the still below keeps the CSS turn-through-pan path.
+  const introClip = model.intro?.clip ?? null;
+  const introVideo = introClip
+    ? `
+          <video class="turn-through-video" src="${escapeAttribute(introClip.asset)}" poster="${escapeAttribute(introClip.poster)}" muted playsinline autoplay preload="auto" aria-hidden="true"></video>`
+    : '';
   const intro = model.motionEnabled && model.intro
-    ? `<span class="continuity-transition-image-frame turn-through-intro" aria-hidden="true" data-turn-through-scene="${escapeAttribute(model.intro.sceneId)}" style="${introStyle(model.intro)}">
-          <img src="${escapeAttribute(model.intro.asset)}" alt="" aria-hidden="true">
+    ? `<span class="continuity-transition-image-frame turn-through-intro" aria-hidden="true" data-turn-through-scene="${escapeAttribute(model.intro.sceneId)}"${introClip ? ' data-turn-clip="true"' : ''} style="${introStyle(model.intro)}">
+          <img src="${escapeAttribute(model.intro.asset)}" alt="" aria-hidden="true">${introVideo}
         </span>`
     : '';
   // While the intro plays, the cruise photo starts counter-offset and settles
@@ -169,6 +176,22 @@ function validateIntro(intro) {
       || intro.originX < 0 || intro.originX > 100
       || intro.originY < 0 || intro.originY > 100) {
     throw new Error('Invalid turn-through intro');
+  }
+  if (intro.clip !== undefined && intro.clip !== null) validateIntroClip(intro.clip);
+}
+
+function validateIntroClip(clip) {
+  if (!clip || typeof clip !== 'object' || Array.isArray(clip)) {
+    throw new Error('Invalid turn-through clip');
+  }
+  for (const field of ['videoId', 'asset', 'poster', 'provenance']) {
+    if (typeof clip[field] !== 'string' || clip[field].length === 0) {
+      throw new Error('Invalid turn-through clip');
+    }
+  }
+  if (typeof clip.durationMs !== 'number' || !Number.isFinite(clip.durationMs)
+      || clip.durationMs <= 0 || clip.durationMs > 10_000) {
+    throw new Error('Invalid turn-through clip');
   }
 }
 

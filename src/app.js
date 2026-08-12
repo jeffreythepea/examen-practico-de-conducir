@@ -1037,6 +1037,7 @@ function turnThroughSource(model) {
     family: surfaceModel.family,
     targetX: target.x,
     targetY: target.y,
+    resultId: target.resultId ?? null,
     outcome: model.outcome,
     pose: frozenRoadMotionPose(model.roadMotion)
   };
@@ -1116,6 +1117,8 @@ async function bootstrap() {
   let audioOperation = 0;
   let lastRenderedScreen = null;
   let deferredFocusSnapshot = null;
+  // Once a turn clip fails to load, later transitions use the CSS pan path.
+  let turnClipFailed = false;
   let readinessFilters = { phase: 'mixed', state: 'all', flag: 'all', editor: null, noticeKey: '' };
 
   try {
@@ -1681,17 +1684,20 @@ async function bootstrap() {
   function mockTransitionIntro(motionEnabled) {
     const source = model.turnThrough;
     if (!source) return null;
+    // Clips never play in mock (they reveal the chosen direction - withhold
+    // invariant) and stay off for the session once one fails to load.
     return turnThroughIntro({
       surfaceModel: {
         family: source.family,
-        targets: [{ id: 'chosen', x: source.targetX, y: source.targetY }],
+        targets: [{ id: 'chosen', x: source.targetX, y: source.targetY, resultId: source.resultId }],
         geometry: { sceneId: source.sceneId }
       },
       selectedTargetId: 'chosen',
       outcome: source.outcome,
       motionEnabled,
       nextStepKind: 'transition',
-      startPose: source.pose ?? null
+      startPose: source.pose ?? null,
+      clipsEnabled: model.experience?.revealPolicy !== 'session-end' && !turnClipFailed
     });
   }
 
@@ -2078,6 +2084,12 @@ async function bootstrap() {
       }).family;
       const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
       const intro = mockTransitionIntro(state.settings.roadMovement === true && !reducedMotion);
+      // A clip that cannot load falls back to the CSS turn-through-pan for
+      // the rest of the session; this transition re-renders onto that path.
+      app.querySelector('.turn-through-video')?.addEventListener('error', () => {
+        turnClipFailed = true;
+        if (!consumed && model.screen === 'mock-transition') render();
+      }, { once: true });
       const delay = Math.max(1_200, CONTINUITY_SCENE_FAMILIES[family].camera.durationMs + 250)
         + (intro?.durationMs ?? 0);
       window.setTimeout(advance, delay);

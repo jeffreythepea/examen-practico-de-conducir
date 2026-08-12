@@ -34,7 +34,7 @@ test('exports an immutable registry for all approved transition families', () =>
       assert.ok(Object.isFrozen(family.video));
       assert.match(family.video.asset, /^\.\/assets\/driving\/[a-z0-9-]+\.mp4$/);
       assert.match(family.video.poster, /^\.\/assets\/driving\/[a-z0-9-]+-poster\.webp$/);
-      assert.match(family.video.videoId, /^[a-z0-9-]+-drive-v1$/);
+      assert.match(family.video.videoId, /^[a-z0-9-]+-drive-v2$/);
       assert.equal(family.video.provenance, 'ai-generated-illustrative');
     }
   }
@@ -253,23 +253,23 @@ test('scoped CSS animates the intro and hides it under reduced motion', async ()
 
 test('layers a muted looping clip above the poster still only when motion is on', () => {
   const html = render();
-  assert.match(html, /<video class="continuity-transition-video"[^>]*src="\.\/assets\/driving\/urban-roadside-drive-v1\.mp4"/);
-  assert.match(html, /<video[^>]*poster="\.\/assets\/driving\/urban-roadside-drive-v1-poster\.webp"/);
+  assert.match(html, /<video class="continuity-transition-video"[^>]*src="\.\/assets\/driving\/urban-roadside-drive-v2\.mp4"/);
+  assert.match(html, /<video[^>]*poster="\.\/assets\/driving\/urban-roadside-drive-v2-poster\.webp"/);
   assert.match(html, /<video[^>]*muted[^>]*playsinline[^>]*autoplay[^>]*loop[^>]*preload="auto"[^>]*aria-hidden="true"/);
   assert.doesNotMatch(html, /<video[^>]*controls/);
   // The fallback still swaps to the clip-derived poster so every layer shows
   // the same street the clip depicts.
-  assert.match(html, /<img src="\.\/assets\/driving\/urban-roadside-drive-v1-poster\.webp"[^>]*>\s*<video/);
+  assert.match(html, /<img src="\.\/assets\/driving\/urban-roadside-drive-v2-poster\.webp"[^>]*>\s*<video/);
   const rural = render({ family: 'rural-cruise', sceneId: 'overtaking-photo-v1' });
-  assert.match(rural, /<video[^>]*src="\.\/assets\/driving\/overtaking-drive-v1\.mp4"/);
+  assert.match(rural, /<video[^>]*src="\.\/assets\/driving\/overtaking-drive-v2\.mp4"/);
 });
 
 test('renders byte-identical clip-free markup when motion is off or the family has no clip', () => {
   const still = render({ motionEnabled: false });
-  assert.doesNotMatch(still, /<video|drive-v1/);
+  assert.doesNotMatch(still, /<video|drive-v2/);
   assert.match(still, /<img src="\.\/assets\/driving\/urban-roadside-photo-v1\.webp"/);
   const parked = render({ family: 'parked', sceneId: 'parallel-parking-gap-photo-v1' });
-  assert.doesNotMatch(parked, /<video|drive-v1/);
+  assert.doesNotMatch(parked, /<video|drive-v2/);
 });
 
 test('plays the clip on the plain cruise render used by mock and wrong answers (neutral)', () => {
@@ -319,5 +319,66 @@ test('scoped CSS drives the perspective turn, blur ramp, and cruise settle', asy
   assert.match(
     section,
     /@media \(prefers-reduced-motion: reduce\)[\s\S]*img\[data-turn-settle="true"\][\s\S]*animation:\s*none/
+  );
+});
+
+const INTRO_CLIP = Object.freeze({
+  videoId: 'four-way-turn-right-v1',
+  asset: './assets/driving/four-way-turn-right-v1.mp4',
+  poster: './assets/driving/four-way-turn-right-v1-poster.webp',
+  provenance: 'ai-generated-illustrative',
+  durationMs: 3000
+});
+
+test('a clip-backed intro layers the turn footage over the pan-fallback still, played once', () => {
+  const html = render({ intro: { ...INTRO, durationMs: 3000, settleDx: 0, clip: INTRO_CLIP } });
+  assert.match(html, /turn-through-intro"[^>]*data-turn-clip="true"/);
+  assert.match(html, /<video class="turn-through-video"[^>]*src="\.\/assets\/driving\/four-way-turn-right-v1\.mp4"/);
+  assert.match(html, /<video class="turn-through-video"[^>]*poster="\.\/assets\/driving\/four-way-turn-right-v1-poster\.webp"/);
+  assert.match(html, /<video class="turn-through-video"[^>]*muted[^>]*playsinline[^>]*autoplay[^>]*preload="auto"[^>]*aria-hidden="true"/);
+  assert.doesNotMatch(html, /<video class="turn-through-video"[^>]*loop/);
+  assert.match(html, /--turn-duration:3000ms/);
+  // The still underneath stays: it is the CSS turn-through-pan fallback layer.
+  assert.match(html, /turn-through-intro[^>]*>\s*<img src="\.\/assets\/driving\/four-way-intersection-photo-v1\.webp"[^>]*>\s*<video/);
+});
+
+test('clip-free intros render byte-identical markup whether clip is null or absent', () => {
+  assert.equal(render({ intro: INTRO }), render({ intro: { ...INTRO, clip: null } }));
+  assert.doesNotMatch(render({ intro: INTRO }), /turn-through-video|data-turn-clip/);
+});
+
+test('the clip never renders when motion is disabled', () => {
+  const html = render({ intro: { ...INTRO, clip: INTRO_CLIP }, motionEnabled: false });
+  assert.doesNotMatch(html, /turn-through-video|data-turn-clip/);
+});
+
+test('rejects malformed intro clips', () => {
+  for (const clip of [
+    'clip',
+    {},
+    { ...INTRO_CLIP, asset: '' },
+    { ...INTRO_CLIP, poster: 42 },
+    { ...INTRO_CLIP, provenance: '' },
+    { ...INTRO_CLIP, durationMs: 0 },
+    { ...INTRO_CLIP, durationMs: 60_000 },
+    { ...INTRO_CLIP, durationMs: Number.NaN }
+  ]) {
+    assert.throws(() => render({ intro: { ...INTRO, clip } }), /turn-through clip/i);
+  }
+});
+
+test('scoped CSS overlays the turn clip, swaps the warp for a fade, and hides it under reduced motion', async () => {
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  const section = css.slice(
+    css.indexOf('/* continuity-transition:start */'),
+    css.indexOf('/* continuity-transition:end */')
+  );
+  assert.match(section, /\.turn-through-video\s*\{[^}]*position:\s*absolute/);
+  assert.match(section, /\.turn-through-video\s*\{[^}]*object-fit:\s*cover/);
+  assert.match(section, /\.turn-through-intro\[data-turn-clip="true"\]\s*\{[^}]*animation:\s*turn-clip-fade/);
+  assert.match(section, /@keyframes turn-clip-fade/);
+  assert.match(
+    section,
+    /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.turn-through-video\s*\{[^}]*display:\s*none\s*!important/
   );
 });

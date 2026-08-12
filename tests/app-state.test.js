@@ -1887,6 +1887,7 @@ test('a correct Continue into a transition carries turn-through source data', ()
     family: 'junction',
     targetX: target.x,
     targetY: target.y,
+    resultId: 'turn-right',
     outcome: 'unaided',
     pose: null
   });

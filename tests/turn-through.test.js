@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { turnThroughIntro } from '../src/turn-through.js';
+import { TURN_CLIPS, turnThroughIntro } from '../src/turn-through.js';
 
 const TARGETS = Object.freeze([
   Object.freeze({ id: 'left', resultId: 'turn-left', kind: 'road', x: 15, y: 50, width: 18, height: 18 }),
@@ -43,7 +43,8 @@ test('produces a frozen intro toward the chosen road on a correct answer', () =>
     turnScale: 1.2,
     originX: 50,
     originY: 50,
-    durationMs: 1400
+    durationMs: 1400,
+    clip: null
   });
 });
 
@@ -175,4 +176,56 @@ test('returns null when the selected target is unknown', () => {
 test('returns null when the scene does not resolve to a photo asset', () => {
   assert.equal(intro({ surfaceModel: { ...JUNCTION_MODEL, geometry: { sceneId: 'unknown-scene' } } }), null);
   assert.equal(intro({ surfaceModel: { ...JUNCTION_MODEL, geometry: {} } }), null);
+});
+
+test('registers immutable four-way turn clips with stable IDs and illustrative provenance', () => {
+  assert.ok(Object.isFrozen(TURN_CLIPS));
+  assert.deepEqual(Object.keys(TURN_CLIPS), ['four-way-intersection-photo-v1']);
+  const clips = TURN_CLIPS['four-way-intersection-photo-v1'];
+  assert.deepEqual(Object.keys(clips).sort(), ['continue-forward', 'turn-left', 'turn-right']);
+  for (const clip of Object.values(clips)) {
+    assert.ok(Object.isFrozen(clip));
+    assert.match(clip.videoId, /^four-way-(turn-left|turn-right|straight)-v1$/);
+    assert.match(clip.asset, /^\.\/assets\/driving\/four-way-[a-z-]+-v1\.mp4$/);
+    assert.match(clip.poster, /^\.\/assets\/driving\/four-way-[a-z-]+-v1-poster\.webp$/);
+    assert.equal(clip.provenance, 'ai-generated-illustrative');
+    assert.ok(Number.isFinite(clip.durationMs) && clip.durationMs > 0 && clip.durationMs <= 10_000);
+  }
+});
+
+test('clip-backed intros carry the registered clip, its duration, and a no-op settle', () => {
+  const straightModel = {
+    ...JUNCTION_MODEL,
+    targets: [{ id: 'ahead', resultId: 'continue-forward', kind: 'road', x: 50, y: 15, width: 18, height: 18 }]
+  };
+  const cases = [
+    [intro({ clipsEnabled: true, selectedTargetId: 'right' }), 'four-way-turn-right-v1'],
+    [intro({ clipsEnabled: true, selectedTargetId: 'left' }), 'four-way-turn-left-v1'],
+    [intro({ clipsEnabled: true, surfaceModel: straightModel, selectedTargetId: 'ahead' }), 'four-way-straight-v1']
+  ];
+  for (const [result, videoId] of cases) {
+    assert.equal(result.clip.videoId, videoId);
+    assert.equal(result.durationMs, result.clip.durationMs, 'auto-advance derives from the clip duration');
+    assert.equal(result.settleDx, 0, 'a real turn clip ends on a straight road, so the cruise settle is a no-op');
+  }
+});
+
+test('clips stay withheld unless explicitly enabled (mock and failure paths)', () => {
+  for (const result of [intro(), intro({ clipsEnabled: false }), intro({ clipsEnabled: 'yes' })]) {
+    assert.equal(result.clip, null);
+    assert.equal(result.durationMs, 1400);
+    assert.equal(result.settleDx, -3.06);
+  }
+});
+
+test('scenes and directions without a registered clip keep the CSS pan path', () => {
+  const roundabout = {
+    family: 'roundabout',
+    expectedResult: 'take-exit-2',
+    targets: [{ id: 'exit-2', resultId: 'take-exit-2', kind: 'road', x: 78, y: 30, width: 16, height: 16 }],
+    geometry: { sceneId: 'roundabout-four-photo-v2' }
+  };
+  assert.equal(intro({ clipsEnabled: true, surfaceModel: roundabout, selectedTargetId: 'exit-2' }).clip, null);
+  assert.equal(intro({ clipsEnabled: true, selectedTargetId: 'straight' }).clip, null,
+    'the test fixture go-straight result has no clip; only continue-forward is registered');
 });
