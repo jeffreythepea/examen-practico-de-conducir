@@ -20,7 +20,7 @@ const ROUNDABOUT_SCENES = Object.freeze({
       Object.freeze({ x: 87, y: 43 }),
       Object.freeze({ x: 55, y: 11 }),
       Object.freeze({ x: 13, y: 39 }),
-      Object.freeze({ x: 13, y: 67 })
+      Object.freeze({ x: 13, y: 74 })
     ])
   }),
   5: Object.freeze({
@@ -45,6 +45,11 @@ const JUNCTION_TARGETS = Object.freeze([
   Object.freeze({ id: 'right', resultId: 'turn-right', x: 85, y: 42 })
 ]);
 const STAGE = Object.freeze({ stageWidth: 400, stageHeight: 300 });
+// Right-lane centre of the photographed junction approach, measured against
+// the rendered four-way-intersection-photo-v1: car centre ≈62% at the frame
+// bottom, lane centre ≈60% where the approach meets the crossing.
+const JUNCTION_APPROACH_BOTTOM_X = 62;
+const JUNCTION_APPROACH_TOP_X = 60;
 const ROAD_LABELS = Object.freeze({
   en: Object.freeze({
     select: 'Select this road',
@@ -255,11 +260,23 @@ function generateJunction(command, seed) {
     geometry: {
       entry: 'bottom',
       sceneId: 'four-way-intersection-photo-v1',
-      correctRoute: [
-        { x: 50, y: 100 },
-        { x: 50, y: 45 },
-        { x: correctTarget.x, y: correctTarget.y }
-      ]
+      // The Tier 2 in-place retouch painted a dashed centerline on the photo
+      // and put the car in the right lane, so the approach rides the
+      // photographed right-lane centre (converging with the perspective)
+      // instead of the x=50 centerline. The straight route holds the lane
+      // through the crossing before settling on the far mouth's target.
+      correctRoute: command.acceptedResult === 'continue-forward'
+        ? [
+            { x: JUNCTION_APPROACH_BOTTOM_X, y: 100 },
+            { x: JUNCTION_APPROACH_TOP_X, y: 45 },
+            { x: 56, y: 30 },
+            { x: correctTarget.x, y: correctTarget.y }
+          ]
+        : [
+            { x: JUNCTION_APPROACH_BOTTOM_X, y: 100 },
+            { x: JUNCTION_APPROACH_TOP_X, y: 45 },
+            { x: correctTarget.x, y: correctTarget.y }
+          ]
     },
     meta: { commandId: command.id }
   });

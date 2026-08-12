@@ -66,7 +66,8 @@ test('junction fixtures expose one retained entry-to-accepted-target route for e
       }
 
       assertRoute(route, context);
-      assertPointEqual(route[0], { x: 50, y: 100 }, `${context} learner entry`);
+      // Entry rides the photographed right lane, not the painted centerline.
+      assertPointEqual(route[0], { x: 62, y: 100 }, `${context} learner entry`);
       assertInsideTarget(route.at(-1), target, `${context} endpoint`);
       assertPointEqual(route.at(-1), target, `${context} exact accepted target`);
     }

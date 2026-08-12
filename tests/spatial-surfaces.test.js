@@ -87,11 +87,15 @@ test('junction models retain one immutable correct route ending at the accepted 
     const model = generateSpatialSurface(command(action, 'junction-v2'), 42);
     const accepted = model.targets.find(target => target.resultId === action);
 
-    assert.deepEqual(model.geometry.correctRoute, [
-      { x: 50, y: 100 },
-      { x: 50, y: 45 },
-      { x: accepted.x, y: accepted.y }
-    ]);
+    // The approach rides the photographed right lane (task #12): the v1
+    // photo's Tier 2 retouch painted a centerline the old x=50 path straddled.
+    const approach = [
+      { x: 62, y: 100 },
+      { x: 60, y: 45 }
+    ];
+    assert.deepEqual(model.geometry.correctRoute, action === 'continue-forward'
+      ? [...approach, { x: 56, y: 30 }, { x: accepted.x, y: accepted.y }]
+      : [...approach, { x: accepted.x, y: accepted.y }]);
     assert.ok(Object.isFrozen(model.geometry.correctRoute));
     assert.ok(model.geometry.correctRoute.every(Object.isFrozen));
   }
@@ -112,7 +116,9 @@ test('four- and five-exit targets stay within their photographed road mouths', (
       [86, 88, 42, 44],
       [54, 56, 10, 12],
       [12, 14, 38, 40],
-      [12, 14, 66, 68]
+      // Exit 4 sits half a target-height lower than the other left mouths so
+      // the circle lands squarely on the photographed road surface (task #11).
+      [12, 14, 73, 75]
     ],
     5: [
       [86, 88, 66, 68],
