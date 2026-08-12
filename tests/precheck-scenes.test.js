@@ -107,14 +107,17 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
   assert.ok(Object.values(lighting.targets).every(target => target.iconKey === 'native-symbol'));
   assert.deepEqual(
     [lighting.targets['high-beam'].x, lighting.targets['high-beam'].y],
-    [26.3, 46.9],
+    [26, 48.5],
     'main beam has no printed symbol on this stalk (it is a push from dipped), so its circle centres on the dipped-beam symbol'
   );
 
   const headlightRing = PRECHECK_SCENES['generic-headlight-ring'];
   assert.equal(headlightRing.asset, lighting.asset);
-  assert.deepEqual(Object.keys(headlightRing.targets).sort(), ['dipped-headlights', 'position-lights']);
+  assert.deepEqual(Object.keys(headlightRing.targets).sort(), ['dipped-headlights', 'front-fog', 'position-lights']);
   assert.ok(Object.values(headlightRing.targets).every(target => target.iconKey === 'native-symbol'));
+  // The three-icon stack reads off / position / dipped from top to bottom;
+  // position lights sit immediately above the dipped symbol, not on the
+  // standalone symbol at the end of the stalk pad (task #8 corrected reading).
   assert.deepEqual(
     [
       headlightRing.targets['position-lights'].x,
@@ -122,7 +125,11 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
       headlightRing.targets['dipped-headlights'].x,
       headlightRing.targets['dipped-headlights'].y
     ],
-    [14.7, 38.8, 26.3, 46.9]
+    [27.3, 40, 26, 48.5]
+  );
+  assert.ok(
+    headlightRing.targets['position-lights'].y < headlightRing.targets['dipped-headlights'].y,
+    'position lights stack directly above dipped in the icon column'
   );
   assert.deepEqual(
     [lighting.targets['high-beam'].x, lighting.targets['high-beam'].y],
@@ -136,10 +143,12 @@ test('lighting and exterior-release prechecks map to precise photo targets with 
       headlightRing.targets['dipped-headlights'].width,
       headlightRing.targets['dipped-headlights'].height
     ],
-    [7, 15, 7, 15],
-    'adjacent lighting targets must stay compact and non-overlapping'
+    [7, 8, 7, 8],
+    'stacked lighting targets must stay compact and non-overlapping (CSS floors the tap area at 44px)'
   );
   assert.equal(headlightRing.targets['dipped-headlights'].labelPlacement.y, 76);
+  assert.equal(headlightRing.targets['front-fog'].resultId, 'front-fog-lights',
+    'the headlight and position questions offer a third response (task #8 minimum)');
   assertNonOverlappingTargets(Object.entries(headlightRing.targets).map(([id, target]) => ({ id, ...target })));
   assert.match(headlightRing.targets['position-lights'].anchorDescription, /position-light symbol/i);
   assert.match(headlightRing.targets['dipped-headlights'].anchorDescription, /dipped-headlight symbol/i);

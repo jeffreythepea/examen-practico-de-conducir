@@ -221,21 +221,21 @@ export const PRECHECK_SCENES = deepFreeze({
     reference: 'Generic manual hatchback lighting stalk — illustrative AI-generated photo',
     targets: {
       'high-beam': {
-        resultId: 'high-beams', x: 26.3, y: 46.9, width: 8, height: 15,
+        resultId: 'high-beams', x: 26, y: 48.5, width: 8, height: 15,
         kind: 'stalk-movement', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.highBeam', labelPlacement: { x: 17, y: 78, width: 28 },
         stateKind: 'power', initialState: false, desiredState: true,
-        anchorDescription: 'Centred on the dipped-beam symbol: main beam has no printed symbol on this stalk — it is a push of the stalk from the dipped position, so both headlight commands share this anchor'
+        anchorDescription: 'Centred on the dipped-beam symbol at the bottom of the three-icon stack: main beam has no printed symbol on this stalk — it is a push of the stalk from the dipped position, so both headlight commands share this anchor'
       },
       'front-fog': {
-        resultId: 'front-fog-lights', x: 37.2, y: 42, width: 8, height: 15,
+        resultId: 'front-fog-lights', x: 37.2, y: 46, width: 8, height: 11,
         kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.frontFog', labelPlacement: { x: 47, y: 78, width: 28 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Offset just above the native front fog-light symbol on its rotating ring'
       },
       'rear-fog': {
-        resultId: 'rear-fog-light', x: 51.2, y: 44, width: 8, height: 15,
+        resultId: 'rear-fog-light', x: 51.2, y: 49, width: 8, height: 11,
         kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.rearFog', labelPlacement: { x: 80, y: 78, width: 28 },
         stateKind: 'power', initialState: false, desiredState: true,
@@ -251,18 +251,25 @@ export const PRECHECK_SCENES = deepFreeze({
     reference: 'Generic manual hatchback headlight control ring — illustrative AI-generated photo',
     targets: {
       'position-lights': {
-        resultId: 'position-lights', x: 14.7, y: 38.8, width: 7, height: 15,
+        resultId: 'position-lights', x: 27.3, y: 40, width: 7, height: 8,
         kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
-        labelKey: 'surface.yaris.positionLights', labelPlacement: { x: 22, y: 70, width: 30 },
+        labelKey: 'surface.yaris.positionLights', labelPlacement: { x: 13, y: 24, width: 30 },
         stateKind: 'power', initialState: false, desiredState: true,
-        anchorDescription: 'Centred on the position-light symbol (two outward-facing lamps) on the rotating ring, left of the dipped-headlight symbol'
+        anchorDescription: 'Centred on the position-light symbol, the middle icon of the three-icon stack (off, position, dipped), immediately above the dipped-headlight symbol'
       },
       'dipped-headlights': {
-        resultId: 'dipped-headlights', x: 26.3, y: 46.9, width: 7, height: 15,
+        resultId: 'dipped-headlights', x: 26, y: 48.5, width: 7, height: 8,
         kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.dippedHeadlights', labelPlacement: { x: 45, y: 76, width: 32 },
         stateKind: 'power', initialState: false, desiredState: true,
-        anchorDescription: 'Centred on the dipped-headlight symbol (downward-pointing beam lamp) on the rotating ring, right of the position-light symbol'
+        anchorDescription: 'Centred on the dipped-headlight symbol at the bottom of the three-icon stack, immediately below the position-light symbol'
+      },
+      'front-fog': {
+        resultId: 'front-fog-lights', x: 37.2, y: 46, width: 8, height: 11,
+        kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
+        labelKey: 'surface.yaris.frontFog', labelPlacement: { x: 47, y: 62, width: 28 },
+        stateKind: 'power', initialState: false, desiredState: true,
+        anchorDescription: 'Offset just above the native front fog-light symbol on its rotating ring — the third response option for the headlight and position-light questions'
       }
     }
   },
@@ -281,14 +288,14 @@ export const PRECHECK_SCENES = deepFreeze({
         anchorDescription: 'Centred on the native left and right indicator arrows on the stalk'
       },
       'front-fog': {
-        resultId: 'front-fog-lights', x: 37.2, y: 42, width: 8, height: 15,
+        resultId: 'front-fog-lights', x: 37.2, y: 46, width: 8, height: 11,
         kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.frontFog', labelPlacement: { x: 34, y: 70, width: 25 },
         stateKind: 'power', initialState: false, desiredState: true,
         anchorDescription: 'Centred on the front fog-light control ring'
       },
       'rear-fog': {
-        resultId: 'rear-fog-light', x: 51.2, y: 44, width: 8, height: 15,
+        resultId: 'rear-fog-light', x: 51.2, y: 49, width: 8, height: 11,
         kind: 'stalk-ring-control', interaction: 'operate', iconKey: 'native-symbol',
         labelKey: 'surface.yaris.rearFog', labelPlacement: { x: 53, y: 82, width: 25 },
         stateKind: 'power', initialState: false, desiredState: true,

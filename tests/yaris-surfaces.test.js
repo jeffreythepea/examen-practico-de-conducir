@@ -112,7 +112,14 @@ test('an independent expected table maps all 18 prechecks to one stable source-g
     assert.deepEqual(model.meta.manualPages, contract.manualPages);
     assert.equal(expectedTarget.id, expected.hotspotId);
     assert.equal(model.expectedResult, command.acceptedResult);
-    assert.ok(model.targets.every(target => target.width >= 7 && target.height >= 14.67));
+    // Compact stalk circles are deliberate: position/dipped stack inside the
+    // three-icon column whose spacing cannot fit two 14.67-tall boxes, and the
+    // fog circles shrink so the off-position dash above each fog symbol stays
+    // outside the clickable area. CSS floors every hotspot at 44px regardless,
+    // so the smaller model heights stay tappable.
+    const compactStalkHeights = { 'position-lights': 8, 'dipped-headlights': 8, 'front-fog': 11, 'rear-fog': 11 };
+    assert.ok(model.targets.every(target => target.width >= 7
+      && target.height >= (compactStalkHeights[target.id] ?? 14.67)));
     assertNonOverlappingTargets(model.targets);
     assert.deepEqual(model, generateYarisSurface(command, 7));
     assert.ok(Object.isFrozen(model));
