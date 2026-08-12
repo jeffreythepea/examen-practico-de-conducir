@@ -14,6 +14,7 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { CONTINUITY_SCENE_FAMILIES } from '../src/continuity-transition-view.js';
 import { DRIVING_SCENES } from '../src/driving-scenes.js';
 import { PRECHECK_SCENES } from '../src/precheck-scenes.js';
+import { TURN_CLIPS } from '../src/turn-through.js';
 
 const STATIC_RUNTIME = Object.freeze([
   'index.html',
@@ -98,6 +99,11 @@ export async function collectRuntimeAssets({ root, catalog, audioManifest }) {
   // the same transitions as the hosted app.
   const continuityVideoAssets = Object.values(CONTINUITY_SCENE_FAMILIES)
     .flatMap(family => family.video ? [family.video.asset, family.video.poster] : []);
+  // Turn clips and posters follow the same rule: what the registry references
+  // ships in the package, nothing else.
+  const turnClipAssets = Object.values(TURN_CLIPS)
+    .flatMap(scene => Object.values(scene))
+    .flatMap(clip => [clip.asset, clip.poster]);
   const audioPaths = audioManifest.map(item => normalizeRuntimePath(item.path));
   if (new Set(audioPaths).size !== audioPaths.length) {
     throw new Error('Audio manifest contains duplicate runtime paths');
@@ -107,6 +113,7 @@ export async function collectRuntimeAssets({ root, catalog, audioManifest }) {
     ...srcFiles,
     ...sceneAssets,
     ...continuityVideoAssets,
+    ...turnClipAssets,
     ...audioPaths
   ].map(normalizeRuntimePath);
   const paths = [...new Set(candidates)].sort((a, b) => a.localeCompare(b));

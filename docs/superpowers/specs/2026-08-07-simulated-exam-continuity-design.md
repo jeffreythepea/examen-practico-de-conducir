@@ -412,3 +412,37 @@ with the server stopped.
 Status of the remaining tiers: Tier 2 (generated mid-turn frames, dispatchable
 via the Codex MCP image bridge) is deferred pending judgment on Tier 1;
 Tier 3 (a full route graph) is rejected as too heavy during wind-down.
+
+## Tier 2 Motion: AI-Video Turn Clips, Four-Way Slice (2026-08-12)
+
+Jeffrey judged Tier 1 good and approved Tier 2: on the four-way junction
+only, a correct answer's transition now plays a real driving clip of the
+chosen turn in place of the CSS turn-through-pan. Three clips are registered
+in `TURN_CLIPS` (src/turn-through.js) keyed by scene and result —
+`four-way-turn-left-v1`, `four-way-turn-right-v1`, `four-way-straight-v1`,
+all `provenance: 'ai-generated-illustrative'` — and the intro's auto-advance
+derives from each clip's registry duration rather than the 1.4 s constant.
+The clip layers above its own first-frame poster above the retained CSS pan;
+a clip that fails to load latches clips off for the session and re-renders
+onto the CSS path. Clips never play in mock (they would reveal the chosen
+direction), never on wrong answers, and reduced motion / Road movement off
+suppress them entirely — without a clip the markup is byte-identical to the
+CSS-only renderer.
+
+Generation escalated beyond Tier 1's single-shot prompting after Veo
+repeatedly refused a genuine 90-degree turn: each turn clip is TWO 4 s
+Veo 3.1 segments via Hermes/OpenRouter with exact first-and-last-frame
+conditioning (approach still → Codex-generated mid-turn keyframe → distinct
+post-turn street), stitched frame-exact on the shared keyframe and trimmed
+to a 1.5x-speed ~3.9 s cut. Turn geometry is exam-correct by construction:
+the left keyframe orbits the junction centre keeping it on the car's left;
+the right keyframe holds a tight right arc. Both scene stills were re-imaged
+in place (same IDs and filenames, the roundabout-four retouch precedent):
+the junction gained dashed centerlines with the car in its right lane, and
+the whole fleet now carries the red-triangle roof marker; both Tier 1 cruise
+clips were re-delivered at 1080p as `-v2` for the enlarged stage. All five
+clips plus posters ship in the offline package (48.03 → 56.8 MB installed,
+over the plan's ~52 MB flag line), verified on the
+iPad simulator with the server stopped: turn clip and cruise clip both play
+from cache. Roundabouts, U-turn, and junction null events remain out of
+scope for this slice.
