@@ -172,5 +172,5 @@ test('stopping fixtures retain reviewed clear-curb routes across both templates 
     }
   }
 
-  assert.deepEqual([...templates].sort(), ['no-stopping-curb-clear', 'urban-curb-clear']);
+  assert.deepEqual([...templates].sort(), ['urban-curb-clear']);
 });

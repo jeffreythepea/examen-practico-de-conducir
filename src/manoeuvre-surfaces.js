@@ -137,33 +137,24 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       ]
     }
   ],
+  // One photo-grounded template (2026-08-12 scene regen): every candidate
+  // stopping spot ranges along the right curb — open curb ahead of the car,
+  // the garage vado (illegal even unsigned), and the stretch by the crosswalk.
+  // The signed-no-stopping variant retired with the sign; parking before a
+  // dropped curb is prohibited without one.
   'stopping-v1': [
     {
       id: 'urban-curb-clear',
       expectedResult: 'voluntary-stop',
       features: ['curb', 'driveway', 'crosswalk'],
       correctRoute: [
-        { x: 50, y: 74 }, { x: 55, y: 72 }, { x: 62, y: 68 },
-        { x: 66, y: 64 }, { x: 70.5, y: 60 }
+        { x: 50, y: 74 }, { x: 56, y: 72 }, { x: 63, y: 70 },
+        { x: 70, y: 66 }, { x: 75, y: 62 }
       ],
       targets: [
-        { id: 'clear-curb', resultId: 'voluntary-stop', kind: 'legal-stop', feature: 'clear-curb', x: 70.5, y: 60 },
-        { id: 'driveway', resultId: 'blocked-access', kind: 'restricted-stop', feature: 'driveway', explanationKey: 'surface.restricted.blockedAccess', x: 84, y: 37 },
-        { id: 'crosswalk', resultId: 'crosswalk', kind: 'restricted-stop', feature: 'crosswalk', explanationKey: 'surface.restricted.crosswalk', x: 40, y: 15 }
-      ]
-    },
-    {
-      id: 'no-stopping-curb-clear',
-      expectedResult: 'voluntary-stop',
-      features: ['curb', 'no-stopping-sign', 'crosswalk'],
-      correctRoute: [
-        { x: 50, y: 74 }, { x: 55, y: 72 }, { x: 62, y: 68 },
-        { x: 66, y: 64 }, { x: 70.5, y: 60 }
-      ],
-      targets: [
-        { id: 'clear-left-curb', resultId: 'voluntary-stop', kind: 'legal-stop', feature: 'clear-curb', x: 70.5, y: 60 },
-        { id: 'no-stopping-curb', resultId: 'signed-no-stopping', kind: 'restricted-stop', feature: 'no-stopping-sign', explanationKey: 'surface.restricted.noStoppingSign', x: 72, y: 37 },
-        { id: 'upper-crosswalk', resultId: 'crosswalk', kind: 'restricted-stop', feature: 'crosswalk', explanationKey: 'surface.restricted.crosswalk', x: 40, y: 15 }
+        { id: 'clear-curb', resultId: 'voluntary-stop', kind: 'legal-stop', feature: 'clear-curb', x: 75, y: 62 },
+        { id: 'driveway', resultId: 'blocked-access', kind: 'restricted-stop', feature: 'driveway', explanationKey: 'surface.restricted.blockedAccess', x: 70, y: 43 },
+        { id: 'crosswalk', resultId: 'crosswalk', kind: 'restricted-stop', feature: 'crosswalk', explanationKey: 'surface.restricted.crosswalk', x: 59, y: 22 }
       ]
     }
   ]

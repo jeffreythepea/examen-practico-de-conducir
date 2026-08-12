@@ -45,8 +45,7 @@ test('manoeuvre surfaces expose only explicit stable IDs and named audited templ
       'curbside-safe-merge',
       'marked-bays-clear-entry',
       'curb-bays-clear-space',
-      'urban-curb-clear',
-      'no-stopping-curb-clear'
+      'urban-curb-clear'
     ]
   );
 
@@ -231,7 +230,9 @@ test('parking and voluntary-stop feedback trace the learner car into the accepte
           'parking route must bend through open road before entering the photographed gap');
       } else {
         const driveway = model.targets.find(target => target.feature === 'driveway');
-        assert.ok(!driveway || route.at(-1).y >= driveway.y + 18,
+        // 2026-08-12 scene regen: nominal separation is 19 with ±1.5 jitter on
+        // each spot, so 15 is the tightest guarantee that stays "clearly below".
+        assert.ok(!driveway || route.at(-1).y >= driveway.y + 15,
           'voluntary-stop route must finish clearly below the driveway');
       }
 
@@ -249,12 +250,12 @@ test('every urban-photo choice is anchored to its visible curb, driveway, crossi
     'clear-curb-bay': [72, 76, 35, 39],
     'crosswalk-bay': [41, 45, 13, 17],
     'no-parking-bay': [83, 87, 84, 88],
-    'clear-curb': [68.5, 72.5, 58, 62],
-    driveway: [82, 86, 35, 39],
-    crosswalk: [38, 42, 13, 17],
-    'clear-left-curb': [68.5, 72.5, 58, 62],
-    'no-stopping-curb': [70, 74, 35, 39],
-    'upper-crosswalk': [38, 42, 13, 17]
+    // 2026-08-12 scene regen: all stopping candidates range along the right
+    // curb — open curb before the vado, the garage vado, the pre-crosswalk
+    // stretch (bands = template anchor ±1.5 jitter).
+    'clear-curb': [73.5, 76.5, 60.5, 63.5],
+    driveway: [68.5, 71.5, 41.5, 44.5],
+    crosswalk: [57.5, 60.5, 20.5, 23.5]
   };
 
   for (const [action, surfaceId] of [['park', 'parking-v1'], ['voluntary-stop', 'stopping-v1']]) {
@@ -275,8 +276,7 @@ test('photo-backed physical features do not receive redundant crosswalk, drivewa
   for (const [action, surfaceId, templateId] of [
     ['park', 'parking-v1', 'marked-bays-clear-entry'],
     ['park', 'parking-v1', 'curb-bays-clear-space'],
-    ['voluntary-stop', 'stopping-v1', 'urban-curb-clear'],
-    ['voluntary-stop', 'stopping-v1', 'no-stopping-curb-clear']
+    ['voluntary-stop', 'stopping-v1', 'urban-curb-clear']
   ]) {
     const model = modelForTemplate(action, surfaceId, templateId);
     const markup = renderManoeuvreSurface(model, 'en');
@@ -410,7 +410,7 @@ test('reveal distinguishes correct and wrong selections without marking a correc
   assert.match(revealedCorrectButton, /aria-pressed="false"/);
 });
 
-test('parking and stopping templates render distinct audited prohibition signs', () => {
+test('parking renders its audited prohibition sign; stopping renders none', () => {
   const parking = modelForTemplate('park', 'parking-v1', 'curb-bays-clear-space');
   const parkingTarget = parking.targets.find(target => target.feature === 'no-parking-sign');
   assert.equal(parkingTarget.resultId, 'signed-no-parking');
@@ -425,18 +425,12 @@ test('parking and stopping templates render distinct audited prohibition signs',
   assert.match(parkingMarkup, /No-parking sign/);
   assert.doesNotMatch(parkingMarkup, /data-road-sign="no-stopping"/);
 
-  const stopping = modelForTemplate('voluntary-stop', 'stopping-v1', 'no-stopping-curb-clear');
-  const stoppingTarget = stopping.targets.find(target => target.feature === 'no-stopping-sign');
-  assert.equal(stoppingTarget.resultId, 'signed-no-stopping');
-  assert.equal(stoppingTarget.explanationKey, 'surface.restricted.noStoppingSign');
-  const stoppingMarkup = renderManoeuvreSurface(stopping, 'es', {
-    reveal: true,
-    selectedTargetId: stoppingTarget.id
-  });
-  assert.match(stoppingMarkup, /data-road-sign="no-stopping"/);
-  assert.equal((stoppingMarkup.match(/class="road-sign-prohibition"/g) ?? []).length, 2);
-  assert.match(stoppingMarkup, /Señal de prohibido parar/);
-  assert.doesNotMatch(stoppingMarkup, /data-road-sign="no-parking"/);
+  // The stopping scene lost its sign in the 2026-08-12 regen: blocking a vado
+  // is illegal without one, so no synthetic sign may be drawn over the photo.
+  const stopping = modelForTemplate('voluntary-stop', 'stopping-v1', 'urban-curb-clear');
+  const stoppingMarkup = renderManoeuvreSurface(stopping, 'es', { reveal: true });
+  assert.doesNotMatch(stoppingMarkup, /data-road-sign=/);
+  assert.ok(!stopping.targets.some(target => target.resultId === 'signed-no-stopping'));
 });
 
 test('every manoeuvre target exposes a non-empty, distinct, bilingual accessible name that never reveals the answer', () => {
@@ -467,7 +461,7 @@ test('road motion wraps every photo-backed manoeuvre scene with its calibrated t
     ['change-direction', 'u-turn-v1', 'clear-two-way-turnaround', 1.05, 50, 84],
     ['overtake', 'overtake-v1', 'clear-two-lane-pass', 1.18, 54, 86],
     ['park', 'parking-v1', 'curb-bays-clear-space', 1.06, 65, 84],
-    ['voluntary-stop', 'stopping-v1', 'no-stopping-curb-clear', 1.06, 66, 84]
+    ['voluntary-stop', 'stopping-v1', 'urban-curb-clear', 1.06, 66, 84]
   ];
 
   for (const [actionId, surfaceId, templateId, endScale, originX, originY] of cases) {
@@ -542,7 +536,7 @@ test('manoeuvre target styles preserve the target model dimensions and reveal st
 });
 
 test('stopping choices use car-sized vertical outlines inside their full touch targets', async () => {
-  const model = modelForTemplate('voluntary-stop', 'stopping-v1', 'no-stopping-curb-clear');
+  const model = modelForTemplate('voluntary-stop', 'stopping-v1', 'urban-curb-clear');
   const markup = renderManoeuvreSurface(model, 'en');
   for (const target of model.targets) {
     assert.match(targetButtonMarkup(markup, target.id), new RegExp(`data-feature="${target.feature}"`));
