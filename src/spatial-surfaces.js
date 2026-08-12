@@ -41,7 +41,10 @@ const ROUTE_ANGLE_JITTER = 2;
 const JUNCTION_ACTION_RESULTS = Object.freeze(['turn-right', 'turn-left', 'continue-forward']);
 const JUNCTION_TARGETS = Object.freeze([
   Object.freeze({ id: 'left', resultId: 'turn-left', x: 15, y: 42 }),
-  Object.freeze({ id: 'straight', resultId: 'continue-forward', x: 50, y: 15 }),
+  // x 54 is the far leg's right-lane centre measured against the rendered
+  // photo (centerline ≈50.6, right kerb ≈57.5 at y 15) — the photographed
+  // mouth centre (x 50) puts the circle over the opposing lane (task #15).
+  Object.freeze({ id: 'straight', resultId: 'continue-forward', x: 54, y: 15 }),
   Object.freeze({ id: 'right', resultId: 'turn-right', x: 85, y: 42 })
 ]);
 const STAGE = Object.freeze({ stageWidth: 400, stageHeight: 300 });

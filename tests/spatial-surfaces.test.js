@@ -66,7 +66,8 @@ test('spatial geometry varies subtly while junctions expose left, straight, and 
 test('junction targets remain inside the three photographed road mouths', () => {
   const bands = {
     'turn-left': [12, 18, 39, 45],
-    'continue-forward': [47, 53, 12, 18],
+    // Far-leg right-lane centre, not the mouth centre (task #15).
+    'continue-forward': [51, 57, 12, 18],
     'turn-right': [82, 88, 39, 45]
   };
   for (let seed = 1; seed <= 64; seed += 1) {
