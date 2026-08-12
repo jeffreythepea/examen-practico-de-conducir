@@ -34,32 +34,57 @@ export function createFeedbackCuePlayer({ contextFactory = defaultContextFactory
   async function play(cue, { enabled = true, busy = false } = {}) {
     if (!enabled || busy || !FEEDBACK_CUES.includes(cue)) return false;
 
+    const running = await ensureRunningContext();
+    if (!running) return false;
     try {
-      context ??= contextFactory();
-      if (!context || context.state === 'closed') {
-        context = null;
-        return false;
-      }
-      // iPadOS WebKit parks the context in a non-standard 'interrupted' state
-      // after other audio (the command mp3) takes the session; resume from any
-      // non-running state, not just 'suspended'.
-      if (context.state !== undefined && context.state !== 'running') {
-        await context.resume();
-      }
-      if (context.state !== undefined && context.state !== 'running') {
-        // A dead context would silently eat every future cue; drop it so the
-        // next cue attempt (inside a tap gesture) can create a fresh one.
-        context = null;
-        return false;
-      }
-
-      const baseTime = context.currentTime;
-      for (const tone of CUE_DEFINITIONS[cue]) scheduleTone(context, tone, baseTime, activeOscillators);
+      const baseTime = running.currentTime;
+      for (const tone of CUE_DEFINITIONS[cue]) scheduleTone(running, tone, baseTime, activeOscillators);
       return true;
     } catch {
       stop();
-      context = null;
+      discardContext();
       return false;
+    }
+  }
+
+  // Two attempts per cue: revive the existing context, then once more with a
+  // fresh context created inside the same task — a tap-driven cue whose
+  // interrupted context cannot be revived still sounds on that same tap.
+  async function ensureRunningContext() {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        context ??= contextFactory();
+        if (!context) return null;
+        if (context.state === undefined) return context;
+        // iPadOS WebKit parks the context in a non-standard 'interrupted'
+        // state after other audio (the command mp3) takes the session; resume
+        // from any non-running state, not just 'suspended'.
+        if (context.state !== 'running' && context.state !== 'closed') {
+          await context.resume();
+        }
+        if (context.state === 'running') return context;
+        // A dead context would silently eat every future cue; drop it so the
+        // next attempt can create a fresh one.
+        discardContext();
+      } catch {
+        discardContext();
+      }
+    }
+    return null;
+  }
+
+  // WebKit caps live AudioContexts per page. Dropping an interrupted context
+  // without close() leaks one from that budget each time; enough of them and
+  // every later context is born unusable — cues fall permanently silent
+  // mid-session while command audio (an <audio> element) keeps playing.
+  function discardContext() {
+    const dying = context;
+    context = null;
+    if (!dying) return;
+    try {
+      Promise.resolve(dying.close?.()).catch(() => {});
+    } catch {
+      // close() is best-effort; the context is already unreferenced.
     }
   }
 

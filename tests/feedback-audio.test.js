@@ -80,7 +80,7 @@ test('valid cues schedule their complete definition and stop clears active oscil
   context.oscillators.forEach(oscillator => assert.ok(oscillator.stopCalls >= 2));
 });
 
-test('an iPadOS-interrupted context is resumed and a dead one is replaced next cue', async () => {
+test('an iPadOS-interrupted context is resumed and a dead one is replaced within the same cue', async () => {
   const interrupted = createFakeContext({ state: 'interrupted' });
   const player = createFeedbackCuePlayer({ contextFactory: () => interrupted });
   assert.equal(await player.play('correct'), true, 'resume from the non-standard interrupted state');
@@ -90,10 +90,27 @@ test('an iPadOS-interrupted context is resumed and a dead one is replaced next c
   const fresh = createFakeContext({ state: 'running' });
   const contexts = [stuck, fresh];
   const recovering = createFeedbackCuePlayer({ contextFactory: () => contexts.shift() });
-  assert.equal(await recovering.play('correct'), false);
+  assert.equal(await recovering.play('correct'), true,
+    'an unrevivable context is replaced inside the same (tap) task so this cue still sounds');
   assert.equal(stuck.oscillators.length, 0);
-  assert.equal(await recovering.play('correct'), true, 'a dead context is dropped, not reused');
   assert.ok(fresh.oscillators.length > 0);
+});
+
+test('abandoned contexts are closed so WebKit\'s per-page context budget is not exhausted', async () => {
+  const contexts = [];
+  const factory = () => {
+    const fake = createFakeContext({ state: 'interrupted', resumeRejects: true });
+    contexts.push(fake);
+    return fake;
+  };
+  const player = createFeedbackCuePlayer({ contextFactory: factory });
+
+  assert.equal(await player.play('correct'), false);
+  assert.equal(await player.play('incorrect'), false);
+  assert.equal(contexts.length, 4, 'two attempts per cue, none reused once dead');
+  for (const fake of contexts) {
+    assert.equal(fake.closeCalls, 1, 'every dropped context is released back to the budget');
+  }
 });
 
 test('context construction and resume failures are non-throwing', async () => {
@@ -113,9 +130,14 @@ function createFakeContext({ state = 'running', resumeRejects = false } = {}) {
     destination: { id: 'destination' },
     oscillators: [],
     gains: [],
+    closeCalls: 0,
     async resume() {
       if (resumeRejects) throw new Error('resume blocked');
       this.state = 'running';
+    },
+    async close() {
+      this.closeCalls += 1;
+      this.state = 'closed';
     },
     createOscillator() {
       const oscillator = {
