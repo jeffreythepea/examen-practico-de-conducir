@@ -273,14 +273,25 @@ test('screen changes expose managed focus and announced reveal/result headings w
 test('screen re-renders parse into a template and adopt stable images before swapping the DOM', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
   const parseIndex = source.indexOf('template.innerHTML = `${renderHeader()}${screen}`');
+  const decodeIndex = source.indexOf("image.decoding = 'sync'");
+  const stageIndex = source.indexOf('adoptStableStages(app, template.content)');
   const adoptIndex = source.indexOf('adoptStableImages(app, template.content)');
   const replaceIndex = source.indexOf('app.replaceChildren(template.content)');
   assert.ok(parseIndex >= 0, 'render must parse the screen markup into a template');
-  assert.ok(parseIndex < adoptIndex, 'image adoption runs on the parsed template');
+  assert.ok(parseIndex < decodeIndex,
+    'sync decode is reflected onto parsed images before adoption so live and parsed stages serialize identically');
+  assert.ok(decodeIndex < stageIndex, 'stage adoption compares markup after the decode attribute lands');
+  assert.ok(stageIndex < adoptIndex, 'stage adoption runs before image adoption');
   assert.ok(adoptIndex < replaceIndex, 'adoption happens before the live DOM swap');
-  const decodeIndex = source.indexOf("image.decoding = 'sync'");
-  assert.ok(adoptIndex < decodeIndex && decodeIndex < replaceIndex,
-    'images decode synchronously so the swap paints atomically (WebKit flicker fix)');
+});
+
+test('stage controls bind through the WeakSet guard so adopted stages never double-fire', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  assert.match(source, /const boundStageControls = new WeakSet\(\)/);
+  const stageBindings = source.match(/bindStageControl\(/g) ?? [];
+  assert.ok(stageBindings.length >= 8, 'every stage control binding site routes through the guard');
+  assert.match(source, /forEach\(button => bindStageControl\(button, 'click'/);
+  assert.match(source, /\.road-target'\)\.forEach\(button => bindStageControl/);
 });
 
 test('app selects only supported surfaces and uses normalized actions, localized vehicle procedures, and a data-management label', async () => {

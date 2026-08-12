@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   adoptStableImages,
+  adoptStableStages,
   captureFocusSnapshot,
   lessonEditorDraftFromForm,
   persistedActiveSessionAfterAttempt,
@@ -172,4 +173,85 @@ test('each retained image is adopted at most once', () => {
   assert.equal(adoptStableImages(fakeTree([previous]), fakeTree([first, second])), 1);
   assert.equal(first.replacedWith, previous);
   assert.equal(second.replacedWith, null);
+});
+
+function fakeButton(disabled) {
+  return {
+    disabledAttribute: disabled,
+    hasAttribute(name) { return name === 'disabled' && this.disabledAttribute; },
+    toggleAttribute(name, force) {
+      if (name === 'disabled') this.disabledAttribute = force;
+    }
+  };
+}
+
+function fakeStage({ surfaceId, outerHTML, buttons = [] }) {
+  const node = {
+    outerHTML,
+    buttons,
+    getAttribute: name => (name === 'data-surface' ? surfaceId : null),
+    querySelectorAll: selector => (selector === 'button' ? buttons : []),
+    replacedWith: null,
+    replaceWith(replacement) { node.replacedWith = replacement; }
+  };
+  return node;
+}
+
+function fakeStageTree(stages) {
+  return { querySelectorAll: selector => (selector === '.surface-stage' ? stages : []) };
+}
+
+test('the unlock render keeps the live stage node and flips disabled on its buttons', () => {
+  const previous = fakeStage({
+    surfaceId: 'generic-headlight-ring',
+    outerHTML: '<div class="surface-stage" data-surface="generic-headlight-ring"><img src="./a.webp" decoding="sync"><button disabled="" style="--x:1"></button><button disabled="" style="--x:2"></button></div>',
+    buttons: [fakeButton(true), fakeButton(true)]
+  });
+  const next = fakeStage({
+    surfaceId: 'generic-headlight-ring',
+    outerHTML: '<div class="surface-stage" data-surface="generic-headlight-ring"><img src="./a.webp" decoding="sync"><button style="--x:1"></button><button style="--x:2"></button></div>',
+    buttons: [fakeButton(false), fakeButton(false)]
+  });
+
+  assert.equal(adoptStableStages(fakeStageTree([previous]), fakeStageTree([next])), 1);
+  assert.equal(next.replacedWith, previous, 'live stage keeps its identity across the re-render');
+  assert.deepEqual(previous.buttons.map(button => button.disabledAttribute), [false, false]);
+});
+
+test('a stage whose markup differs beyond disabled flags renders fresh', () => {
+  const previous = fakeStage({
+    surfaceId: 'roundabout-v2',
+    outerHTML: '<div data-surface="roundabout-v2"><button disabled=""></button></div>',
+    buttons: [fakeButton(true)]
+  });
+  const next = fakeStage({
+    surfaceId: 'roundabout-v2',
+    outerHTML: '<div data-surface="roundabout-v2"><button aria-current="true"></button></div>',
+    buttons: [fakeButton(false)]
+  });
+
+  assert.equal(adoptStableStages(fakeStageTree([previous]), fakeStageTree([next])), 0);
+  assert.equal(next.replacedWith, null);
+  assert.equal(previous.buttons[0].disabledAttribute, true, 'rejected stages keep their state untouched');
+});
+
+test('stage adoption matches surfaces by id, not render order', () => {
+  const previousOther = fakeStage({
+    surfaceId: 'other-surface',
+    outerHTML: '<div data-surface="other-surface"></div>'
+  });
+  const previous = fakeStage({
+    surfaceId: 'junction-v3',
+    outerHTML: '<div data-surface="junction-v3"><button disabled=""></button></div>',
+    buttons: [fakeButton(true)]
+  });
+  const next = fakeStage({
+    surfaceId: 'junction-v3',
+    outerHTML: '<div data-surface="junction-v3"><button></button></div>',
+    buttons: [fakeButton(false)]
+  });
+
+  assert.equal(adoptStableStages(fakeStageTree([previousOther, previous]), fakeStageTree([next])), 1);
+  assert.equal(next.replacedWith, previous);
+  assert.equal(previous.buttons[0].disabledAttribute, false);
 });

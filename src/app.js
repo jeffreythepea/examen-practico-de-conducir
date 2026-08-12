@@ -395,6 +395,45 @@ export function adoptStableImages(previousRoot, nextRoot) {
   return adopted;
 }
 
+// Matches a serialized boolean disabled attribute (` disabled` in generated
+// markup, ` disabled=""` once the browser serializes it back).
+const DISABLED_ATTRIBUTE_PATTERN = /\sdisabled(?:="")?(?=[\s>])/g;
+
+function stageMarkupIgnoringDisabled(stage) {
+  return stage.outerHTML.replace(DISABLED_ATTRIBUTE_PATTERN, '');
+}
+
+/**
+ * Keeps the live `.surface-stage` subtree across a re-render whose stage
+ * markup differs only in disabled flags (the audio-start and unlock renders),
+ * flipping disabled on the retained buttons instead of swapping the subtree.
+ * WebKit repaints a swapped stage asynchronously on device, which reads as a
+ * flicker even when the <img> node itself is adopted.
+ */
+export function adoptStableStages(previousRoot, nextRoot) {
+  const retained = new Map();
+  for (const stage of previousRoot.querySelectorAll('.surface-stage')) {
+    const surfaceId = stage.getAttribute('data-surface');
+    if (surfaceId && !retained.has(surfaceId)) retained.set(surfaceId, stage);
+  }
+  let adopted = 0;
+  for (const stage of [...nextRoot.querySelectorAll('.surface-stage')]) {
+    const surfaceId = stage.getAttribute('data-surface');
+    const previous = surfaceId ? retained.get(surfaceId) : null;
+    if (!previous) continue;
+    if (stageMarkupIgnoringDisabled(previous) !== stageMarkupIgnoringDisabled(stage)) continue;
+    retained.delete(surfaceId);
+    // Identical normalized markup guarantees the button lists line up.
+    const previousButtons = [...previous.querySelectorAll('button')];
+    [...stage.querySelectorAll('button')].forEach((button, index) => {
+      previousButtons[index].toggleAttribute('disabled', button.hasAttribute('disabled'));
+    });
+    stage.replaceWith(previous);
+    adopted += 1;
+  }
+  return adopted;
+}
+
 function enterNullEventScreen(model, index, event, surfaceGenerator) {
   const base = resetTrial({ ...model, screen: 'null-event' }, index);
   let generated;
@@ -1233,12 +1272,15 @@ async function bootstrap() {
                 : renderResults();
     const template = document.createElement('template');
     template.innerHTML = `${renderHeader()}${screen}`;
-    adoptStableImages(app, template.content);
     // WebKit repaints reinserted images asynchronously, flashing the stage
     // blank for a frame or two; synchronous decode commits the swap atomically.
+    // Reflected onto the parsed nodes before stage adoption so live and parsed
+    // stages serialize identically.
     for (const image of template.content.querySelectorAll('img')) {
       image.decoding = 'sync';
     }
+    adoptStableStages(app, template.content);
+    adoptStableImages(app, template.content);
     app.replaceChildren(template.content);
     bindCommonEvents();
     if (model.screen === 'title') bindTitleEvents();
@@ -1956,6 +1998,16 @@ async function bootstrap() {
     });
   }
 
+  // Controls inside a stage kept alive by adoptStableStages survive the
+  // rebind that follows every render; without this guard they would
+  // accumulate a duplicate listener per re-render.
+  const boundStageControls = new WeakSet();
+  function bindStageControl(element, type, handler, options) {
+    if (!element || boundStageControls.has(element)) return;
+    boundStageControls.add(element);
+    element.addEventListener(type, handler, options);
+  }
+
   function bindPromptEvents() {
     app.querySelector('[data-action="end-session"]')?.addEventListener('click', endSession);
     app.querySelector('[data-action="replay"]')?.addEventListener('click', () => void replayAudio());
@@ -1973,23 +2025,25 @@ async function bootstrap() {
       render();
       if (model.activeSurfaceModel) startTimer();
     });
-    app.querySelectorAll('[data-target]:not([data-control-event])').forEach(button => button.addEventListener('click', () => {
+    app.querySelectorAll('[data-target]:not([data-control-event])').forEach(button => bindStageControl(button, 'click', () => {
       dispatchSurfaceEvent({ type: 'select-target', targetId: button.dataset.target });
     }));
-    app.querySelectorAll('[data-control-event="activate"]').forEach(button => button.addEventListener('click', () => {
+    app.querySelectorAll('[data-control-event="activate"]').forEach(button => bindStageControl(button, 'click', () => {
       dispatchSurfaceEvent({ type: 'activate', targetId: button.dataset.target });
     }));
-    app.querySelectorAll('[data-control-event="select-gear"]').forEach(button => button.addEventListener('click', () => {
+    app.querySelectorAll('[data-control-event="select-gear"]').forEach(button => bindStageControl(button, 'click', () => {
       dispatchSurfaceEvent({ type: 'select-gear', targetId: button.dataset.target, gear: button.dataset.gear });
     }));
-    app.querySelector('[data-control-event="submit-secure"]')?.addEventListener('click', () => {
+    bindStageControl(app.querySelector('[data-control-event="submit-secure"]'), 'click', () => {
       dispatchSurfaceEvent({ type: 'submit-secure' });
     });
-    app.querySelectorAll('[data-control-event="set-wheel"]').forEach(control => control.addEventListener('input', () => {
+    app.querySelectorAll('[data-control-event="set-wheel"]').forEach(control => bindStageControl(control, 'input', () => {
       dispatchSurfaceEvent({ type: 'set-wheel', degrees: Number(control.value) });
     }));
-    app.querySelector('.road-motion-scene[data-road-motion-running="true"]')
-      ?.addEventListener('animationend', event => {
+    bindStageControl(
+      app.querySelector('.road-motion-scene[data-road-motion-running="true"]'),
+      'animationend',
+      event => {
         if (event.animationName !== 'road-camera-push') return;
         const before = model;
         model = reduceScreen(model, {
@@ -1997,7 +2051,9 @@ async function bootstrap() {
           completedAt: Date.now()
         });
         if (model !== before) render();
-      }, { once: true });
+      },
+      { once: true }
+    );
   }
 
   function dispatchSurfaceEvent(surfaceEvent) {
@@ -2120,7 +2176,7 @@ async function bootstrap() {
       window.setTimeout(advance, NULL_EVENT_DWELL_MS);
       return;
     }
-    app.querySelectorAll('.road-target').forEach(button => button.addEventListener('click', () => {
+    app.querySelectorAll('.road-target').forEach(button => bindStageControl(button, 'click', () => {
       const before = model;
       model = reduceScreen(model, {
         type: 'NULL_EVENT_SELECT',
@@ -2137,7 +2193,7 @@ async function bootstrap() {
     };
     const runningScene = app.querySelector('.road-motion-scene[data-road-motion-running="true"]');
     if (runningScene) {
-      runningScene.addEventListener('animationend', event => {
+      bindStageControl(runningScene, 'animationend', event => {
         if (event.animationName !== 'road-camera-push') return;
         const before = model;
         model = reduceScreen(model, { type: 'ROAD_APPROACH_ENDED', completedAt: Date.now() });
