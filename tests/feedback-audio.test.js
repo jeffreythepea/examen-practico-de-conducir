@@ -113,6 +113,41 @@ test('abandoned contexts are closed so WebKit\'s per-page context budget is not 
   }
 });
 
+test('prewarm creates and resumes the context inside the calling gesture, and play reuses it', async () => {
+  let contexts = 0;
+  const suspended = createFakeContext({ state: 'suspended' });
+  const player = createFeedbackCuePlayer({
+    contextFactory: () => {
+      contexts += 1;
+      return suspended;
+    }
+  });
+
+  player.prewarm();
+  assert.equal(contexts, 1, 'the context is created synchronously in the gesture');
+  assert.equal(suspended.state, 'running', 'the suspended context is resumed');
+
+  assert.equal(await player.play('correct'), true);
+  assert.equal(contexts, 1, 'the first cue reuses the prewarmed context instead of creating its own');
+  assert.ok(suspended.oscillators.length > 0);
+
+  player.prewarm();
+  assert.equal(contexts, 1, 'repeat prewarms never replace a live context');
+});
+
+test('prewarm failures are non-throwing and leave the player able to retry', async () => {
+  assert.doesNotThrow(() => {
+    createFeedbackCuePlayer({ contextFactory: () => { throw new Error('blocked'); } }).prewarm();
+  });
+
+  const stuck = createFakeContext({ state: 'interrupted', resumeRejects: true });
+  const fresh = createFakeContext({ state: 'running' });
+  const contexts = [stuck, fresh];
+  const player = createFeedbackCuePlayer({ contextFactory: () => contexts.shift() });
+  assert.doesNotThrow(() => player.prewarm());
+  assert.equal(await player.play('correct'), true, 'a cue still sounds after a failed prewarm resume');
+});
+
 test('context construction and resume failures are non-throwing', async () => {
   const unavailable = createFeedbackCuePlayer({ contextFactory: () => { throw new Error('blocked'); } });
   assert.equal(await unavailable.play('correct', { enabled: true }), false);

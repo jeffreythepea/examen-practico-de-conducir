@@ -47,6 +47,23 @@ export function createFeedbackCuePlayer({ contextFactory = defaultContextFactory
     }
   }
 
+  // iPadOS routes a context created while the shared <audio> element owns the
+  // media session into a no-output state that still reports 'running', so no
+  // state check can recover it. The context must instead be born inside the
+  // app's first user gesture, before any <audio> playback exists; callers
+  // invoke this from that gesture's handler.
+  function prewarm() {
+    try {
+      context ??= contextFactory();
+      if (!context || context.state === undefined) return;
+      if (context.state !== 'running' && context.state !== 'closed') {
+        Promise.resolve(context.resume()).catch(() => {});
+      }
+    } catch {
+      discardContext();
+    }
+  }
+
   // Two attempts per cue: revive the existing context, then once more with a
   // fresh context created inside the same task — a tap-driven cue whose
   // interrupted context cannot be revived still sounds on that same tap.
@@ -99,7 +116,7 @@ export function createFeedbackCuePlayer({ contextFactory = defaultContextFactory
     activeOscillators.clear();
   }
 
-  return Object.freeze({ play, stop });
+  return Object.freeze({ play, prewarm, stop });
 }
 
 function scheduleTone(context, tone, baseTime, activeOscillators) {

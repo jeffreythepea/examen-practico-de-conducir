@@ -1411,6 +1411,10 @@ async function bootstrap() {
 
   function bindTitleEvents() {
     app.querySelector('[data-action="enter"]')?.addEventListener('click', () => {
+      // This tap is the app's first user gesture, before any command <audio>
+      // claims the iPadOS media session — the only window in which the cue
+      // context can be created with working output routing (#10).
+      feedbackPlayer.prewarm();
       model = reduceScreen(model, { type: 'GO_TO_SETUP' });
       render();
     });
