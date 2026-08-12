@@ -1618,6 +1618,7 @@ async function bootstrap() {
       <h3 id="offline-title">${translate(locale(), 'offline.title')}</h3>
       <div role="status" aria-live="polite">
         <p>${translate(locale(), messageKey)}</p>
+        ${offlineState?.activeVersion ? `<p class="offline-version">${translate(locale(), 'offline.activeVersion', { hash: offlineState.activeVersion.slice(0, 8) })}</p>` : ''}
         ${total > 0 ? `<p>${translate(locale(), 'offline.bytes', { completed: formatBytes(completed), total: formatBytes(total) })}</p>` : ''}
       </div>
       <progress data-offline-progress value="${progress}" max="${total || 1}" ${total > 0 ? '' : 'hidden'}></progress>
