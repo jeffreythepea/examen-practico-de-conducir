@@ -283,8 +283,10 @@ test('photo-backed physical features do not receive redundant crosswalk, drivewa
     assert.doesNotMatch(markup, /class="scenario-crosswalk"|class="scenario-driveway"|class="scenario-restriction"/);
   }
 
+  // The no-parking sign is baked into the parking photo (task #14); no
+  // synthetic sign may be drawn over it either.
   const signed = modelForTemplate('park', 'parking-v1', 'curb-bays-clear-space');
-  assert.match(renderManoeuvreSurface(signed, 'en'), /data-road-sign="no-parking"/);
+  assert.doesNotMatch(renderManoeuvreSurface(signed, 'en'), /data-road-sign=/);
 });
 
 test('every accepted U-turn route geometrically finishes travelling down the original road', () => {
@@ -410,7 +412,7 @@ test('reveal distinguishes correct and wrong selections without marking a correc
   assert.match(revealedCorrectButton, /aria-pressed="false"/);
 });
 
-test('parking renders its audited prohibition sign; stopping renders none', () => {
+test('parking keeps its signed no-parking choice without synthetic sign drawings; stopping renders none', () => {
   const parking = modelForTemplate('park', 'parking-v1', 'curb-bays-clear-space');
   const parkingTarget = parking.targets.find(target => target.feature === 'no-parking-sign');
   assert.equal(parkingTarget.resultId, 'signed-no-parking');
@@ -419,11 +421,11 @@ test('parking renders its audited prohibition sign; stopping renders none', () =
     reveal: true,
     selectedTargetId: parkingTarget.id
   });
-  assert.match(parkingMarkup, /data-road-sign="no-parking"/);
-  assert.match(parkingMarkup, /data-road-sign="no-parking"[^>]+scale\(0\.666667 1\)/);
-  assert.equal((parkingMarkup.match(/class="road-sign-prohibition"/g) ?? []).length, 1);
+  // The sign lives in the photo raster itself (task #14): the choice keeps
+  // its stable IDs and label, but no synthetic sign is drawn over the scene.
+  assert.doesNotMatch(parkingMarkup, /data-road-sign=/);
+  assert.equal((parkingMarkup.match(/class="road-sign-prohibition"/g) ?? []).length, 0);
   assert.match(parkingMarkup, /No-parking sign/);
-  assert.doesNotMatch(parkingMarkup, /data-road-sign="no-stopping"/);
 
   // The stopping scene lost its sign in the 2026-08-12 regen: blocking a vado
   // is illegal without one, so no synthetic sign may be drawn over the photo.

@@ -412,7 +412,9 @@ function manoeuvreDrawing(model, photoBacked = false) {
 function featureDrawing(target, photoBacked = false) {
   const x = target.x;
   const y = target.y;
-  if (photoBacked && (target.feature === 'crosswalk' || target.feature === 'driveway' || target.feature === 'restricted-marking')) {
+  // Photo-backed scenes carry these features in the raster itself (the
+  // no-parking sign is baked into parallel-parking-gap-photo-v1, task #14).
+  if (photoBacked && ['crosswalk', 'driveway', 'restricted-marking', 'no-parking-sign', 'no-stopping-sign'].includes(target.feature)) {
     return '';
   }
   if (target.feature === 'crosswalk') {
@@ -424,20 +426,17 @@ function featureDrawing(target, photoBacked = false) {
   if (target.feature === 'restricted-marking') {
     return `<path d="M ${x - 7} ${y - 6} L ${x + 7} ${y + 6} M ${x + 7} ${y - 6} L ${x - 7} ${y + 6}" class="scenario-restriction"/>`;
   }
-  if (target.feature === 'no-parking-sign') return prohibitionSign(x, y, 'no-parking', photoBacked);
-  if (target.feature === 'no-stopping-sign') return prohibitionSign(x, y, 'no-stopping', photoBacked);
+  if (target.feature === 'no-parking-sign') return prohibitionSign(x, y, 'no-parking');
+  if (target.feature === 'no-stopping-sign') return prohibitionSign(x, y, 'no-stopping');
   return '';
 }
 
-function prohibitionSign(x, y, type, photoBacked = false) {
+function prohibitionSign(x, y, type) {
   const centerY = roundCoordinate(y - 7);
   const lines = type === 'no-stopping'
     ? '<path d="M -3.5 -3.5 L 3.5 3.5" class="road-sign-prohibition"/><path d="M 3.5 -3.5 L -3.5 3.5" class="road-sign-prohibition"/>'
     : '<path d="M -3.5 3.5 L 3.5 -3.5" class="road-sign-prohibition"/>';
-  const transform = photoBacked
-    ? `translate(${x} ${centerY}) scale(0.666667 1)`
-    : `translate(${x} ${centerY})`;
-  return `<g data-road-sign="${type}" transform="${transform}">
+  return `<g data-road-sign="${type}" transform="translate(${x} ${centerY})">
     <circle r="5" class="road-sign-face"/>
     ${lines}
     <path d="M 0 5 V 14" class="scenario-sign-post"/>

@@ -60,8 +60,8 @@ export const DRIVING_SCENES = deepFreeze({
     asset: './assets/driving/parallel-parking-gap-photo-v1.webp',
     provenance: 'ai-generated-illustrative',
     alt: {
-      en: 'Illustrative urban road with a clear parallel-parking gap between two cars on the right curb',
-      es: 'Calle urbana ilustrativa con un espacio libre para estacionar en paralelo entre dos coches junto al bordillo derecho'
+      en: 'Illustrative urban road with a clear parallel-parking gap between two cars on the right curb and a no-parking sign beside the rear gap',
+      es: 'Calle urbana ilustrativa con un espacio libre para estacionar en paralelo entre dos coches junto al bordillo derecho y una señal de estacionamiento prohibido junto al hueco trasero'
     }
   },
   'urban-roadside-photo-v1': {
