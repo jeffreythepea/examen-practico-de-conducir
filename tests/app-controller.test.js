@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {
   adoptStableImages,
   adoptStableStages,
+  capturedOpenDisclosures,
   captureFocusSnapshot,
+  restoreOpenDisclosures,
   lessonEditorDraftFromForm,
   persistedActiveSessionAfterAttempt,
   restoreFocusSnapshot
@@ -233,6 +235,45 @@ test('a stage whose markup differs beyond disabled flags renders fresh', () => {
   assert.equal(adoptStableStages(fakeStageTree([previous]), fakeStageTree([next])), 0);
   assert.equal(next.replacedWith, null);
   assert.equal(previous.buttons[0].disabledAttribute, true, 'rejected stages keep their state untouched');
+});
+
+function fakeDetails(classAttribute, open = false) {
+  return {
+    open,
+    getAttribute: name => (name === 'class' ? classAttribute : null)
+  };
+}
+
+function fakeDetailsTree(details) {
+  return { querySelectorAll: selector => (selector === 'details' ? details : []) };
+}
+
+test('open disclosures survive a same-screen re-render (offline download progress)', () => {
+  const live = [
+    fakeDetails('setup-advanced', true),
+    fakeDetails('advanced-practice-disclosure', false),
+    fakeDetails('settings-disclosure', true)
+  ];
+  const keys = capturedOpenDisclosures(fakeDetailsTree(live));
+  assert.deepEqual(keys, ['setup-advanced#0', 'settings-disclosure#0']);
+
+  const parsed = [
+    fakeDetails('setup-advanced'),
+    fakeDetails('advanced-practice-disclosure'),
+    fakeDetails('settings-disclosure')
+  ];
+  assert.equal(restoreOpenDisclosures(fakeDetailsTree(parsed), keys), 2);
+  assert.deepEqual(parsed.map(details => details.open), [true, false, true]);
+});
+
+test('same-class disclosures are keyed by occurrence so only the opened one reopens', () => {
+  const live = [fakeDetails('', false), fakeDetails('', true)];
+  const keys = capturedOpenDisclosures(fakeDetailsTree(live));
+  assert.deepEqual(keys, ['#1']);
+
+  const parsed = [fakeDetails(''), fakeDetails('')];
+  restoreOpenDisclosures(fakeDetailsTree(parsed), keys);
+  assert.deepEqual(parsed.map(details => details.open), [false, true]);
 });
 
 test('stage adoption matches surfaces by id, not render order', () => {

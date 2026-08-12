@@ -434,6 +434,38 @@ export function adoptStableStages(previousRoot, nextRoot) {
   return adopted;
 }
 
+// Disclosure state is keyed by class attribute plus occurrence index so a
+// re-render (e.g. offline download progress on the setup screen) cannot
+// collapse a <details> the user opened.
+function disclosureKey(details, counts) {
+  const classAttribute = details.getAttribute('class') ?? '';
+  const index = counts.get(classAttribute) ?? 0;
+  counts.set(classAttribute, index + 1);
+  return `${classAttribute}#${index}`;
+}
+
+export function capturedOpenDisclosures(root) {
+  const counts = new Map();
+  const keys = [];
+  for (const details of root.querySelectorAll('details')) {
+    const key = disclosureKey(details, counts);
+    if (details.open) keys.push(key);
+  }
+  return keys;
+}
+
+export function restoreOpenDisclosures(root, keys) {
+  const wanted = new Set(keys);
+  const counts = new Map();
+  let restored = 0;
+  for (const details of root.querySelectorAll('details')) {
+    if (!wanted.has(disclosureKey(details, counts))) continue;
+    details.open = true;
+    restored += 1;
+  }
+  return restored;
+}
+
 function enterNullEventScreen(model, index, event, surfaceGenerator) {
   const base = resetTrial({ ...model, screen: 'null-event' }, index);
   let generated;
@@ -1248,6 +1280,9 @@ async function bootstrap() {
     const focusSnapshot = previousScreen === model.screen
       ? captureFocusSnapshot(app, document)
       : null;
+    const openDisclosures = previousScreen === model.screen
+      ? capturedOpenDisclosures(app)
+      : [];
     setDocumentLocale(locale());
     document.title = translate(locale(), 'app.title');
     document.querySelector('#skip-link').textContent = translate(locale(), 'app.skip');
@@ -1279,6 +1314,7 @@ async function bootstrap() {
     for (const image of template.content.querySelectorAll('img')) {
       image.decoding = 'sync';
     }
+    restoreOpenDisclosures(template.content, openDisclosures);
     adoptStableStages(app, template.content);
     adoptStableImages(app, template.content);
     app.replaceChildren(template.content);
