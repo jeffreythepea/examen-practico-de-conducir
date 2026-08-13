@@ -24,6 +24,12 @@ export const TURN_CLIPS = Object.freeze({
     'continue-forward': turnClip('four-way-straight-v1', 4000)
   })
 });
+// A scene+result with a registered clip is demonstrated by the clip alone:
+// such reveals draw neither the gold car glyph nor the static route line.
+export function hasTurnClip(sceneId, resultId) {
+  return Boolean(TURN_CLIPS[sceneId]?.[resultId]);
+}
+
 // Percent of frame translated per percent of target offset from stage centre.
 const DIRECTION_GAIN = 0.35;
 const INTRO_SCALE = 1.22;

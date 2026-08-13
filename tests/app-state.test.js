@@ -418,9 +418,19 @@ test('saved correct immediate reveals alone qualify for bounded post-answer move
   const correctAttempt = { outcome: 'unaided' };
   const assistedAttempt = { outcome: 'assisted' };
 
+  // The four-way junction scene is clip-backed, which itself suppresses the
+  // glyph; the positive path needs a scene without a registered turn clip.
+  const clipless = {
+    ...revealed,
+    activeSurfaceModel: {
+      ...revealed.activeSurfaceModel,
+      geometry: { ...revealed.activeSurfaceModel.geometry, sceneId: 'junction-plate-v1' }
+    }
+  };
+
   for (const attempt of [correctAttempt, assistedAttempt]) {
     const motion = createSavedPostAnswerMotion({
-      screenModel: revealed,
+      screenModel: clipless,
       attempt,
       roadMovement: true,
       reducedMotion: false,
@@ -437,12 +447,15 @@ test('saved correct immediate reveals alone qualify for bounded post-answer move
     { attempt: null },
     { roadMovement: false },
     { reducedMotion: true },
-    { screenModel: { ...revealed, screen: 'mock-transition' } },
-    { screenModel: { ...revealed, experience: { revealPolicy: 'session-end' } } },
-    { screenModel: { ...revealed, activeSurfaceModel: { family: 'wheel', geometry: revealed.activeSurfaceModel.geometry } } }
+    { screenModel: { ...clipless, screen: 'mock-transition' } },
+    { screenModel: { ...clipless, experience: { revealPolicy: 'session-end' } } },
+    { screenModel: { ...clipless, activeSurfaceModel: { family: 'wheel', geometry: clipless.activeSurfaceModel.geometry } } },
+    // The untouched reveal keeps its clip-backed scene: motion video
+    // supersedes the glyph outright.
+    { screenModel: revealed }
   ]) {
     const motion = createSavedPostAnswerMotion({
-      screenModel: revealed,
+      screenModel: clipless,
       attempt: correctAttempt,
       roadMovement: true,
       reducedMotion: false,

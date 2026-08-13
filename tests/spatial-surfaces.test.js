@@ -111,6 +111,16 @@ test('straight-ahead junction commands use the photographed center road across s
   }
 });
 
+test('clip-backed junction reveals draw no gold route while clip-less roundabouts keep theirs', () => {
+  // The four-way junction has motion clips for all three results: the clip
+  // is the demonstration, so the reveal renders neither line nor glyph.
+  const junction = generateSpatialSurface(command('turn-right', 'junction-v2'), 7);
+  assert.doesNotMatch(renderSpatialSurface(junction, 'en', { reveal: true }), /data-correct-route/);
+
+  const roundabout = generateSpatialSurface(command('roundabout-exit-2'), 7, { exitCount: 4 });
+  assert.match(renderSpatialSurface(roundabout, 'en', { reveal: true }), /data-correct-route/);
+});
+
 test('four- and five-exit targets stay within their photographed road mouths', () => {
   const bands = {
     4: [
@@ -239,7 +249,8 @@ test('road motion keeps each spatial photograph, route, and targets in one calib
   const scene = markup.match(/<div class="road-motion-scene"[\s\S]*?<\/div>/)?.[0];
   assert.ok(scene);
   assert.match(scene, /class="driving-scene-image"/);
-  assert.match(scene, /<svg[\s\S]*data-correct-route/);
+  // Clip-backed junction: the motion video supersedes the gold route line.
+  assert.doesNotMatch(scene, /data-correct-route/);
   assert.equal((scene.match(/class="road-target"/g) ?? []).length, 3);
   assert.doesNotMatch(scene, /surface-result-label/);
   assert.match(markup, /<\/div>\s*<p class="surface-result-label"/);
@@ -247,6 +258,7 @@ test('road motion keeps each spatial photograph, route, and targets in one calib
   assert.doesNotMatch(renderSpatialSurface(junction, 'en'), /road-motion-scene/);
   const roundabout = generateSpatialSurface(command('roundabout-exit-2'), 17, { exitCount: 4 });
   const roundaboutMarkup = renderSpatialSurface(roundabout, 'en', {
+    reveal: true,
     motion: {
       ...motion,
       endScale: 1.03,
@@ -256,6 +268,8 @@ test('road motion keeps each spatial photograph, route, and targets in one calib
   assert.match(roundaboutMarkup, /class="road-motion-scene"/);
   assert.match(roundaboutMarkup, /--road-motion-end-scale:1\.03/);
   assert.match(roundaboutMarkup, /--road-motion-origin-y:80%/);
+  // Clip-less scenes keep the in-scene gold route at reveal.
+  assert.match(roundaboutMarkup, /<svg[\s\S]*data-correct-route/);
 });
 
 test('correct post-answer movement stays decorative inside the calibrated spatial scene, replacing the static route line', () => {

@@ -16,7 +16,7 @@ import {
   CONTINUITY_SCENE_FAMILIES,
   renderContinuityTransition
 } from './continuity-transition-view.js';
-import { turnThroughIntro } from './turn-through.js';
+import { hasTurnClip, turnThroughIntro } from './turn-through.js';
 import { commandsForPhase, validateCatalog } from './catalog.js';
 import {
   ACCOMPLISHMENTS,
@@ -151,7 +151,9 @@ export function createSavedPostAnswerMotion({
     && roadMovement === true
     && reducedMotion !== true
     && POST_ANSWER_MOTION_FAMILY_SET.has(family)
-    && Array.isArray(surface?.geometry?.correctRoute);
+    && Array.isArray(surface?.geometry?.correctRoute)
+    // Clip-backed scenes are demonstrated by their motion video alone.
+    && !hasTurnClip(surface?.geometry?.sceneId, surface?.expectedResult);
   try {
     return createPostAnswerMotion({
       eligible,
