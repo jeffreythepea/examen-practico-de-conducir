@@ -167,15 +167,21 @@ export function createSavedPostAnswerMotion({
   }
 }
 
+// The glyph's own duration was the first dwell tried, on the reasoning that
+// the pause should last as long as the motion it replaced. On device it read
+// as rushed (Jeffrey, 2026-08-14): the learner is reading the result label,
+// not watching a car, and reading takes a beat the animation never needed.
+const REVEAL_READING_BEAT_MS = 1_200;
+
 /**
  * The complement of createSavedPostAnswerMotion: a clip-backed reveal draws no
  * glyph because the clip demonstrates the manoeuvre, which left it motionless
- * while it waited for a tap. Hold it for exactly as long as the glyph it
- * replaced would have run, then move into the transition — and so the clip —
- * on its own. Correct answers only, and only in a continuous drive where a
- * transition actually follows: a miss needs its reading time and its
- * miss-reason buttons, and mock is excluded with the rest of the clip
- * machinery by the session-end reveal policy.
+ * while it waited for a tap. Hold it for the glyph's duration plus a reading
+ * beat, then move into the transition — and so the clip — on its own. Correct
+ * answers only, and only in a continuous drive where a transition actually
+ * follows: a miss needs its reading time and its miss-reason buttons, and mock
+ * is excluded with the rest of the clip machinery by the session-end reveal
+ * policy.
  *
  * @returns {number|null} dwell in ms, or null when the learner keeps the tap
  */
@@ -192,7 +198,7 @@ export function revealAutoAdvanceMs({ screenModel, attempt, roadMovement, reduce
     && reducedMotion !== true
     && POST_ANSWER_MOTION_FAMILY_SET.has(family)
     && hasTurnClip(surface?.geometry?.sceneId, surface?.expectedResult);
-  return eligible ? POST_ANSWER_MOTION_DURATIONS[family] : null;
+  return eligible ? POST_ANSWER_MOTION_DURATIONS[family] + REVEAL_READING_BEAT_MS : null;
 }
 
 export function feedbackCueForTransition(before, after, event) {

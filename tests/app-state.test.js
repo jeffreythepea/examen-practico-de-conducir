@@ -531,12 +531,14 @@ test('a clip-backed reveal advances itself after the dwell the glyph would have 
     reducedMotion: false
   };
 
-  // The dwell is the family's own motion duration, never a separate constant.
-  assert.equal(revealAutoAdvanceMs(eligible), 1_300);
+  // The dwell is the family's own motion duration plus a reading beat: the
+  // bare motion duration read as rushed on device, since the learner is
+  // reading the result label rather than watching the car.
+  assert.equal(revealAutoAdvanceMs(eligible), 1_300 + 1_200);
   assert.equal(revealAutoAdvanceMs({
     ...eligible,
     screenModel: { ...eligible.screenModel, activeSurfaceModel: parking }
-  }), 1_450);
+  }), 1_450 + 1_200);
 
   const clipless = {
     ...junction,
