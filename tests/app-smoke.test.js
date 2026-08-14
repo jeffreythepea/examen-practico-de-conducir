@@ -429,7 +429,20 @@ test('the app opens on a bilingual title screen that enters setup on one tap', a
   assert.match(source, /data-action="enter"[^>]*>\$\{translate\(locale\(\), 'title\.enter'\)\}/);
   assert.match(source, /if \(model\.screen === 'title'\) bindTitleEvents\(\);/);
   assert.match(source, /type: 'GO_TO_SETUP'/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\n\s*\.title-scene img,\s*\n\s*\.title-overlay \{\s*\n\s*animation: none;/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\n\s*\.title-overlay \{\s*\n\s*animation: none;/);
+
+  // The scene carries the app's name, so the header must not repeat it — but
+  // the bilingual AI-voice disclosure has to survive that removal, and the
+  // language switch has to stay reachable before entering.
+  assert.match(source, /model\.screen === 'title'[\s\S]{0,200}?class="app-header title-only">\$\{languageSwitch\}/);
+  assert.doesNotMatch(source, /class="app-header title-only">[\s\S]{0,80}app\.shortTitle/);
+  assert.match(source, /class="title-disclosure">\$\{translate\(locale\(\), 'audio\.disclosure'\)\}/);
+
+  // Looping footage is exactly what reduced motion asks us to stop, and the
+  // autoplay attribute alone is unreliable, so playback is asserted in JS.
+  assert.match(source, /class="title-scene-media"[\s\S]{0,220}?muted loop playsinline autoplay/);
+  assert.match(source, /prefers-reduced-motion: reduce[\s\S]{0,120}?scene\.pause\(\)/);
+  assert.match(source, /scene\.playbackRate = 0\.5/);
 });
 
 test('setup leads with the simulated-drive primary card and hides configuration behind Advanced options', async () => {

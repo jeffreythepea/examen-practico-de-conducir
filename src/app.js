@@ -1422,6 +1422,12 @@ async function bootstrap() {
         <button type="button" data-locale="en" aria-pressed="${locale() === 'en'}">EN</button>
         <button type="button" data-locale="es" aria-pressed="${locale() === 'es'}">ES</button>
       </div>`;
+    // The title screen paints its own name over the scene, so the header would
+    // only repeat it; the language switch still has to be reachable before
+    // entering, and the disclosure moves onto the scene itself.
+    if (model.screen === 'title') {
+      return `<header class="app-header title-only">${languageSwitch}</header>`;
+    }
     if (gameplayScreen()) {
       return `<header class="app-header compact">
       <h1>${translate(locale(), 'app.shortTitle')}</h1>
@@ -1456,17 +1462,44 @@ async function bootstrap() {
   function renderTitle() {
     return `<section class="panel title-screen" aria-labelledby="title-screen-heading">
       <div class="title-scene">
-        <img src="./assets/driving/urban-roadside-photo-v1.webp" alt="" aria-hidden="true">
+        <video class="title-scene-media" src="./assets/driving/urban-roadside-drive-v2.mp4"
+          poster="./assets/driving/urban-roadside-drive-v2-poster.webp"
+          data-provenance="ai-generated-illustrative"
+          muted loop playsinline autoplay preload="auto" aria-hidden="true"></video>
         <div class="title-overlay">
           <h2 id="title-screen-heading" data-screen-focus tabindex="-1">${translate(locale(), 'app.title')}</h2>
           <p>${translate(locale(), 'app.subtitle')}</p>
           <button class="primary title-enter" type="button" data-action="enter">${translate(locale(), 'title.enter')}</button>
         </div>
+        <p class="title-disclosure">${translate(locale(), 'audio.disclosure')}</p>
       </div>
     </section>`;
   }
 
   function bindTitleEvents() {
+    const scene = app.querySelector('.title-scene-media');
+    if (scene) {
+      // Reduced motion keeps the poster frame: a looping video is exactly the
+      // motion that setting asks us to stop.
+      if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+        scene.autoplay = false;
+        scene.pause();
+      } else {
+        // Half speed turns the cruise footage into an unhurried backdrop
+        // rather than a drive the learner is meant to follow. The rate is
+        // reset by load, and the autoplay attribute alone is unreliable — it
+        // is evaluated before the data arrives — so re-assert both as the
+        // element becomes ready. A blocked play leaves the poster, which is
+        // this clip's own first frame.
+        const start = () => {
+          scene.playbackRate = 0.5;
+          scene.play?.()?.catch(() => {});
+        };
+        start();
+        scene.addEventListener('loadedmetadata', start);
+        scene.addEventListener('canplay', start);
+      }
+    }
     app.querySelector('[data-action="enter"]')?.addEventListener('click', () => {
       // This tap is the app's first user gesture, before any command <audio>
       // claims the iPadOS media session — the only window in which the cue
