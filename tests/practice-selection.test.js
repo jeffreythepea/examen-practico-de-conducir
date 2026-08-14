@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { selectPracticeCommands } from '../src/practice-selection.js';
+import { precheckCap, selectPracticeCommands } from '../src/practice-selection.js';
 
 function utcDate(year, month, day) {
   return Date.UTC(year, month, day);
@@ -532,6 +532,55 @@ test('recommended target with short length returns top 5 by priority', () => {
   assert(ids.includes('due-in-progress'));
   assert(ids.includes('learning'));
   assert(!ids.includes('ready-cmd'));
+});
+
+test('prechecks are capped at a floored quarter of the session', () => {
+  assert.deepEqual(
+    [5, 20, 30].map(precheckCap),
+    [1, 5, 7],
+    'short 5 -> 1, medium 20 -> 5, all 30 -> 7'
+  );
+
+  // Every command untested, so priority alone would interleave prechecks
+  // freely — a mixed 20 previously drew ten of them on device.
+  const pool = [
+    ...Array.from({ length: 20 }, (_, index) => command(`pre-${index}`, `pre-action-${index}`, 'precheck')),
+    // Enough driving commands to fill every session length, so the cap binds
+    // rather than yielding to the never-shorten rule exercised below.
+    ...Array.from({ length: 30 }, (_, index) => command(`drive-${index}`, `drive-action-${index}`, 'driving'))
+  ];
+
+  for (const [length, expected] of [['short', 1], ['medium', 5], ['all', 7]]) {
+    const selected = selectPracticeCommands(pool, {
+      phase: 'mixed', length, target: { kind: 'recommended' }, now: NOW, rng: () => 0
+    });
+    const prechecks = selected.filter(c => c.phase === 'precheck');
+    assert.equal(prechecks.length, expected, `${length} session precheck count`);
+    assert.equal(selected.length, { short: 5, medium: 20, all: 30 }[length]);
+  }
+});
+
+test('the precheck cap never shortens a session it cannot backfill', () => {
+  // A precheck-only phase, and a mixed draw with too few driving commands to
+  // take the freed places: the cap yields rather than serving a short session.
+  const precheckOnly = Array.from({ length: 30 },
+    (_, index) => command(`pre-${index}`, `pre-action-${index}`, 'precheck'));
+  const precheckSession = selectPracticeCommands(precheckOnly, {
+    phase: 'precheck', length: 'medium', target: { kind: 'recommended' }, now: NOW, rng: () => 0
+  });
+  assert.equal(precheckSession.length, 20);
+  assert.equal(precheckSession.every(c => c.phase === 'precheck'), true);
+
+  const thinDriving = [
+    ...precheckOnly,
+    ...Array.from({ length: 6 }, (_, index) => command(`drive-${index}`, `drive-action-${index}`, 'driving'))
+  ];
+  const mixedSession = selectPracticeCommands(thinDriving, {
+    phase: 'mixed', length: 'medium', target: { kind: 'recommended' }, now: NOW, rng: () => 0
+  });
+  assert.equal(mixedSession.length, 20);
+  assert.equal(mixedSession.filter(c => c.phase === 'driving').length, 6);
+  assert.equal(mixedSession.filter(c => c.phase === 'precheck').length, 14);
 });
 
 test('returned array is frozen', () => {

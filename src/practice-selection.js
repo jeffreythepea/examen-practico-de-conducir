@@ -5,6 +5,33 @@ import { readinessForCatalog } from './readiness.js';
 // event, closer to a real exam's pacing.
 export const SESSION_LENGTHS = Object.freeze({ short: 5, medium: 20, all: 30 });
 
+// Prechecks are the formality that opens an exam, not the drive itself, and an
+// unconstrained draw served ten of them in a twenty-command session (device
+// pass 2026-08-14). Hold them to a quarter of the session, floored, but never
+// below one so a short session can still open on a check.
+export const PRECHECK_SESSION_SHARE = 0.25;
+
+export function precheckCap(targetLength) {
+  return Math.max(1, Math.floor(targetLength * PRECHECK_SESSION_SHARE));
+}
+
+// The cap is a preference for driving commands, not a length limit: when there
+// are too few driving commands to take the freed places — a precheck-only
+// phase, or a target whose whole selection is prechecks — the extra prechecks
+// stay in and the session keeps its length. Relative order is untouched, so
+// the stratified merge above still holds.
+function withPrecheckCap(ordered, targetLength) {
+  const drivingAvailable = ordered.filter(command => command.phase !== 'precheck').length;
+  const cap = Math.max(precheckCap(targetLength), targetLength - drivingAvailable);
+  let used = 0;
+  return ordered.filter(command => {
+    if (command.phase !== 'precheck') return true;
+    if (used >= cap) return false;
+    used += 1;
+    return true;
+  });
+}
+
 function fisherYatesShuffle(array, rng) {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i -= 1) {
@@ -198,7 +225,7 @@ export function selectPracticeCommands(commands, {
 
   // Slice to session length
   const targetLength = SESSION_LENGTHS[length];
-  selected = selected.slice(0, targetLength);
+  selected = withPrecheckCap(selected, targetLength).slice(0, targetLength);
 
   return Object.freeze(selected);
 }
