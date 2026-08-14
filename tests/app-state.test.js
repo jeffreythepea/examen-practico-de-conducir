@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import {
   ambienceEligible,
   buildManifestIndex,
@@ -28,6 +29,9 @@ import { EXAMINERS, selectTodaysExaminer } from '../src/examiners.js';
 import { defaultState, loadState, saveState } from '../src/storage.js';
 import { renderSurfaceModel } from '../src/surfaces.js';
 import { recordAttempt } from '../src/training.js';
+import { hasTurnClip } from '../src/turn-through.js';
+
+const commands = JSON.parse(await readFile(new URL('../data/commands.json', import.meta.url), 'utf8'));
 
 const settings = Object.freeze({
   locale: 'en', phase: 'driving', speed: 0.9, hintPolicy: 'available', timed: false, length: 'short'
@@ -464,6 +468,45 @@ test('saved correct immediate reveals alone qualify for bounded post-answer move
     });
     assert.equal(motion.phase, 'static');
   }
+});
+
+test('the answer glyph follows clip registration across the whole catalog', () => {
+  // Device pass 2026-08-14 reported the glyph still animating on junction
+  // reveals. The single dispatch site builds its motion through
+  // createSavedPostAnswerMotion — the "saved" name notwithstanding, that is
+  // the live answer path — so pin the invariant for every command the
+  // catalog can serve, not just the one junction result spot-checked above:
+  // a registered clip suppresses the glyph, an unregistered scene keeps it.
+  let clipBacked = 0;
+  let glyphBacked = 0;
+  for (const command of commands) {
+    const { model: surface } = generateSurfaceWithRetries(command, 11);
+    if (!surface?.geometry?.correctRoute) continue;
+    const motion = createSavedPostAnswerMotion({
+      screenModel: {
+        screen: 'reveal',
+        correct: true,
+        timeout: false,
+        experience: { revealPolicy: 'per-question' },
+        activeSurfaceModel: surface
+      },
+      attempt: { outcome: 'unaided' },
+      roadMovement: true,
+      reducedMotion: false,
+      startedAt: 2_000
+    });
+    const suppressed = hasTurnClip(surface.geometry.sceneId, surface.expectedResult);
+    if (suppressed) clipBacked += 1;
+    else glyphBacked += 1;
+    assert.equal(
+      motion.phase,
+      suppressed ? 'static' : 'running',
+      `${command.id} (${surface.geometry.sceneId} / ${surface.expectedResult})`
+    );
+  }
+  // Both arms must actually be exercised, or the assertion above proves nothing.
+  assert.ok(clipBacked >= 3, `expected clip-backed commands, saw ${clipBacked}`);
+  assert.ok(glyphBacked > 0, `expected glyph-backed commands, saw ${glyphBacked}`);
 });
 
 test('post-answer motion reducer state survives locale rerender and clears on Continue', () => {
