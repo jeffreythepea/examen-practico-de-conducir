@@ -247,6 +247,24 @@ test('correct post-answer movement starts only after saved scoring and remains p
   assert.doesNotMatch(controller, /await .*postAnswer|setTimeout\([^)]*postAnswer/);
 });
 
+test('the clip-backed reveal auto-advance is keyed to its attempt and yields to the flag editor', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const scheduler = source.slice(
+    source.indexOf('function scheduleRevealAutoAdvance()'),
+    source.indexOf('function bindMockTransitionEvents()')
+  );
+
+  // The reveal re-binds on every render, so an unkeyed timer would stack one
+  // per render and a stale one would fire into the following question.
+  assert.match(scheduler, /revealAutoAdvanceFor === attemptId/, 'must not schedule twice for one attempt');
+  assert.match(scheduler, /currentAttemptId !== attemptId/, 'a stale timer must not fire into a later attempt');
+  assert.match(scheduler, /model\.screen !== 'reveal'/, 'must not fire once the reveal is gone');
+  assert.match(scheduler, /readinessFilters\.editor/, 'must not interrupt a lesson flag being written');
+  // Auto-advance and manual Continue must run the identical path.
+  assert.match(scheduler, /continueFromReveal\(\)/);
+  assert.match(source, /data-action="continue"\]'\)\.addEventListener\('click', continueFromReveal\)/);
+});
+
 test('daily-practice controls and SVG response targets preserve 44px touch minimums', async () => {
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(css, /\.surface-option[\s\S]*?min-height:\s*44px;/);

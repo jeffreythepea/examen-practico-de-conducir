@@ -18,6 +18,7 @@ import {
   reduceScreen,
   resolveSessionExperience,
   resolvePhrasing,
+  revealAutoAdvanceMs,
   restoreFocusSnapshot,
   restoreOrDeferFocus,
   selectPlaybackVariant,
@@ -507,6 +508,77 @@ test('the answer glyph follows clip registration across the whole catalog', () =
   // Both arms must actually be exercised, or the assertion above proves nothing.
   assert.ok(clipBacked >= 3, `expected clip-backed commands, saw ${clipBacked}`);
   assert.ok(glyphBacked > 0, `expected glyph-backed commands, saw ${glyphBacked}`);
+});
+
+test('a clip-backed reveal advances itself after the dwell the glyph would have taken', () => {
+  const junction = generateSurfaceWithRetries(
+    { id: 'c-izq', actionId: 'turn-left', acceptedResult: 'turn-left', surfaceId: 'junction-v2' }, 11
+  ).model;
+  const parking = generateSurfaceWithRetries(
+    { id: 'c-est', actionId: 'park', acceptedResult: 'park', surfaceId: 'parking-v1' }, 11
+  ).model;
+  const eligible = {
+    screenModel: {
+      screen: 'reveal',
+      correct: true,
+      timeout: false,
+      continuityActive: true,
+      experience: { revealPolicy: 'per-question' },
+      activeSurfaceModel: junction
+    },
+    attempt: { outcome: 'unaided' },
+    roadMovement: true,
+    reducedMotion: false
+  };
+
+  // The dwell is the family's own motion duration, never a separate constant.
+  assert.equal(revealAutoAdvanceMs(eligible), 1_300);
+  assert.equal(revealAutoAdvanceMs({
+    ...eligible,
+    screenModel: { ...eligible.screenModel, activeSurfaceModel: parking }
+  }), 1_450);
+
+  const clipless = {
+    ...junction,
+    geometry: { ...junction.geometry, sceneId: 'junction-plate-v1' }
+  };
+  for (const override of [
+    // No clip: the glyph plays and the learner keeps the tap.
+    { screenModel: { ...eligible.screenModel, activeSurfaceModel: clipless } },
+    { attempt: { outcome: 'incorrect' } },
+    { attempt: null },
+    { screenModel: { ...eligible.screenModel, correct: false } },
+    { screenModel: { ...eligible.screenModel, timeout: true } },
+    { screenModel: { ...eligible.screenModel, screen: 'mock-transition' } },
+    // A standalone practice reveal has no transition to advance into.
+    { screenModel: { ...eligible.screenModel, continuityActive: false } },
+    // Mock withholds the clip, so it must withhold the dwell that leads to it.
+    { screenModel: { ...eligible.screenModel, experience: { revealPolicy: 'session-end' } } },
+    { roadMovement: false },
+    { reducedMotion: true }
+  ]) {
+    assert.equal(revealAutoAdvanceMs({ ...eligible, ...override }), null);
+  }
+});
+
+test('a reveal never both draws the glyph and advances itself', () => {
+  for (const command of commands) {
+    const { model: surface } = generateSurfaceWithRetries(command, 11);
+    if (!surface?.geometry?.correctRoute) continue;
+    const screenModel = {
+      screen: 'reveal',
+      correct: true,
+      timeout: false,
+      continuityActive: true,
+      experience: { revealPolicy: 'per-question' },
+      activeSurfaceModel: surface
+    };
+    const shared = { screenModel, attempt: { outcome: 'unaided' }, roadMovement: true, reducedMotion: false };
+    const glyph = createSavedPostAnswerMotion({ ...shared, startedAt: 2_000 }).phase === 'running';
+    const advances = revealAutoAdvanceMs(shared) !== null;
+    assert.equal(glyph && advances, false, `${command.id} must not do both`);
+    assert.equal(glyph || advances, true, `${command.id} reveal must have motion or a dwell`);
+  }
 });
 
 test('post-answer motion reducer state survives locale rerender and clears on Continue', () => {

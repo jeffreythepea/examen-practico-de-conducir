@@ -167,6 +167,34 @@ export function createSavedPostAnswerMotion({
   }
 }
 
+/**
+ * The complement of createSavedPostAnswerMotion: a clip-backed reveal draws no
+ * glyph because the clip demonstrates the manoeuvre, which left it motionless
+ * while it waited for a tap. Hold it for exactly as long as the glyph it
+ * replaced would have run, then move into the transition — and so the clip —
+ * on its own. Correct answers only, and only in a continuous drive where a
+ * transition actually follows: a miss needs its reading time and its
+ * miss-reason buttons, and mock is excluded with the rest of the clip
+ * machinery by the session-end reveal policy.
+ *
+ * @returns {number|null} dwell in ms, or null when the learner keeps the tap
+ */
+export function revealAutoAdvanceMs({ screenModel, attempt, roadMovement, reducedMotion } = {}) {
+  const surface = screenModel?.activeSurfaceModel;
+  const family = surface?.family;
+  const eligible = screenModel?.screen === 'reveal'
+    && screenModel.correct === true
+    && screenModel.timeout !== true
+    && screenModel.continuityActive === true
+    && ['unaided', 'assisted'].includes(attempt?.outcome)
+    && screenModel.experience?.revealPolicy !== 'session-end'
+    && roadMovement === true
+    && reducedMotion !== true
+    && POST_ANSWER_MOTION_FAMILY_SET.has(family)
+    && hasTurnClip(surface?.geometry?.sceneId, surface?.expectedResult);
+  return eligible ? POST_ANSWER_MOTION_DURATIONS[family] : null;
+}
+
 export function feedbackCueForTransition(before, after, event) {
   if (before === after) return null;
   if (event.type === 'SHOW_SPANISH' && !before.textShown && after.textShown) {
@@ -1192,6 +1220,8 @@ async function bootstrap() {
   let deferredFocusSnapshot = null;
   // Once a turn clip fails to load, later transitions use the CSS pan path.
   let turnClipFailed = false;
+  // Attempt id whose clip-backed reveal already has an auto-advance pending.
+  let revealAutoAdvanceFor = null;
   let readinessFilters = { phase: 'mixed', state: 'all', flag: 'all', editor: null, noticeKey: '' };
 
   try {
@@ -2152,17 +2182,43 @@ async function bootstrap() {
       persistMissReason(model.missReason);
       render();
     }));
-    app.querySelector('[data-action="continue"]').addEventListener('click', () => {
-      readinessFilters = { ...readinessFilters, editor: null };
-      currentAttemptId = null;
-      model = reduceScreen(model, {
-        type: 'CONTINUE',
-        ...continuityStepEventFields(currentContinuityStep(state.activeSession))
-      });
-      if (model.screen === 'results') settleSessionEnd();
-      render();
-      if (model.screen === 'loading-audio') void playCurrentCommand();
+    app.querySelector('[data-action="continue"]').addEventListener('click', continueFromReveal);
+    scheduleRevealAutoAdvance();
+  }
+
+  function continueFromReveal() {
+    readinessFilters = { ...readinessFilters, editor: null };
+    currentAttemptId = null;
+    model = reduceScreen(model, {
+      type: 'CONTINUE',
+      ...continuityStepEventFields(currentContinuityStep(state.activeSession))
     });
+    if (model.screen === 'results') settleSessionEnd();
+    render();
+    if (model.screen === 'loading-audio') void playCurrentCommand();
+  }
+
+  // The reveal re-binds on every render, so key the timer to the attempt it
+  // belongs to: opening the lesson-flag editor or switching locale must not
+  // stack a second one, and a stale timer from a previous question must not
+  // fire into this one.
+  function scheduleRevealAutoAdvance() {
+    const attemptId = currentAttemptId;
+    if (attemptId === null || revealAutoAdvanceFor === attemptId) return;
+    const delay = revealAutoAdvanceMs({
+      screenModel: model,
+      attempt: state.attempts.find(attempt => attempt.id === attemptId),
+      roadMovement: state.settings.roadMovement,
+      reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false
+    });
+    if (delay === null) return;
+    revealAutoAdvanceFor = attemptId;
+    window.setTimeout(() => {
+      if (model.screen !== 'reveal' || currentAttemptId !== attemptId) return;
+      // Never yank the screen away from a learner writing a lesson flag.
+      if (readinessFilters.editor) return;
+      continueFromReveal();
+    }, delay);
   }
 
   function bindMockTransitionEvents() {
