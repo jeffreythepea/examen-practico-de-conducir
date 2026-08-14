@@ -162,7 +162,9 @@ test('stopping fixtures retain reviewed clear-curb routes across both templates 
     templates.add(model.geometry.templateId);
 
     assertRoute(route, context);
-    assertPointEqual(route[0], { x: 50, y: 74 }, `${context} reviewed learner entry`);
+    // urban-roadside-photo-v2 (2026-08-14): the learner car sits lower and
+    // larger, so the reviewed route enters just ahead of its roof.
+    assertPointEqual(route[0], { x: 47, y: 55 }, `${context} reviewed learner entry`);
     assertInsideTarget(route.at(-1), target, `${context} endpoint`);
     assertPointEqual(route.at(-1), target, `${context} exact accepted legal target`);
     for (const rejected of model.targets.filter(candidate => candidate !== target)) {

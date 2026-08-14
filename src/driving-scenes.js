@@ -6,6 +6,7 @@ export const DRIVING_SCENE_IDS = Object.freeze([
   'roundabout-five-photo-v1',
   'parallel-parking-gap-photo-v1',
   'urban-roadside-photo-v1',
+  'urban-roadside-photo-v2',
   'join-traffic-photo-v1'
 ]);
 
@@ -71,6 +72,17 @@ export const DRIVING_SCENES = deepFreeze({
     alt: {
       en: 'Illustrative urban road with clear curb, driveway, and pedestrian crossing',
       es: 'Calle urbana ilustrativa con bordillo libre, acceso y paso de peatones'
+    }
+  },
+  // v2 backs the stopping surface only (motion-clip scene, 2026-08-14); v1
+  // stays in place for the title screen and continuity-transition stills.
+  'urban-roadside-photo-v2': {
+    id: 'urban-roadside-photo-v2',
+    asset: './assets/driving/urban-roadside-photo-v2.webp',
+    provenance: 'ai-generated-illustrative',
+    alt: {
+      en: 'Illustrative urban road with a clear right curb before a garage driveway, a no-parking sign, and a pedestrian crossing ahead',
+      es: 'Calle urbana ilustrativa con bordillo derecho libre antes de un vado de garaje, una señal de estacionamiento prohibido y un paso de peatones al frente'
     }
   },
   'join-traffic-photo-v1': {

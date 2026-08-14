@@ -127,7 +127,7 @@ const motionCommands = Object.freeze([
       surfaceId: 'stopping-v1',
       phrasings: [{ id: 'c-parada-canonical', es: 'Realice una parada', en: 'stop' }]
     }),
-    'urban-roadside-photo-v1'
+    'urban-roadside-photo-v2'
   ]
 ]);
 

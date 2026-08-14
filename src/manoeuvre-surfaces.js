@@ -148,14 +148,17 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       id: 'urban-curb-clear',
       expectedResult: 'voluntary-stop',
       features: ['curb', 'driveway', 'crosswalk'],
+      // Calibrated against urban-roadside-photo-v2 (Jeffrey, 2026-08-14):
+      // the correct stop matches where the motion clip's car parks, before
+      // the garage vado and beside the no-parking sign.
       correctRoute: [
-        { x: 50, y: 74 }, { x: 56, y: 72 }, { x: 63, y: 70 },
-        { x: 70, y: 66 }, { x: 75, y: 62 }
+        { x: 47, y: 55 }, { x: 50, y: 47 }, { x: 53, y: 40 },
+        { x: 56, y: 34 }, { x: 58, y: 29 }
       ],
       targets: [
-        { id: 'clear-curb', resultId: 'voluntary-stop', kind: 'legal-stop', feature: 'clear-curb', x: 75, y: 62 },
-        { id: 'driveway', resultId: 'blocked-access', kind: 'restricted-stop', feature: 'driveway', explanationKey: 'surface.restricted.blockedAccess', x: 70, y: 43 },
-        { id: 'crosswalk', resultId: 'crosswalk', kind: 'restricted-stop', feature: 'crosswalk', explanationKey: 'surface.restricted.crosswalk', x: 59, y: 22 }
+        { id: 'clear-curb', resultId: 'voluntary-stop', kind: 'legal-stop', feature: 'clear-curb', x: 58, y: 29 },
+        { id: 'driveway', resultId: 'blocked-access', kind: 'restricted-stop', feature: 'driveway', explanationKey: 'surface.restricted.blockedAccess', x: 73, y: 32 },
+        { id: 'crosswalk', resultId: 'crosswalk', kind: 'restricted-stop', feature: 'crosswalk', explanationKey: 'surface.restricted.crosswalk', x: 48, y: 12 }
       ]
     }
   ]
@@ -214,7 +217,7 @@ export function generateManoeuvreSurface(command, seed) {
       ...(contract.family === 'overtake' ? { sceneId: 'overtaking-photo-v1' } : {}),
       ...(contract.family === 'join-traffic' ? { sceneId: 'join-traffic-photo-v1' } : {}),
       ...(contract.family === 'parking' ? { sceneId: 'parallel-parking-gap-photo-v1' } : {}),
-      ...(contract.family === 'stopping' ? { sceneId: 'urban-roadside-photo-v1' } : {}),
+      ...(contract.family === 'stopping' ? { sceneId: 'urban-roadside-photo-v2' } : {}),
       ...(contract.family === 'overtake' ? {
         learnerVehicle: { x: 59, y: 80, width: 14, height: 22 },
         leadVehicle: { x: 53, y: 26, width: 7, height: 10 }

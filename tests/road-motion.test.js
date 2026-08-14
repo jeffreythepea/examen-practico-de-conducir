@@ -20,7 +20,8 @@ const SCENE_PROFILES = Object.freeze({
   'overtaking-photo-v1': [1.18, 54, 86],
   'join-traffic-photo-v1': [1.06, 66, 84],
   'parallel-parking-gap-photo-v1': [1.06, 65, 84],
-  'urban-roadside-photo-v1': [1.06, 66, 84]
+  'urban-roadside-photo-v1': [1.06, 66, 84],
+  'urban-roadside-photo-v2': [1.03, 47, 88]
 });
 const JUNCTION_SCENE = 'four-way-intersection-photo-v1';
 const MOTION_SURFACE_IDS = new Set([

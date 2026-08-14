@@ -194,11 +194,11 @@ test('parking, stopping, and U-turn use reviewed photo scenes', () => {
   assert.doesNotMatch(parkingMarkup, /class="manoeuvre-road-fill"/);
 
   const stopping = generateManoeuvreSurface(command('voluntary-stop', 'stopping-v1'), 10);
-  assert.equal(stopping.geometry.sceneId, 'urban-roadside-photo-v1');
+  assert.equal(stopping.geometry.sceneId, 'urban-roadside-photo-v2');
   const stoppingMarkup = renderManoeuvreSurface(stopping, 'es');
   assert.match(stoppingMarkup, /class="surface-stage manoeuvre stopping driving-photo-stage"/);
-  assert.match(stoppingMarkup, /data-scene="urban-roadside-photo-v1"/);
-  assert.match(stoppingMarkup, /src="\.\/assets\/driving\/urban-roadside-photo-v1\.webp"/);
+  assert.match(stoppingMarkup, /data-scene="urban-roadside-photo-v2"/);
+  assert.match(stoppingMarkup, /src="\.\/assets\/driving\/urban-roadside-photo-v2\.webp"/);
   assert.match(stoppingMarkup, /alt="[^"]{20,}"/);
   assert.doesNotMatch(stoppingMarkup, /class="manoeuvre-road-fill"/);
 
@@ -221,7 +221,12 @@ test('parking and voluntary-stop feedback trace the learner car into the accepte
 
       assert.ok(route, `${model.geometry.templateId} must provide post-answer movement feedback`);
       assert.deepEqual(route.at(-1), { x: accepted.x, y: accepted.y });
-      assert.ok(route[0].x >= 45 && route[0].x <= 58 && route[0].y >= 68 && route[0].y <= 78,
+      // Each scene's learner car sits at a different depth: parking's route
+      // starts mid-frame, stopping's (urban-roadside-photo-v2) just ahead of
+      // its lower, larger car.
+      const startBand = action === 'park' ? [45, 58, 68, 78] : [44, 50, 52, 58];
+      assert.ok(route[0].x >= startBand[0] && route[0].x <= startBand[1]
+        && route[0].y >= startBand[2] && route[0].y <= startBand[3],
         `${model.geometry.templateId} route must begin immediately ahead of the learner car`);
       assert.ok(route.at(-1).x > route[0].x, `${model.geometry.templateId} route must move toward the right curb`);
 
@@ -230,10 +235,11 @@ test('parking and voluntary-stop feedback trace the learner car into the accepte
           'parking route must bend through open road before entering the photographed gap');
       } else {
         const driveway = model.targets.find(target => target.feature === 'driveway');
-        // 2026-08-12 scene regen: nominal separation is 19 with ±1.5 jitter on
-        // each spot, so 15 is the tightest guarantee that stays "clearly below".
-        assert.ok(!driveway || route.at(-1).y >= driveway.y + 15,
-          'voluntary-stop route must finish clearly below the driveway');
+        // v2 scene: the stop sits down-street of the vado on the road while
+        // the vado apron is up on the sidewalk; nominal x separation is 15
+        // with ±1.5 jitter each, so 12 is the tightest clear guarantee.
+        assert.ok(!driveway || route.at(-1).x <= driveway.x - 12,
+          'voluntary-stop route must finish clear of the garage vado');
       }
 
       assert.doesNotMatch(renderManoeuvreSurface(model, 'en'), /data-correct-route/);
@@ -250,12 +256,12 @@ test('every urban-photo choice is anchored to its visible curb, driveway, crossi
     'clear-curb-bay': [72, 76, 35, 39],
     'crosswalk-bay': [41, 45, 13, 17],
     'no-parking-bay': [83, 87, 84, 88],
-    // 2026-08-12 scene regen: all stopping candidates range along the right
-    // curb — open curb before the vado, the garage vado, the pre-crosswalk
-    // stretch (bands = template anchor ±1.5 jitter).
-    'clear-curb': [73.5, 76.5, 60.5, 63.5],
-    driveway: [68.5, 71.5, 41.5, 44.5],
-    crosswalk: [57.5, 60.5, 20.5, 23.5]
+    // urban-roadside-photo-v2 (2026-08-14): correct stop at the clip's
+    // parked pose before the vado, the vado apron, the right-lane crosswalk
+    // (bands = template anchor ±1.5 jitter).
+    'clear-curb': [56.5, 59.5, 27.5, 30.5],
+    driveway: [71.5, 74.5, 30.5, 33.5],
+    crosswalk: [46.5, 49.5, 10.5, 13.5]
   };
 
   for (const [action, surfaceId] of [['park', 'parking-v1'], ['voluntary-stop', 'stopping-v1']]) {

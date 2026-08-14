@@ -15,6 +15,7 @@ const EXPECTED = Object.freeze({
   'roundabout-five-photo-v1': './assets/driving/roundabout-five-photo-v1.webp',
   'parallel-parking-gap-photo-v1': './assets/driving/parallel-parking-gap-photo-v1.webp',
   'urban-roadside-photo-v1': './assets/driving/urban-roadside-photo-v1.webp',
+  'urban-roadside-photo-v2': './assets/driving/urban-roadside-photo-v2.webp',
   'join-traffic-photo-v1': './assets/driving/join-traffic-photo-v1.webp'
 });
 

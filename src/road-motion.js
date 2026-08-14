@@ -14,7 +14,10 @@ export const ROAD_MOTION_PROFILES = deepFreeze({
   'overtaking-photo-v1': { endScale: 1.18, originX: 54, originY: 86 },
   'join-traffic-photo-v1': { endScale: 1.06, originX: 66, originY: 84 },
   'parallel-parking-gap-photo-v1': { endScale: 1.06, originX: 65, originY: 84 },
-  'urban-roadside-photo-v1': { endScale: 1.06, originX: 66, originY: 84 }
+  'urban-roadside-photo-v1': { endScale: 1.06, originX: 66, originY: 84 },
+  // 1.03 like the roundabouts: the crosswalk target sits near the top edge
+  // and a 1.06 push would carry its circle off-frame at the endpoint.
+  'urban-roadside-photo-v2': { endScale: 1.03, originX: 47, originY: 88 }
 });
 
 const EVENT_TYPES = new Set(['AUDIO_COMPLETED', 'APPROACH_ENDED', 'ANSWERED', 'FAILED']);
