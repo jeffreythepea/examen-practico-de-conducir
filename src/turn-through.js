@@ -48,6 +48,27 @@ export function hasTurnClip(sceneId, resultId) {
   return Boolean(TURN_CLIPS[sceneId]?.[resultId]);
 }
 
+// The scene each clip-backed surface generates. The route builder has to know
+// whether a command ends in a clip before any surface has been generated, so
+// it cannot ask a model — hence the table. A test regenerates every catalog
+// command and fails if this drifts from what the generators actually produce.
+const CLIP_SURFACE_SCENES = Object.freeze({
+  'junction-v2': 'four-way-intersection-photo-v1',
+  'parking-v1': 'parallel-parking-gap-photo-v1',
+  'overtake-v1': 'overtaking-photo-v1',
+  'stopping-v1': 'urban-roadside-photo-v2'
+});
+
+/**
+ * Whether answering this command correctly ends in a motion clip. A clip only
+ * ever plays in the transition that follows its command, so the route builder
+ * must not let anything else take that slot.
+ */
+export function commandHasTurnClip(command) {
+  const sceneId = CLIP_SURFACE_SCENES[command?.surfaceId];
+  return Boolean(sceneId && TURN_CLIPS[sceneId]?.[command.acceptedResult]);
+}
+
 // Percent of frame translated per percent of target offset from stage centre.
 const DIRECTION_GAIN = 0.35;
 const INTRO_SCALE = 1.22;

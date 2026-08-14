@@ -30,7 +30,7 @@ import { EXAMINERS, selectTodaysExaminer } from '../src/examiners.js';
 import { defaultState, loadState, saveState } from '../src/storage.js';
 import { renderSurfaceModel } from '../src/surfaces.js';
 import { recordAttempt } from '../src/training.js';
-import { hasTurnClip } from '../src/turn-through.js';
+import { commandHasTurnClip, hasTurnClip } from '../src/turn-through.js';
 
 const commands = JSON.parse(await readFile(new URL('../data/commands.json', import.meta.url), 'utf8'));
 
@@ -561,6 +561,52 @@ test('a clip-backed reveal advances itself after the dwell the glyph would have 
   ]) {
     assert.equal(revealAutoAdvanceMs({ ...eligible, ...override }), null);
   }
+});
+
+test('the route planner agrees with the generators about which commands end in a clip', () => {
+  // commandHasTurnClip reads a surfaceId -> sceneId table because the planner
+  // runs before any surface exists. Regenerate every command and fail if that
+  // table drifts from what the generators actually produce.
+  for (const command of commands) {
+    const { model: surface } = generateSurfaceWithRetries(command, 11);
+    const generated = hasTurnClip(surface?.geometry?.sceneId, surface?.expectedResult);
+    assert.equal(commandHasTurnClip(command), generated, `${command.id}`);
+  }
+});
+
+test('a silent junction answered correctly carries the straight clip into its transition', () => {
+  const nullEvent = reduceScreen(
+    { ...promptModel(), screen: 'mock-transition', session: [{ id: 'c-der' }, { id: 'c-izq' }] },
+    { type: 'CONTINUITY_SYNC', index: 0, stepKind: 'null-event', motionEnabled: true, startedAt: 0 }
+  );
+  assert.equal(nullEvent.screen, 'null-event');
+  const straight = nullEvent.activeSurfaceModel.targets.find(t => t.resultId === 'continue-forward');
+  const wrong = nullEvent.activeSurfaceModel.targets.find(t => t.resultId === 'turn-left');
+
+  const answered = reduceScreen(nullEvent, {
+    type: 'NULL_EVENT_SELECT', targetId: straight.id, completedAt: 1_000
+  });
+  assert.equal(answered.nullEvent.state, 'correct');
+  assert.equal(answered.turnThrough.resultId, 'continue-forward');
+  assert.equal(answered.turnThrough.sceneId, 'four-way-intersection-photo-v1');
+  assert.equal(hasTurnClip(answered.turnThrough.sceneId, answered.turnThrough.resultId), true);
+
+  // resetTrial clears turnThrough, so the sync into the transition must carry it.
+  const transition = reduceScreen(answered, {
+    type: 'CONTINUITY_SYNC', index: 0, stepKind: 'transition', sceneId: 'urban-cruise'
+  });
+  assert.equal(transition.screen, 'mock-transition');
+  assert.deepEqual(transition.turnThrough, answered.turnThrough);
+
+  // A wrong answer earns no clip, exactly as at any other reveal.
+  const missed = reduceScreen(nullEvent, {
+    type: 'NULL_EVENT_SELECT', targetId: wrong.id, completedAt: 1_000
+  });
+  assert.equal(missed.nullEvent.state, 'incorrect');
+  assert.equal(missed.turnThrough, null);
+  assert.equal(reduceScreen(missed, {
+    type: 'CONTINUITY_SYNC', index: 0, stepKind: 'transition', sceneId: 'urban-cruise'
+  }).turnThrough, null);
 });
 
 test('a reveal never both draws the glyph and advances itself', () => {

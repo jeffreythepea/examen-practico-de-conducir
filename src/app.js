@@ -907,7 +907,13 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
     const screen = event.stepKind === 'transition'
       ? 'mock-transition'
       : event.index === model.session.length ? 'results' : 'loading-audio';
-    return resetTrial({ ...model, screen }, event.index);
+    const synced = resetTrial({ ...model, screen }, event.index);
+    // A silent junction answered correctly is answered by driving straight on,
+    // and that answer has a clip like any other. resetTrial clears turnThrough,
+    // so carry it into the transition the way the reveal's CONTINUE does.
+    return screen === 'mock-transition' && model.screen === 'null-event' && model.turnThrough
+      ? { ...synced, turnThrough: model.turnThrough }
+      : synced;
   }
   if (event.type === 'NULL_EVENT_SELECT'
       && model.screen === 'null-event'
@@ -922,7 +928,20 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
     return {
       ...model,
       nullEvent: { state: correct ? 'correct' : 'incorrect', selectedTargetId: target.id },
-      roadMotion
+      roadMotion,
+      // Driving straight on through a silent junction earns the same clip a
+      // spoken "siga recto" does; a wrong answer earns none, as at any reveal.
+      turnThrough: correct
+        ? {
+            sceneId: model.activeSurfaceModel.geometry?.sceneId ?? null,
+            family: model.activeSurfaceModel.family,
+            targetX: target.x,
+            targetY: target.y,
+            resultId: target.resultId ?? null,
+            outcome: 'unaided',
+            pose: frozenRoadMotionPose(roadMotion)
+          }
+        : null
     };
   }
   if (event.type === 'NULL_EVENT_HINT'

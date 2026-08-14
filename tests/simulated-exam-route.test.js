@@ -206,16 +206,50 @@ test('converts at most one cruise slot into a silent null-event junction between
   });
   const nullIndex = route.findIndex(step => step.kind === 'null-event');
   assert.equal(route[nullIndex - 1].kind, 'command');
-  assert.equal(route[nullIndex + 1].kind, 'command');
+  // Driving straight on through the silent junction is answered with a clip
+  // like any other, and a clip has no stage but the transition after it.
+  assert.equal(route[nullIndex + 1].kind, 'transition');
+  assert.equal(route[nullIndex + 2].kind, 'command');
   assert.deepEqual(
-    [route[nullIndex - 1].commandId, route[nullIndex + 1].commandId].map(id =>
+    [route[nullIndex - 1].commandId, route[nullIndex + 2].commandId].map(id =>
       ['c-der', 'c-izq', 'c-recto'].includes(id)
     ),
     [true, true],
     'null events sit only between ordinary driving commands'
   );
-  assert.equal(transitionSteps(route).filter(step => step.sceneId.endsWith('-cruise')).length, 1,
-    'a real cruise transition always remains');
+  assert.equal(transitionSteps(route).filter(step => step.sceneId.endsWith('-cruise')).length, 2,
+    'the silent junction adds its own cruise rather than swallowing one');
+});
+
+test('a silent junction never takes the transition that carries a clip', () => {
+  // The clip-backed commands need the real catalog fields the fixture above
+  // omits: the planner decides eligibility from surfaceId and acceptedResult.
+  const clipCommands = [
+    { id: 'c-der', phase: 'driving', surfaceId: 'junction-v2', acceptedResult: 'turn-right' },
+    { id: 'c-izq', phase: 'driving', surfaceId: 'junction-v2', acceptedResult: 'turn-left' },
+    { id: 'c-recto', phase: 'driving', surfaceId: 'junction-v2', acceptedResult: 'continue-forward' },
+    { id: 'c-adapte', phase: 'driving', surfaceId: 'option-grid-v1', acceptedResult: 'adapt-speed' },
+    { id: 'c-detencion', phase: 'driving', surfaceId: 'option-grid-v1', acceptedResult: 'involuntary-stop' }
+  ];
+
+  // Every ordinary driving command is clip-backed: no slot is eligible at all.
+  const allClips = buildSimulatedExamRoute(
+    [item('c-der'), item('c-izq'), item('c-recto')], clipCommands, () => 0.999
+  );
+  assert.equal(nullEventSteps(allClips).length, 0);
+
+  // With clipless commands present the null event appears, and never directly
+  // after a command whose clip needs the following transition.
+  const mixed = buildSimulatedExamRoute(
+    [item('c-adapte'), item('c-detencion'), item('c-der'), item('c-izq')], clipCommands, () => 0.999
+  );
+  const nullIndex = mixed.findIndex(step => step.kind === 'null-event');
+  assert.ok(nullIndex > 0, 'a clipless slot must still allow the silent junction');
+  assert.equal(
+    ['c-der', 'c-izq', 'c-recto'].includes(mixed[nullIndex - 1].commandId),
+    false,
+    'the command before a silent junction must not be clip-backed'
+  );
 });
 
 test('emits no null event when rng declines or fewer than two cruise slots exist', () => {

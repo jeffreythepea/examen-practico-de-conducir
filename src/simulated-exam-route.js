@@ -2,6 +2,11 @@
 // Builds an immutable route plan from already-selected session items.
 // No attempt, scoring, timing, audio, persistence, DOM, or translation behavior.
 
+// Clip registration only: which commands end in a motion clip decides where a
+// silent junction may go, since a clip has no stage but the transition that
+// follows its command.
+import { commandHasTurnClip } from './turn-through.js';
+
 const VALID_PHASES = new Set(['precheck', 'driving']);
 // C: a silent junction. The scene must come from a road-motion family with an
 // explicit straight-ahead target so the learner can answer "continue ahead".
@@ -204,9 +209,20 @@ export function buildSimulatedExamRoute(items, commands, rng = Math.random) {
   // At most one cruise slot per route becomes a silent junction (a null
   // event), and only when at least one real cruise transition remains.
   const cruiseSlotCount = Math.max(0, ordinaryDrivingItems.length - 1);
+  // A clip-backed command's clip plays in the transition that follows it, so a
+  // silent junction must never take that slot — doing so dropped the straight
+  // clip after 'siga recto' (device report, 2026-08-14).
+  const eligibleNullEventSlots = [];
+  for (let slot = 0; slot < cruiseSlotCount; slot += 1) {
+    const command = findCommand(commands, ordinaryDrivingItems[slot].commandId);
+    if (!commandHasTurnClip(command)) eligibleNullEventSlots.push(slot);
+  }
   let nullEventSlot = -1;
-  if (cruiseSlotCount >= 2 && randomUnit(rng) >= 1 - NULL_EVENT_PROBABILITY) {
-    nullEventSlot = Math.floor(randomUnit(rng) * cruiseSlotCount);
+  if (cruiseSlotCount >= 2 && eligibleNullEventSlots.length > 0
+      && randomUnit(rng) >= 1 - NULL_EVENT_PROBABILITY) {
+    nullEventSlot = eligibleNullEventSlots[
+      Math.floor(randomUnit(rng) * eligibleNullEventSlots.length)
+    ];
   }
 
   // Chapter 1: Precheck
@@ -255,6 +271,13 @@ export function buildSimulatedExamRoute(items, commands, rng = Math.random) {
     if (i < ordinaryDrivingItems.length - 1) {
       if (i === nullEventSlot) {
         addNullEvent('driving');
+        // The silent junction is itself answered by driving straight on, and
+        // that answer has a clip like any other. It needs the transition after
+        // it to play in, so the slot no longer simply swallows the cruise.
+        addTransition(
+          chooseTransitionScene(rng, [TRANSITION_SCENES.urbanCruise, TRANSITION_SCENES.ruralCruise]),
+          'driving'
+        );
       } else {
         const sceneId = chooseTransitionScene(rng, [TRANSITION_SCENES.urbanCruise, TRANSITION_SCENES.ruralCruise]);
         addTransition(sceneId, 'driving');
