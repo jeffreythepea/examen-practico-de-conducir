@@ -153,9 +153,15 @@ export function createOfflineClient({
     const version = state.stagedVersion;
     const response = await command('APPLY_UPDATE', 'applying-update', { version });
     if (response.status === 'failed') return response;
-    if (!registration?.waiting) return response;
-    await send('SKIP_WAITING', {}, registration.waiting);
-    await new Promise(resolve => navigatorRef.serviceWorker.addEventListener('controllerchange', resolve, { once: true }));
+    // The worker now serves the newly activated package, but this page is still
+    // running the JS it loaded from the old one. sw.js is almost never part of
+    // an update — a package-only update leaves no waiting worker at all — so
+    // the reload must not be conditional on one, or the new assets get judged
+    // against old code while the card truthfully reports the new hash.
+    if (registration?.waiting) {
+      await send('SKIP_WAITING', {}, registration.waiting);
+      await new Promise(resolve => navigatorRef.serviceWorker.addEventListener('controllerchange', resolve, { once: true }));
+    }
     windowRef.location.reload();
     return response;
   }

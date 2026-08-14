@@ -121,6 +121,60 @@ test('a download outliving the reply timeout still lands its completion state', 
   assert.equal(state.stagedVersion, 'v2');
 });
 
+test('applying an update reloads the page even when no new worker is waiting', async () => {
+  // sw.js has not changed since the first offline release, so a package-only
+  // update never produces a waiting worker. Reloading only in that case left
+  // the page running the previous package's JS while the offline card showed
+  // the newly activated hash — device passes then judged new assets against
+  // old code (task #17, 2026-08-14).
+  for (const hasWaiting of [false, true]) {
+    let reloads = 0;
+    const types = [];
+    // SKIP_WAITING goes to the waiting worker, never the active one, so it is
+    // the waiting worker that has to record it.
+    const waiting = hasWaiting ? respondingWorker(message => { types.push(message.type); return {}; }) : null;
+    const fixture = browserFixture({ worker: respondingWorker(message => {
+      types.push(message.type);
+      return { state: { activeVersion: message.type === 'APPLY_UPDATE' ? 'v2' : 'v1', stagedVersion: null } };
+    }) });
+    fixture.registration.waiting = waiting;
+    fixture.windowRef.location.reload = () => { reloads += 1; };
+    const client = createOfflineClient(fixture);
+    await client.register();
+    const applying = client.applyUpdate();
+    // A waiting worker hands over on controllerchange; without one the reload
+    // must not wait for an event that will never fire.
+    if (waiting) {
+      while (!fixture.listeners.has('controllerchange')) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      fixture.listeners.get('controllerchange')();
+    }
+    const state = await applying;
+    assert.equal(state.status, 'ready');
+    assert.equal(state.activeVersion, 'v2');
+    assert.equal(reloads, 1, `waiting=${Boolean(waiting)} must reload exactly once`);
+    assert.equal(types.includes('SKIP_WAITING'), Boolean(waiting));
+  }
+});
+
+test('a failed update neither skips waiting nor reloads', async () => {
+  let reloads = 0;
+  const fixture = browserFixture({ worker: {
+    postMessage(message, ports) {
+      queueMicrotask(() => ports?.[0]?.postMessage(message.type === 'APPLY_UPDATE'
+        ? { requestId: message.requestId, ok: false, error: 'digest mismatch' }
+        : { requestId: message.requestId, ok: true, state: { activeVersion: 'v1', stagedVersion: 'v2' } }));
+    }
+  } });
+  fixture.windowRef.location.reload = () => { reloads += 1; };
+  const client = createOfflineClient(fixture);
+  await client.register();
+  const state = await client.applyUpdate();
+  assert.equal(state.status, 'failed');
+  assert.equal(reloads, 0);
+});
+
 test('a manifest check failure preserves online play and the worker state already read', async () => {
   const worker = {
     postMessage(message, ports) {
