@@ -288,6 +288,36 @@ test('hover styling never reaches a touch screen', async () => {
   assert.match(css, /\.manoeuvre-target\[aria-current="true"\]\s*\{/);
 });
 
+test('the end screen acknowledges the round and waits for Continue or Retry', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /class="round-complete">\$\{translate\(locale\(\), 'results\.roundComplete'/);
+  assert.match(source, /data-action="setup">\$\{translate\(locale\(\), 'action\.backHome'\)\}/);
+  assert.match(source, /data-action="retry">\$\{translate\(locale\(\), 'action\.retryRound'\)\}/);
+  // Retry reruns the settings just played, so it must clear the finished
+  // session exactly as leaving for home does before starting the next one.
+  assert.match(source, /data-action="retry"\]'\)[\s\S]{0,200}?returnHomeFromResults\(\);\s*\n\s*startSession\(\);/);
+  // Nothing may leave the end screen on its own: the only two exits are those
+  // buttons, plus the readiness and collection links.
+  const results = source.slice(source.indexOf('function bindResultsEvents()'), source.indexOf('function returnHomeFromResults()'));
+  assert.doesNotMatch(results, /setTimeout|setInterval/);
+});
+
+test('an installed offline package can be asked for updates without a relaunch', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  // 'ready' used to render no button at all, so the only update check was the
+  // one at registration — unreachable without force-quitting the app.
+  assert.match(source, /status === 'ready'\s*\n?\s*\? `<button type="button" data-offline-action="check">/);
+  assert.match(source, /data-offline-action="check"\]'\)[\s\S]{0,260}?checkForUpdate\(\)/);
+  // A check that finds nothing returns to the same state, so it has to say so.
+  assert.match(source, /offlineUpToDate = next\?\.status === 'ready'/);
+  assert.match(source, /offlineUpToDate && status === 'ready'[\s\S]{0,120}?'offline\.upToDate'/);
+  // The pending status needs its own line, or the card reads "online only"
+  // mid-check, as though the package had vanished.
+  assert.match(source, /status === 'checking-update'\s*\n?\s*\? 'offline\.checkingUpdate'/);
+});
+
 test('daily-practice controls and SVG response targets preserve 44px touch minimums', async () => {
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(css, /\.surface-option[\s\S]*?min-height:\s*44px;/);

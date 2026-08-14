@@ -1247,6 +1247,9 @@ async function bootstrap() {
   let turnClipFailed = false;
   // Attempt id whose clip-backed reveal already has an auto-advance pending.
   let revealAutoAdvanceFor = null;
+  // Set when a manual check came back with nothing new, so a check that finds
+  // no update still visibly did something.
+  let offlineUpToDate = false;
   let readinessFilters = { phase: 'mixed', state: 'all', flag: 'all', editor: null, noticeKey: '' };
 
   try {
@@ -1684,6 +1687,8 @@ async function bootstrap() {
     const hasProgress = (offlineState?.completedAssets ?? 0) > 0;
     const messageKey = status === 'unsupported'
       ? 'offline.unsupported'
+      : status === 'checking-update'
+        ? 'offline.checkingUpdate'
       : status === 'ready'
         ? 'offline.ready'
         : status === 'update-available'
@@ -1701,7 +1706,14 @@ async function bootstrap() {
         ? `<button type="button" data-offline-action="download">${translate(locale(), 'offline.downloadUpdate')}</button>`
       : isDownloading
         ? `<button type="button" data-offline-action="cancel">${translate(locale(), 'offline.cancel')}</button>`
-        : ['unsupported', 'ready'].includes(status)
+        : status === 'checking-update'
+          ? ''
+        // An installed package otherwise offers nothing to press: the only
+        // update check ran at registration, so a running app could not ask
+        // again without being force-quit.
+        : status === 'ready'
+          ? `<button type="button" data-offline-action="check">${translate(locale(), 'offline.checkForUpdate')}</button>`
+        : status === 'unsupported'
           ? ''
           : `<button type="button" data-offline-action="download">${translate(locale(), hasProgress ? 'offline.resumeDownload' : 'offline.download')}</button>`;
     return `<section class="offline-card" aria-labelledby="offline-title">
@@ -1709,6 +1721,7 @@ async function bootstrap() {
       <div role="status" aria-live="polite">
         <p>${translate(locale(), messageKey)}</p>
         ${offlineState?.activeVersion ? `<p class="offline-version">${translate(locale(), 'offline.activeVersion', { hash: offlineState.activeVersion.slice(0, 8) })}</p>` : ''}
+        ${offlineUpToDate && status === 'ready' ? `<p class="offline-checked">${translate(locale(), 'offline.upToDate')}</p>` : ''}
         ${total > 0 ? `<p>${translate(locale(), 'offline.bytes', { completed: formatBytes(completed), total: formatBytes(total) })}</p>` : ''}
       </div>
       <progress data-offline-progress value="${progress}" max="${total || 1}" ${total > 0 ? '' : 'hidden'}></progress>
@@ -1921,6 +1934,7 @@ async function bootstrap() {
       : null;
     return `<section class="panel results" aria-labelledby="results-title">
       <h2 id="results-title" role="status" aria-live="polite" aria-describedby="results-headline" data-screen-focus tabindex="-1">${translate(locale(), 'screen.results')}</h2>
+      <p class="round-complete">${translate(locale(), 'results.roundComplete', { count: model.session.length })}</p>
       ${renderSessionIdentity()}
       <p id="results-headline" class="headline">${isMock
         ? translate(locale(), `mock.result.${mockStatus}`)
@@ -1949,7 +1963,11 @@ async function bootstrap() {
             const phrasing = command.phrasings[0];
             return `<li>${escapeHtml(locale() === 'es' ? phrasing.es : phrasing.en)} — ${Math.round(item.weightedScore * 100)}%</li>`;
           }).join('')}</ul>`}`}
-      <button class="primary" type="button" data-action="setup">${translate(locale(), 'action.newSession')}</button>
+      <div class="results-actions">
+        <button class="primary" type="button" data-action="setup">${translate(locale(), 'action.backHome')}</button>
+        <button type="button" data-action="retry">${translate(locale(), 'action.retryRound')}</button>
+      </div>
+      <p class="retry-hint">${translate(locale(), 'results.retryHint')}</p>
       <button type="button" data-action="open-readiness">${translate(locale(), 'screen.readiness')}</button>
       <button type="button" data-action="open-collection">${translate(locale(), 'screen.collection')}</button>
     </section>`;
@@ -2060,6 +2078,15 @@ async function bootstrap() {
     app.querySelector('[data-offline-action="download"]')?.addEventListener('click', () => void offlineClient.download());
     app.querySelector('[data-offline-action="cancel"]')?.addEventListener('click', () => void offlineClient.cancelDownload());
     app.querySelector('[data-offline-action="apply-update"]')?.addEventListener('click', () => void offlineClient.applyUpdate());
+    app.querySelector('[data-offline-action="check"]')?.addEventListener('click', () => {
+      offlineUpToDate = false;
+      void offlineClient.checkForUpdate().then(next => {
+        // Finding an update moves the card to its own state and buttons; only
+        // an unchanged 'ready' needs saying out loud.
+        offlineUpToDate = next?.status === 'ready';
+        render();
+      });
+    });
     app.querySelector('[data-action="export"]').addEventListener('click', downloadBackup);
     app.querySelector('[data-action="import"]').addEventListener('click', () => app.querySelector('[data-import-file]').click());
     app.querySelector('[data-action="reset"]').addEventListener('click', resetProgress);
@@ -2383,13 +2410,23 @@ async function bootstrap() {
     app.querySelector('[data-action="open-readiness"]')?.addEventListener('click', openReadiness);
     app.querySelector('[data-action="open-collection"]')?.addEventListener('click', openCollection);
     app.querySelector('[data-action="setup"]').addEventListener('click', () => {
-      model = reduceScreen(model, { type: 'GO_TO_SETUP' });
-      sessionAttemptIds = [];
-      state = discardActiveSession(state);
-      resumableSession = null;
-      persistState();
+      returnHomeFromResults();
       render();
     });
+    // Another round on the settings just played, without a detour through
+    // setup to press the same Start again.
+    app.querySelector('[data-action="retry"]')?.addEventListener('click', () => {
+      returnHomeFromResults();
+      startSession();
+    });
+  }
+
+  function returnHomeFromResults() {
+    model = reduceScreen(model, { type: 'GO_TO_SETUP' });
+    sessionAttemptIds = [];
+    state = discardActiveSession(state);
+    resumableSession = null;
+    persistState();
   }
 
   function openReadiness() {
