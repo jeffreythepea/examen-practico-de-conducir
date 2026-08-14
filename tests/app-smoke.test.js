@@ -265,6 +265,29 @@ test('the clip-backed reveal auto-advance is keyed to its attempt and yields to 
   assert.match(source, /data-action="continue"\]'\)\.addEventListener\('click', continueFromReveal\)/);
 });
 
+test('hover styling never reaches a touch screen', async () => {
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  // iOS applies :hover to whatever sits under the finger after a tap and keeps
+  // it there through the next render, so an unguarded hover rule paints an
+  // element the learner never pointed at. On the answer targets that meant the
+  // gold reserved for the correct answer landing on an untouched roundabout
+  // exit (device report, 2026-08-14).
+  const unguarded = [];
+  let depth = 0;
+  let guardDepth = null;
+  for (const raw of css.replaceAll(/\/\*[\s\S]*?\*\//g, '').split('\n')) {
+    const line = raw.trim();
+    if (guardDepth === null && /@media[^{]*\(hover:\s*hover\)/.test(line)) guardDepth = depth;
+    else if (guardDepth === null && line.includes(':hover')) unguarded.push(line);
+    depth += (raw.match(/\{/g) ?? []).length - (raw.match(/\}/g) ?? []).length;
+    if (guardDepth !== null && depth <= guardDepth) guardDepth = null;
+  }
+  assert.deepEqual(unguarded, [], 'every :hover rule must sit inside @media (hover: hover)');
+  // The correct-answer gold must not itself be trapped behind that guard.
+  assert.match(css, /\.road-target\[aria-current="true"\]\s*\{/);
+  assert.match(css, /\.manoeuvre-target\[aria-current="true"\]\s*\{/);
+});
+
 test('daily-practice controls and SVG response targets preserve 44px touch minimums', async () => {
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(css, /\.surface-option[\s\S]*?min-height:\s*44px;/);

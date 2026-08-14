@@ -64,9 +64,16 @@ button {
   cursor: pointer;
 }
 
-button:hover:not(:disabled) {
-  border-color: var(--green);
-  box-shadow: 0 3px 12px rgb(31 106 74 / 13%);
+/* Hover styling is gated on a device that can actually hover. A tap on iOS
+   applies :hover to whatever sits under the finger and leaves it there, so on
+   a touch screen these rules paint elements the learner is not pointing at —
+   including, on the answer targets below, the gold that marks the correct
+   answer (reported on a roundabout reveal, 2026-08-14). */
+@media (hover: hover) {
+  button:hover:not(:disabled) {
+    border-color: var(--green);
+    box-shadow: 0 3px 12px rgb(31 106 74 / 13%);
+  }
 }
 
 button:focus-visible,
@@ -752,10 +759,16 @@ hr {
   box-shadow: 0 2px 10px rgb(20 40 30 / 20%);
 }
 
-.road-target:hover:not(:disabled),
 .road-target[aria-current="true"] {
   border-color: var(--gold);
   background: rgb(255 242 201 / 40%);
+}
+
+@media (hover: hover) {
+  .road-target:hover:not(:disabled) {
+    border-color: var(--gold);
+    background: rgb(255 242 201 / 40%);
+  }
 }
 
 .road-target[data-selection-state="wrong"],
@@ -932,10 +945,16 @@ hr {
   box-shadow: 0 2px 10px rgb(20 40 30 / 20%);
 }
 
-.manoeuvre-target:hover:not(:disabled),
 .manoeuvre-target[aria-current="true"] {
   border-color: var(--gold);
   background: rgb(255 242 201 / 40%);
+}
+
+@media (hover: hover) {
+  .manoeuvre-target:hover:not(:disabled) {
+    border-color: var(--gold);
+    background: rgb(255 242 201 / 40%);
+  }
 }
 
 .manoeuvre-target[data-selection-state="wrong"] {
@@ -964,10 +983,16 @@ hr {
   pointer-events: none;
 }
 
-.surface-stage.stopping .manoeuvre-target:hover:not(:disabled)::before,
 .surface-stage.stopping .manoeuvre-target[aria-current="true"]::before {
   border-color: var(--gold);
   background: rgb(255 242 201 / 40%);
+}
+
+@media (hover: hover) {
+  .surface-stage.stopping .manoeuvre-target:hover:not(:disabled)::before {
+    border-color: var(--gold);
+    background: rgb(255 242 201 / 40%);
+  }
 }
 
 .surface-stage.stopping .manoeuvre-target[data-selection-state="wrong"]::before {
@@ -1166,11 +1191,18 @@ hr {
   box-shadow: none;
 }
 
-.yaris-hotspot:hover:not(:disabled),
 .yaris-hotspot:focus-visible {
   border-color: rgb(255 255 255 / 90%);
   background: rgb(255 255 255 / 18%);
   box-shadow: 0 2px 10px rgb(20 40 30 / 20%);
+}
+
+@media (hover: hover) {
+  .yaris-hotspot:hover:not(:disabled) {
+    border-color: rgb(255 255 255 / 90%);
+    background: rgb(255 255 255 / 18%);
+    box-shadow: 0 2px 10px rgb(20 40 30 / 20%);
+  }
 }
 
 .yaris-hotspot[aria-pressed="true"] {
