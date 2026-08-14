@@ -81,9 +81,25 @@ test('join-traffic presents a curb start with correct-lane, parked, and wrong-la
     const route = model.geometry.correctRoute;
     assert.ok(route[0].x >= 64 && route[0].y >= 38,
       'reveal route must begin at the front of the curbside learner car');
-    assert.deepEqual(route.at(-1), { x: accepted.x, y: accepted.y });
+    assert.ok(route.some(point => point.x === accepted.x && point.y === accepted.y),
+      'reveal route must join the lane at the accepted target');
+    // The manoeuvre ends with the car driving away, not parked on the target:
+    // the route carries past it toward the vanishing point.
+    assert.ok(route.at(-1).y < accepted.y - 10,
+      'reveal route must carry on into the distance past the accepted target');
     assert.ok(route.every((point, index) => index === 0 || point.x <= route[index - 1].x),
       'reveal route must merge progressively left from the curb into the lane');
+    // Turning the nose back down the frame is what read as a U-turn. The
+    // accepted target sits level with the car's nose and jitters by up to
+    // 1.5, so the lateral merge may sag by that much; everything after the
+    // target must climb away without exception.
+    assert.ok(route.every((point, index) => index === 0 || point.y - route[index - 1].y <= 1.5),
+      'reveal route must never double back toward the camera');
+    const joinIndex = route.findIndex(point => point.x === accepted.x && point.y === accepted.y);
+    const departure = route.slice(joinIndex);
+    assert.ok(departure.length >= 3, 'the departure must be drawn as a curve, not a single corner');
+    assert.ok(departure.every((point, index) => index === 0 || point.y < departure[index - 1].y),
+      'every segment after the join must travel away from the camera');
   }
 
   const model = generateManoeuvreSurface(command('join-traffic', 'join-traffic-v1'), 9);

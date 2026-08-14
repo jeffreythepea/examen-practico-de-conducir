@@ -97,10 +97,23 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       id: 'curbside-safe-merge',
       expectedResult: 'join-traffic',
       features: ['right-curb-start', 'correct-travel-lane', 'opposing-lane'],
+      // Measured against the rendered join-traffic-photo-v1: the parked car
+      // spans x 58-77 / y 41-70, and the right-hand travel lane's centre
+      // tracks x 54 -> 50 -> 47 -> 45 as it recedes toward the vanishing
+      // point near x 40 / y 5.
+      //
+      // The route used to climb to y 37 and then come back down to the target
+      // at y 40, which swung the car's nose back toward the camera on the
+      // last segment and read as the beginning of a U-turn. The accepted
+      // target sits level with the car's nose, so the merge reaches it
+      // laterally rather than dipping to it, and the route then carries on up
+      // the lane to leave the manoeuvre driving into the distance.
       correctRoute: [
-        { x: 66, y: 40 }, { x: 62, y: 38 }, { x: 58, y: 37 },
-        { x: 54, y: 38 }, { x: 50, y: 40 }
+        { x: 66, y: 41.5 }, { x: 61, y: 41 }, { x: 56, y: 40.5 },
+        { x: 50, y: 40 },
+        { x: 47.8, y: 36 }, { x: 47, y: 30 }, { x: 46.4, y: 24 }, { x: 46, y: 18 }
       ],
+      correctRouteTargetIndex: 3,
       targets: [
         { id: 'merge-correct-lane', resultId: 'join-traffic', kind: 'manoeuvre-route', feature: 'correct-travel-lane', x: 50, y: 40 },
         { id: 'remain-at-curb', resultId: 'stay-parked', kind: 'lane-choice', feature: 'right-curb-start', x: 69, y: 55 },
