@@ -1,7 +1,6 @@
 import { translate } from './i18n.js';
 import { drivingScene } from './driving-scenes.js';
 import { renderPostAnswerMotion } from './post-answer-motion-view.js';
-import { hasTurnClip } from './turn-through.js';
 import { assertNonOverlappingTargets, svgRoadPath, targetBox } from './surface-geometry.js';
 import { createSurfaceModel, seededRandom } from './surface-model.js';
 
@@ -277,9 +276,9 @@ export function renderManoeuvreSurface(model, locale, state = {}) {
   const postAnswerMotion = renderPostAnswerMotion(state.postAnswerMotion);
   // The car glyph is the whole route indicator once it's eligible to animate;
   // the static line is only a fallback for ineligible/reduced-motion cases.
-  // Scenes whose accepted result has a motion clip draw neither.
+  // A controller-confirmed playable clip draws neither.
   const correctRoute = state.reveal && model.geometry.correctRoute && !postAnswerMotion
-    && !hasTurnClip(model.geometry.sceneId, model.expectedResult)
+    && state.turnClipWillPlay !== true
     ? `<path data-correct-route d="${escapeAttribute(svgRoadPath(model.geometry.correctRoute))}"/>`
     : '';
 

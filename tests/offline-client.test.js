@@ -11,6 +11,21 @@ function respondingWorker(onMessage = () => ({})) {
   };
 }
 
+function controlledWorker() {
+  const requests = [];
+  return {
+    requests,
+    postMessage(message, ports) {
+      const reply = response => ports?.[0]?.postMessage({ requestId: message.requestId, ...response });
+      if (message.type === 'GET_OFFLINE_STATE' || message.type === 'CHECK_FOR_UPDATE') {
+        queueMicrotask(() => reply({ ok: true, state: { activeVersion: null, stagedVersion: null } }));
+        return;
+      }
+      requests.push({ message, reply });
+    }
+  };
+}
+
 function browserFixture({ worker = respondingWorker(), standalone = false } = {}) {
   const listeners = new Map();
   const calls = [];
@@ -71,17 +86,22 @@ test('registration uses the project-relative module worker and requests state', 
 });
 
 test('progress messages notify subscribers with immutable snapshots', async () => {
-  const fixture = browserFixture();
+  const worker = controlledWorker();
+  const fixture = browserFixture({ worker });
   const client = createOfflineClient(fixture);
   const seen = [];
   client.subscribe(state => seen.push(state));
   await client.register();
+  const download = client.download();
   fixture.listeners.get('message')({ data: {
     type: 'OFFLINE_PROGRESS', version: 'v1',
     state: { stagedVersion: 'v1', completedAssets: 2, totalAssets: 10 }
   } });
   assert.equal(seen.at(-1).completedAssets, 2);
   assert.equal(Object.isFrozen(seen.at(-1)), true);
+  worker.requests.find(request => request.message.type === 'DOWNLOAD_OFFLINE')
+    .reply({ ok: true, state: { activeVersion: 'v1', stagedVersion: null } });
+  await download;
 });
 
 test('download and update commands preserve worker response state', async () => {
@@ -119,6 +139,57 @@ test('a download outliving the reply timeout still lands its completion state', 
   const state = await client.download();
   assert.equal(state.status, 'update-ready');
   assert.equal(state.stagedVersion, 'v2');
+});
+
+test('a late failed download cannot overwrite a newer cancellation or its frozen snapshots', async () => {
+  const worker = controlledWorker();
+  const fixture = browserFixture({ worker });
+  const client = createOfflineClient(fixture);
+  const seen = [];
+  client.subscribe(state => seen.push(state));
+  await client.register();
+
+  const download = client.download();
+  const cancel = client.cancelDownload();
+  const cancelRequest = worker.requests.find(request => request.message.type === 'CANCEL_DOWNLOAD');
+  cancelRequest.reply({ ok: true, state: { activeVersion: null, stagedVersion: null } });
+  const cancelled = await cancel;
+  assert.equal(cancelled.status, 'online-only');
+
+  const downloadRequest = worker.requests.find(request => request.message.type === 'DOWNLOAD_OFFLINE');
+  downloadRequest.reply({ ok: false, error: 'network unavailable' });
+  const stale = await download;
+  assert.strictEqual(stale, cancelled);
+  assert.equal(client.getState().status, 'online-only');
+  assert.ok(seen.every(Object.isFrozen));
+  assert.ok(Object.isFrozen(stale));
+});
+
+test('late download success and progress cannot restore downloading after cancellation', async () => {
+  const worker = controlledWorker();
+  const fixture = browserFixture({ worker });
+  const client = createOfflineClient(fixture);
+  const seen = [];
+  client.subscribe(state => seen.push(state));
+  await client.register();
+
+  const download = client.download();
+  const cancel = client.cancelDownload();
+  worker.requests.find(request => request.message.type === 'CANCEL_DOWNLOAD')
+    .reply({ ok: true, state: { activeVersion: null, stagedVersion: null } });
+  const cancelled = await cancel;
+  worker.requests.find(request => request.message.type === 'DOWNLOAD_OFFLINE')
+    .reply({ ok: true, state: { activeVersion: 'v1', stagedVersion: null } });
+  const stale = await download;
+  assert.strictEqual(stale, cancelled);
+
+  fixture.listeners.get('message')({ data: {
+    type: 'OFFLINE_PROGRESS', version: 'v1',
+    state: { stagedVersion: 'v1', completedAssets: 4, totalAssets: 10 }
+  } });
+  assert.equal(client.getState().status, 'online-only');
+  assert.equal(client.getState().completedAssets, 0);
+  assert.ok(seen.every(Object.isFrozen));
 });
 
 test('applying an update reloads the page even when no new worker is waiting', async () => {

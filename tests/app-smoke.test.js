@@ -241,7 +241,7 @@ test('correct post-answer movement starts only after saved scoring and remains p
   assert.ok(saveIndex >= 0 && startIndex > saveIndex, 'movement must start only after the scored state is saved');
   assert.ok(renderIndex > startIndex, 'the saved movement state must be installed before reveal rendering');
   assert.match(source, /postAnswerMotionView\(model\.postAnswerMotion, Date\.now\(\)\)/);
-  assert.match(source, /postAnswerMotion\s*\n\s*\}\)\}/);
+  assert.match(source, /postAnswerMotion,\s*\n\s*turnClipWillPlay\s*\n\s*\}\)\}/);
   assert.match(source, /attempt:\s*result\.attempt/);
   assert.match(source, /reducedMotion/);
   assert.doesNotMatch(controller, /await .*postAnswer|setTimeout\([^)]*postAnswer/);

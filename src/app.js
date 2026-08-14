@@ -143,6 +143,7 @@ export function createSavedPostAnswerMotion({
   attempt,
   roadMovement,
   reducedMotion,
+  turnClipWillPlay,
   startedAt
 } = {}) {
   const surface = screenModel?.activeSurfaceModel;
@@ -156,8 +157,8 @@ export function createSavedPostAnswerMotion({
     && reducedMotion !== true
     && POST_ANSWER_MOTION_FAMILY_SET.has(family)
     && Array.isArray(surface?.geometry?.correctRoute)
-    // Clip-backed scenes are demonstrated by their motion video alone.
-    && !hasTurnClip(surface?.geometry?.sceneId, surface?.expectedResult);
+    // A clip suppresses the glyph only when this reveal will actually enter it.
+    && turnClipWillPlay !== true;
   try {
     return createPostAnswerMotion({
       eligible,
@@ -189,19 +190,43 @@ const REVEAL_READING_BEAT_MS = 1_200;
  *
  * @returns {number|null} dwell in ms, or null when the learner keeps the tap
  */
-export function revealAutoAdvanceMs({ screenModel, attempt, roadMovement, reducedMotion } = {}) {
+export function turnClipWillDemonstrateReveal({
+  screenModel,
+  attempt,
+  nextStepKind,
+  roadMovement,
+  reducedMotion,
+  clipsEnabled
+} = {}) {
   const surface = screenModel?.activeSurfaceModel;
   const family = surface?.family;
-  const eligible = screenModel?.screen === 'reveal'
+  return screenModel?.screen === 'reveal'
     && screenModel.correct === true
     && screenModel.timeout !== true
     && screenModel.continuityActive === true
+    && nextStepKind === 'transition'
     && ['unaided', 'assisted'].includes(attempt?.outcome)
     && screenModel.experience?.revealPolicy !== 'session-end'
     && roadMovement === true
     && reducedMotion !== true
+    && clipsEnabled === true
     && POST_ANSWER_MOTION_FAMILY_SET.has(family)
     && hasTurnClip(surface?.geometry?.sceneId, surface?.expectedResult);
+}
+
+export function revealAutoAdvanceMs({
+  screenModel,
+  attempt,
+  nextStepKind,
+  roadMovement,
+  reducedMotion,
+  clipsEnabled
+} = {}) {
+  const surface = screenModel?.activeSurfaceModel;
+  const family = surface?.family;
+  const eligible = turnClipWillDemonstrateReveal({
+    screenModel, attempt, nextStepKind, roadMovement, reducedMotion, clipsEnabled
+  });
   return eligible ? POST_ANSWER_MOTION_DURATIONS[family] + REVEAL_READING_BEAT_MS : null;
 }
 
@@ -1320,6 +1345,17 @@ async function bootstrap() {
       && !reducedMotion;
   }
 
+  function turnClipWillPlayForReveal(attempt) {
+    return turnClipWillDemonstrateReveal({
+      screenModel: model,
+      attempt,
+      nextStepKind: currentContinuityStep(state.activeSession)?.kind,
+      roadMovement: state.settings.roadMovement,
+      reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false,
+      clipsEnabled: !turnClipFailed
+    });
+  }
+
   // Continuity step fields for screen events; the seed/motion/startedAt trio
   // only matters when the step is a null event, and is harmless otherwise.
   function continuityStepEventFields(step) {
@@ -1808,6 +1844,9 @@ async function bootstrap() {
     const postAnswerMotion = model.postAnswerMotion
       ? postAnswerMotionView(model.postAnswerMotion, Date.now())
       : null;
+    const turnClipWillPlay = turnClipWillPlayForReveal(
+      state.attempts.find(attempt => attempt.id === currentAttemptId)
+    );
     return `<section class="panel reveal" aria-labelledby="outcome-title">
       <p class="progress">${progressText()}</p>
       <h2 id="outcome-title" role="status" aria-live="polite" class="outcome ${model.outcome}" data-screen-focus tabindex="-1">${translate(locale(), `result.${model.outcome}`)}</h2>
@@ -1817,7 +1856,8 @@ async function bootstrap() {
           reveal: true,
           selectedTargetId: model.selectedTargetId,
           motion,
-          postAnswerMotion
+          postAnswerMotion,
+          turnClipWillPlay
         })}</div>
         <div class="gameplay-feedback">
           <dl class="answer-details">
@@ -2303,8 +2343,10 @@ async function bootstrap() {
     const delay = revealAutoAdvanceMs({
       screenModel: model,
       attempt: state.attempts.find(attempt => attempt.id === attemptId),
+      nextStepKind: currentContinuityStep(state.activeSession)?.kind,
       roadMovement: state.settings.roadMovement,
-      reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false
+      reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false,
+      clipsEnabled: !turnClipFailed
     });
     if (delay === null) return;
     revealAutoAdvanceFor = attemptId;
@@ -2845,6 +2887,7 @@ async function bootstrap() {
           attempt: result.attempt,
           roadMovement: state.settings.roadMovement,
           reducedMotion,
+          turnClipWillPlay: turnClipWillPlayForReveal(result.attempt),
           startedAt: Date.now()
         })
       });

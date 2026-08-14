@@ -35,6 +35,8 @@ export function createOfflineClient({
     totalBytes: 0,
     error: null
   });
+  let operationGeneration = 0;
+  let activeDownloadOperation = 0;
 
   function publish(changes) {
     state = freezeState({ ...state, ...changes });
@@ -76,6 +78,7 @@ export function createOfflineClient({
 
   function onWorkerMessage(event) {
     if (event.data?.type !== 'OFFLINE_PROGRESS' || !event.data.state) return;
+    if (activeDownloadOperation !== operationGeneration || state.status !== 'downloading') return;
     if (state.stagedVersion && event.data.version && event.data.version !== state.stagedVersion) return;
     publish({ status: 'downloading', ...event.data.state });
   }
@@ -133,10 +136,12 @@ export function createOfflineClient({
     }
   }
 
-  async function command(type, pendingStatus, payload, replyTimeoutMs = timeoutMs) {
+  async function command(type, pendingStatus, payload, replyTimeoutMs = timeoutMs, operation = ++operationGeneration) {
+    activeDownloadOperation = type === 'DOWNLOAD_OFFLINE' ? operation : 0;
     publish({ status: pendingStatus, error: null });
     try {
       const response = await send(type, payload, workerTarget(), replyTimeoutMs);
+      if (operation !== operationGeneration) return state;
       const changes = responseChanges(response);
       const nextStatus = changes.activeVersion
         ? changes.stagedVersion
@@ -145,13 +150,16 @@ export function createOfflineClient({
         : changes.stagedVersion ? 'download-paused' : 'online-only';
       return publish({ status: nextStatus, ...changes, error: null });
     } catch (error) {
+      if (operation !== operationGeneration) return state;
       return publish({ status: 'failed', error: error?.message ?? String(error) });
     }
   }
 
   async function applyUpdate() {
     const version = state.stagedVersion;
-    const response = await command('APPLY_UPDATE', 'applying-update', { version });
+    const operation = ++operationGeneration;
+    const response = await command('APPLY_UPDATE', 'applying-update', { version }, timeoutMs, operation);
+    if (operation !== operationGeneration) return response;
     if (response.status === 'failed') return response;
     // The worker now serves the newly activated package, but this page is still
     // running the JS it loaded from the old one. sw.js is almost never part of

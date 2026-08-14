@@ -111,11 +111,11 @@ test('straight-ahead junction commands use the photographed center road across s
   }
 });
 
-test('clip-backed junction reveals draw no gold route while clip-less roundabouts keep theirs', () => {
-  // The four-way junction has motion clips for all three results: the clip
-  // is the demonstration, so the reveal renders neither line nor glyph.
+test('a playable junction clip suppresses its route while clip-less roundabouts keep theirs', () => {
   const junction = generateSpatialSurface(command('turn-right', 'junction-v2'), 7);
-  assert.doesNotMatch(renderSpatialSurface(junction, 'en', { reveal: true }), /data-correct-route/);
+  assert.doesNotMatch(renderSpatialSurface(junction, 'en', {
+    reveal: true, turnClipWillPlay: true
+  }), /data-correct-route/);
 
   const roundabout = generateSpatialSurface(command('roundabout-exit-2'), 7, { exitCount: 4 });
   assert.match(renderSpatialSurface(roundabout, 'en', { reveal: true }), /data-correct-route/);
@@ -233,7 +233,7 @@ test('road motion keeps each spatial photograph, route, and targets in one calib
     elapsedMs: 1_500,
     remainingMs: 4_500
   });
-  const markup = renderSpatialSurface(junction, 'en', { motion, reveal: true });
+  const markup = renderSpatialSurface(junction, 'en', { motion, reveal: true, turnClipWillPlay: true });
 
   assert.match(markup, /class="surface-stage junction driving-photo-stage road-motion-stage"/);
   assert.match(markup, /class="road-motion-viewport"/);
@@ -255,6 +255,10 @@ test('road motion keeps each spatial photograph, route, and targets in one calib
   assert.doesNotMatch(scene, /surface-result-label/);
   assert.match(markup, /<\/div>\s*<p class="surface-result-label"/);
 
+  const staticFallback = renderSpatialSurface(junction, 'en', {
+    motion, reveal: true, turnClipWillPlay: false
+  });
+  assert.match(staticFallback, /data-correct-route/);
   assert.doesNotMatch(renderSpatialSurface(junction, 'en'), /road-motion-scene/);
   const roundabout = generateSpatialSurface(command('roundabout-exit-2'), 17, { exitCount: 4 });
   const roundaboutMarkup = renderSpatialSurface(roundabout, 'en', {

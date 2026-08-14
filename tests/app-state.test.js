@@ -23,7 +23,8 @@ import {
   restoreOrDeferFocus,
   selectPlaybackVariant,
   sessionIdentityData,
-  sessionStartEligibility
+  sessionStartEligibility,
+  turnClipWillDemonstrateReveal
 } from '../src/app.js';
 import { createPostAnswerMotion } from '../src/post-answer-motion.js';
 import { EXAMINERS, selectTodaysExaminer } from '../src/examiners.js';
@@ -455,9 +456,8 @@ test('saved correct immediate reveals alone qualify for bounded post-answer move
     { screenModel: { ...clipless, screen: 'mock-transition' } },
     { screenModel: { ...clipless, experience: { revealPolicy: 'session-end' } } },
     { screenModel: { ...clipless, activeSurfaceModel: { family: 'wheel', geometry: clipless.activeSurfaceModel.geometry } } },
-    // The untouched reveal keeps its clip-backed scene: motion video
-    // supersedes the glyph outright.
-    { screenModel: revealed }
+    // A controller-confirmed clip supersedes the glyph.
+    { screenModel: revealed, turnClipWillPlay: true }
   ]) {
     const motion = createSavedPostAnswerMotion({
       screenModel: clipless,
@@ -471,7 +471,28 @@ test('saved correct immediate reveals alone qualify for bounded post-answer move
   }
 });
 
-test('the answer glyph follows clip registration across the whole catalog', () => {
+test('turn-clip reveal eligibility owns the mutually exclusive presentation policy', () => {
+  const junction = generateSurfaceWithRetries(
+    { id: 'c-izq', actionId: 'turn-left', acceptedResult: 'turn-left', surfaceId: 'junction-v2' }, 11
+  ).model;
+  const playable = {
+    screenModel: {
+      screen: 'reveal', correct: true, timeout: false, continuityActive: true,
+      experience: { revealPolicy: 'per-question' }, activeSurfaceModel: junction
+    },
+    attempt: { outcome: 'unaided' },
+    nextStepKind: 'transition', roadMovement: true, reducedMotion: false, clipsEnabled: true
+  };
+  assert.equal(turnClipWillDemonstrateReveal(playable), true);
+  for (const override of [
+    { roadMovement: false }, { reducedMotion: true }, { clipsEnabled: false },
+    { nextStepKind: null }, { nextStepKind: 'null-event' }, { attempt: { outcome: 'incorrect' } },
+    { screenModel: { ...playable.screenModel, timeout: true } },
+    { screenModel: { ...playable.screenModel, experience: { revealPolicy: 'session-end' } } }
+  ]) assert.equal(turnClipWillDemonstrateReveal({ ...playable, ...override }), false);
+});
+
+test('the answer glyph follows controller-owned turn-clip eligibility across the whole catalog', () => {
   // Device pass 2026-08-14 reported the glyph still animating on junction
   // reveals. The single dispatch site builds its motion through
   // createSavedPostAnswerMotion — the "saved" name notwithstanding, that is
@@ -494,6 +515,7 @@ test('the answer glyph follows clip registration across the whole catalog', () =
       attempt: { outcome: 'unaided' },
       roadMovement: true,
       reducedMotion: false,
+      turnClipWillPlay: hasTurnClip(surface.geometry.sceneId, surface.expectedResult),
       startedAt: 2_000
     });
     const suppressed = hasTurnClip(surface.geometry.sceneId, surface.expectedResult);
@@ -528,7 +550,9 @@ test('a clip-backed reveal advances itself after the dwell the glyph would have 
     },
     attempt: { outcome: 'unaided' },
     roadMovement: true,
-    reducedMotion: false
+    reducedMotion: false,
+    nextStepKind: 'transition',
+    clipsEnabled: true
   };
 
   // The dwell is the family's own motion duration plus a reading beat: the
@@ -557,7 +581,9 @@ test('a clip-backed reveal advances itself after the dwell the glyph would have 
     // Mock withholds the clip, so it must withhold the dwell that leads to it.
     { screenModel: { ...eligible.screenModel, experience: { revealPolicy: 'session-end' } } },
     { roadMovement: false },
-    { reducedMotion: true }
+    { reducedMotion: true },
+    { clipsEnabled: false },
+    { nextStepKind: null }
   ]) {
     assert.equal(revealAutoAdvanceMs({ ...eligible, ...override }), null);
   }
