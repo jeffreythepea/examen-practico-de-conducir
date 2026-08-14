@@ -446,3 +446,29 @@ over the plan's ~52 MB flag line), verified on the
 iPad simulator with the server stopped: turn clip and cruise clip both play
 from cache. Roundabouts, U-turn, and junction null events remain out of
 scope for this slice.
+
+## Manoeuvre Motion Clips: Parking, Overtake, Stopping (2026-08-14)
+
+The clip treatment extends beyond turns to the three manoeuvre families
+Jeffrey judged highest-value: `parallel-parking-v1` (forward glide into the
+photographed gap), `overtake-pass-v1` (pull out, pass, pull ahead), and
+`roadside-stop-v1` (ease right, brake, stop at the curb). All three are
+registered in `TURN_CLIPS` keyed by scene and accepted result, and a scene
+with a registered clip now draws neither the gold car glyph nor the static
+route line at reveal — the clip is the demonstration (`hasTurnClip`,
+shipped 428795b, activates on registration alone).
+
+The stopping clip is backed by a new scene, `urban-roadside-photo-v2`
+(no-parking sign justifying the legal curb stop, garage vado, crosswalk);
+v1 remains for the title screen and continuity stills. Targets and route
+were recalibrated by Jeffrey against the rendered photo, with the correct
+stop pinned to the clip car's parked pose.
+
+Generation notes for the record: the playground gained an end-frame slot
+since Tier 2, but chained first/last-frame Veo segments via Hermes remained
+necessary for overtake and stopping. Veo's strongest failure prior — fading
+the subject car out and driving in a replacement — was finally suppressed
+with explicit full-opacity/continuity prompt language; every take still
+corrupts in its final ~0.5 s converging on its end frame, so every shipped
+clip is tail-trimmed. Total OpenRouter generation spend for the slice: ~US$11 (plus playground credits for parking).
+Package: 56.8 → 61.2 MB installed (1301 assets).
