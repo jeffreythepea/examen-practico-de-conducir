@@ -178,18 +178,28 @@ test('returns null when the scene does not resolve to a photo asset', () => {
   assert.equal(intro({ surfaceModel: { ...JUNCTION_MODEL, geometry: {} } }), null);
 });
 
-test('registers immutable four-way turn clips with stable IDs and illustrative provenance', () => {
+test('registers immutable turn and manoeuvre clips with stable IDs and illustrative provenance', () => {
   assert.ok(Object.isFrozen(TURN_CLIPS));
-  assert.deepEqual(Object.keys(TURN_CLIPS), ['four-way-intersection-photo-v1']);
-  const clips = TURN_CLIPS['four-way-intersection-photo-v1'];
-  assert.deepEqual(Object.keys(clips).sort(), ['continue-forward', 'turn-left', 'turn-right']);
-  for (const clip of Object.values(clips)) {
-    assert.ok(Object.isFrozen(clip));
-    assert.match(clip.videoId, /^four-way-(turn-left|turn-right|straight)-v1$/);
-    assert.match(clip.asset, /^\.\/assets\/driving\/four-way-[a-z-]+-v1\.mp4$/);
-    assert.match(clip.poster, /^\.\/assets\/driving\/four-way-[a-z-]+-v1-poster\.webp$/);
-    assert.equal(clip.provenance, 'ai-generated-illustrative');
-    assert.ok(Number.isFinite(clip.durationMs) && clip.durationMs > 0 && clip.durationMs <= 10_000);
+  assert.deepEqual(Object.keys(TURN_CLIPS).sort(), [
+    'four-way-intersection-photo-v1',
+    'overtaking-photo-v1',
+    'parallel-parking-gap-photo-v1',
+    'urban-roadside-photo-v2'
+  ]);
+  assert.deepEqual(Object.keys(TURN_CLIPS['four-way-intersection-photo-v1']).sort(),
+    ['continue-forward', 'turn-left', 'turn-right']);
+  assert.deepEqual(Object.keys(TURN_CLIPS['parallel-parking-gap-photo-v1']), ['park']);
+  assert.deepEqual(Object.keys(TURN_CLIPS['overtaking-photo-v1']), ['overtake']);
+  assert.deepEqual(Object.keys(TURN_CLIPS['urban-roadside-photo-v2']), ['voluntary-stop']);
+  for (const clips of Object.values(TURN_CLIPS)) {
+    for (const clip of Object.values(clips)) {
+      assert.ok(Object.isFrozen(clip));
+      assert.match(clip.videoId, /^[a-z-]+-v1$/);
+      assert.equal(clip.asset, `./assets/driving/${clip.videoId}.mp4`);
+      assert.equal(clip.poster, `./assets/driving/${clip.videoId}-poster.webp`);
+      assert.equal(clip.provenance, 'ai-generated-illustrative');
+      assert.ok(Number.isFinite(clip.durationMs) && clip.durationMs > 0 && clip.durationMs <= 10_000);
+    }
   }
 });
 

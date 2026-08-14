@@ -242,8 +242,11 @@ test('parking and voluntary-stop feedback trace the learner car into the accepte
           'voluntary-stop route must finish clear of the garage vado');
       }
 
+      // Both scenes are clip-backed: the motion video supersedes the gold
+      // route line even at reveal (the route data itself must survive for
+      // the model contract above).
       assert.doesNotMatch(renderManoeuvreSurface(model, 'en'), /data-correct-route/);
-      assert.match(renderManoeuvreSurface(model, 'en', { reveal: true }), /data-correct-route/);
+      assert.doesNotMatch(renderManoeuvreSurface(model, 'en', { reveal: true }), /data-correct-route/);
     }
   }
 });
@@ -370,7 +373,8 @@ test('renderer keeps pre-response targets visibly unlabeled with bilingual instr
 test('reveal traces route choices and explains only the selected restricted location', () => {
   const overtake = generateManoeuvreSurface(command('overtake', 'overtake-v1'), 88);
   const routeReveal = renderManoeuvreSurface(overtake, 'en', { reveal: true });
-  assert.match(routeReveal, /data-correct-route/);
+  // Clip-backed scene: labels and selection states stay, the gold line goes.
+  assert.doesNotMatch(routeReveal, /data-correct-route/);
   assert.match(routeReveal, /class="surface-result-label">Correct route</);
   assert.equal((routeReveal.match(/aria-current="true"/g) ?? []).length, 1);
 
@@ -527,8 +531,9 @@ test('parking and stopping show the car-glyph movement layer instead of the stat
     // "car only, no trail" — the static ghost route is dropped once the car glyph is eligible.
     assert.doesNotMatch(markup, /data-correct-route/);
 
+    // Clip-backed scenes never fall back to the static line either.
     const fallback = renderManoeuvreSurface(model, 'en', { disabled: true, reveal: true });
-    assert.match(fallback, /data-correct-route/);
+    assert.doesNotMatch(fallback, /data-correct-route/);
     assert.doesNotMatch(fallback, /class="post-answer-motion"/);
   }
 });

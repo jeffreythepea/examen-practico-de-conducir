@@ -22,6 +22,17 @@ export const TURN_CLIPS = Object.freeze({
     'turn-left': turnClip('four-way-turn-left-v1', 3917),
     'turn-right': turnClip('four-way-turn-right-v1', 3917),
     'continue-forward': turnClip('four-way-straight-v1', 4000)
+  }),
+  // Manoeuvre clips (2026-08-14): the clip demonstrates the accepted
+  // manoeuvre, so these scenes draw no gold glyph or route line.
+  'parallel-parking-gap-photo-v1': Object.freeze({
+    park: turnClip('parallel-parking-v1', 4000)
+  }),
+  'overtaking-photo-v1': Object.freeze({
+    overtake: turnClip('overtake-pass-v1', 4125)
+  }),
+  'urban-roadside-photo-v2': Object.freeze({
+    'voluntary-stop': turnClip('roadside-stop-v1', 4833)
   })
 });
 // A scene+result with a registered clip is demonstrated by the clip alone:

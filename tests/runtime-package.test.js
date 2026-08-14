@@ -28,11 +28,12 @@ test('runtime asset discovery is deterministic, complete, and excludes developme
   assert.ok(paths.includes('assets/driving/urban-roadside-drive-v2-poster.webp'));
   assert.ok(paths.includes('assets/driving/overtaking-drive-v2.mp4'));
   assert.ok(paths.includes('assets/driving/overtaking-drive-v2-poster.webp'));
-  for (const clip of ['four-way-turn-left-v1', 'four-way-turn-right-v1', 'four-way-straight-v1']) {
+  for (const clip of ['four-way-turn-left-v1', 'four-way-turn-right-v1', 'four-way-straight-v1',
+    'parallel-parking-v1', 'overtake-pass-v1', 'roadside-stop-v1']) {
     assert.ok(paths.includes(`assets/driving/${clip}.mp4`), `${clip} clip ships offline`);
     assert.ok(paths.includes(`assets/driving/${clip}-poster.webp`), `${clip} poster ships offline`);
   }
-  assert.equal(paths.filter(path => path.endsWith('.mp4')).length, 5);
+  assert.equal(paths.filter(path => path.endsWith('.mp4')).length, 8);
   assert.ok(paths.every(path => !path.startsWith('tests/')));
   assert.ok(paths.every(path => !path.startsWith('docs/')));
   assert.ok(paths.every(path => !path.includes('.superpowers')));
