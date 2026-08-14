@@ -97,6 +97,30 @@ test('download and update commands preserve worker response state', async () => 
   assert.deepEqual(types, ['GET_OFFLINE_STATE', 'CHECK_FOR_UPDATE', 'DOWNLOAD_OFFLINE']);
 });
 
+test('a download outliving the reply timeout still lands its completion state', async () => {
+  // The DOWNLOAD_OFFLINE reply only arrives when the whole package has
+  // downloaded — minutes on a real device. Timing it out dropped the
+  // completion state and the card stayed on "downloading" until a reload.
+  const worker = {
+    postMessage(message, ports) {
+      const reply = () => ports?.[0]?.postMessage({
+        requestId: message.requestId,
+        ok: true,
+        state: message.type === 'DOWNLOAD_OFFLINE'
+          ? { activeVersion: 'v1', stagedVersion: 'v2' }
+          : { activeVersion: 'v1', stagedVersion: null }
+      });
+      if (message.type === 'DOWNLOAD_OFFLINE') setTimeout(reply, 60);
+      else queueMicrotask(reply);
+    }
+  };
+  const client = createOfflineClient({ ...browserFixture({ worker }), timeoutMs: 10 });
+  await client.register();
+  const state = await client.download();
+  assert.equal(state.status, 'update-ready');
+  assert.equal(state.stagedVersion, 'v2');
+});
+
 test('a manifest check failure preserves online play and the worker state already read', async () => {
   const worker = {
     postMessage(message, ports) {

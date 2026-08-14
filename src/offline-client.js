@@ -50,15 +50,21 @@ export function createOfflineClient({
       ?? null;
   }
 
-  function send(type, payload = {}, target = workerTarget()) {
+  function send(type, payload = {}, target = workerTarget(), replyTimeoutMs = timeoutMs) {
     if (!target || !MessageChannelCtor) return Promise.reject(new Error('Offline worker is not ready'));
     const id = requestId();
     const channel = new MessageChannelCtor();
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error(`Offline worker timed out: ${type}`)), timeoutMs);
+      // A timeout of 0 disables the timer: the download command only replies
+      // once the whole package has downloaded (minutes), and timing it out
+      // dropped the completion reply — the card stayed on "downloading"
+      // until a reload re-read the staged state.
+      const timer = replyTimeoutMs > 0
+        ? setTimeout(() => reject(new Error(`Offline worker timed out: ${type}`)), replyTimeoutMs)
+        : null;
       channel.port1.onmessage = event => {
         if (event.data?.requestId !== id) return;
-        clearTimeout(timer);
+        if (timer !== null) clearTimeout(timer);
         channel.port1.close?.();
         if (!event.data.ok) reject(new Error(event.data.error ?? 'Offline worker failed'));
         else resolve(event.data);
@@ -127,10 +133,10 @@ export function createOfflineClient({
     }
   }
 
-  async function command(type, pendingStatus, payload) {
+  async function command(type, pendingStatus, payload, replyTimeoutMs = timeoutMs) {
     publish({ status: pendingStatus, error: null });
     try {
-      const response = await send(type, payload);
+      const response = await send(type, payload, workerTarget(), replyTimeoutMs);
       const changes = responseChanges(response);
       const nextStatus = changes.activeVersion
         ? changes.stagedVersion
@@ -177,7 +183,7 @@ export function createOfflineClient({
     getState: () => state,
     subscribe(listener) { subscribers.add(listener); return () => subscribers.delete(listener); },
     register,
-    download: () => command('DOWNLOAD_OFFLINE', 'downloading'),
+    download: () => command('DOWNLOAD_OFFLINE', 'downloading', {}, 0),
     checkForUpdate: () => command('CHECK_FOR_UPDATE', 'checking-update'),
     applyUpdate,
     cancelDownload: () => command('CANCEL_DOWNLOAD', 'cancelling'),
