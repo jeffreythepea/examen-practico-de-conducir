@@ -219,11 +219,17 @@ function scheduleForAttempts(attempts) {
  */
 export function summarizeSession(attempts, commands) {
   const counts = { unaided: 0, assisted: 0, incorrect: 0 };
+  // A missed precheck is a formality fumbled at the kerb, not a fault made in
+  // traffic, so the two are tallied apart and never summed into one figure.
+  const misses = { driving: 0, precheck: 0 };
   const responseTimes = [];
   let replayCount = 0;
   let hintCount = 0;
   for (const attempt of attempts) {
     counts[attempt.outcome] += 1;
+    if (attempt.outcome === 'incorrect') {
+      misses[attempt.phase === 'precheck' ? 'precheck' : 'driving'] += 1;
+    }
     if (Number.isFinite(attempt.responseMs)) responseTimes.push(attempt.responseMs);
     replayCount += attempt.replays ?? 0;
     if (attempt.textShown) hintCount += 1;
@@ -235,6 +241,7 @@ export function summarizeSession(attempts, commands) {
     .sort((left, right) => left.weightedScore - right.weightedScore || left.actionId.localeCompare(right.actionId));
   return {
     counts,
+    misses,
     unaidedPercentage: total === 0 ? 0 : Math.round(100 * counts.unaided / total),
     averageResponseMs: responseTimes.length === 0
       ? null

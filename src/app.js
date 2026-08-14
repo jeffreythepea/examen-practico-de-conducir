@@ -1847,6 +1847,8 @@ async function bootstrap() {
         ${countCard('incorrect', summary.counts.incorrect)}
       </div>
       <dl class="summary-details">
+        <div><dt>${translate(locale(), 'summary.drivingErrors')}</dt><dd>${summary.misses.driving}</dd></div>
+        <div><dt>${translate(locale(), 'summary.precheckMisses')}</dt><dd>${summary.misses.precheck}</dd></div>
         <div><dt>${translate(locale(), 'summary.averageTime')}</dt><dd>${summary.averageResponseMs === null ? '—' : translate(locale(), 'summary.milliseconds', { seconds: formatSeconds(summary.averageResponseMs) })}</dd></div>
         <div><dt>${translate(locale(), 'summary.replays')}</dt><dd>${summary.replayCount}</dd></div>
         <div><dt>${translate(locale(), 'summary.hints')}</dt><dd>${summary.hintCount}</dd></div>

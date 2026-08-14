@@ -391,4 +391,23 @@ test('summarizes raw outcomes, unaided percentage, timing, dependence, and weake
   assert.equal(summary.replayCount, 3);
   assert.equal(summary.hintCount, 1);
   assert.deepEqual(summary.weakActions.map(item => item.actionId), ['action-2', 'action-1']);
+  assert.deepEqual(summary.misses, { driving: 1, precheck: 0 });
+});
+
+test('misses are tallied by phase and never summed into one figure', () => {
+  const attempts = [
+    { ...completedAttempt({ id: 'p1', actionId: 'action-3', outcome: 'incorrect' }), phase: 'precheck' },
+    { ...completedAttempt({ id: 'p2', actionId: 'action-3', outcome: 'incorrect' }), phase: 'precheck' },
+    { ...completedAttempt({ id: 'd1', actionId: 'action-1', outcome: 'incorrect' }), phase: 'driving' },
+    { ...completedAttempt({ id: 'p3', actionId: 'action-3', outcome: 'unaided' }), phase: 'precheck' },
+    // Attempts recorded before the split carry no phase; a missing phase is a
+    // driving error, never a free pass.
+    completedAttempt({ id: 'legacy', actionId: 'action-1', outcome: 'incorrect' })
+  ];
+  const summary = summarizeSession(attempts, [
+    command('d-1', 'action-1'), command('p-1', 'action-3', 'precheck')
+  ]);
+
+  assert.deepEqual(summary.misses, { driving: 2, precheck: 2 });
+  assert.equal(summary.counts.incorrect, 4);
 });
