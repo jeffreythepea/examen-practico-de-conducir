@@ -199,8 +199,44 @@ test('registers immutable turn and manoeuvre clips with stable IDs and illustrat
       assert.equal(clip.poster, `./assets/driving/${clip.videoId}-poster.webp`);
       assert.equal(clip.provenance, 'ai-generated-illustrative');
       assert.ok(Number.isFinite(clip.durationMs) && clip.durationMs > 0 && clip.durationMs <= 10_000);
+      assert.ok(Number.isFinite(clip.holdMs) && clip.holdMs >= 0);
     }
   }
+});
+
+test('clips that end at rest hold their last frame before the transition moves on', () => {
+  // Without the hold the manoeuvre cuts from the car still moving straight
+  // into the cruise footage, and the stop never reads as a stop.
+  const held = {
+    'parallel-parking-gap-photo-v1': 'park',
+    'urban-roadside-photo-v2': 'voluntary-stop'
+  };
+  const rolling = {
+    'overtaking-photo-v1': 'overtake',
+    'four-way-intersection-photo-v1': 'turn-left'
+  };
+
+  for (const [sceneId, resultId] of Object.entries(held)) {
+    assert.equal(TURN_CLIPS[sceneId][resultId].holdMs, 2_500, `${resultId} ends stationary`);
+  }
+  for (const [sceneId, resultId] of Object.entries(rolling)) {
+    assert.equal(TURN_CLIPS[sceneId][resultId].holdMs, 0, `${resultId} ends in motion`);
+  }
+
+  // The hold rides inside the intro duration, which drives both the clip
+  // layer's fade and the transition's auto-advance.
+  const stopping = intro({
+    surfaceModel: {
+      family: 'stopping',
+      targets: [{ id: 'chosen', x: 50, y: 40, resultId: 'voluntary-stop' }],
+      geometry: { sceneId: 'urban-roadside-photo-v2' }
+    },
+    selectedTargetId: 'chosen',
+    clipsEnabled: true
+  });
+  const clip = TURN_CLIPS['urban-roadside-photo-v2']['voluntary-stop'];
+  assert.equal(stopping.durationMs, clip.durationMs + clip.holdMs);
+  assert.ok(stopping.durationMs > clip.durationMs, 'the stop must outlast its own footage');
 });
 
 test('clip-backed intros carry the registered clip, its duration, and a no-op settle', () => {

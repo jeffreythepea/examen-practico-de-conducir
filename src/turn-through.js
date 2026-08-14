@@ -7,13 +7,19 @@ const CORRECT_OUTCOMES = new Set(['unaided', 'assisted']);
 // Only the four-way slice is registered; every other scene falls back to the
 // CSS turn-through-pan (the no-clip path, kept deliberately). Durations are
 // the trimmed clip lengths; auto-advance derives from them, never hardcoded.
-function turnClip(videoId, durationMs) {
+// A clip that ends with the car at rest holds its last frame before the
+// transition moves on. Without it the manoeuvre cuts straight from the car
+// still moving into the cruise footage, and the stop never reads as a stop.
+const STATIONARY_HOLD_MS = 2_500;
+
+function turnClip(videoId, durationMs, { endsStationary = false } = {}) {
   return Object.freeze({
     videoId,
     asset: `./assets/driving/${videoId}.mp4`,
     poster: `./assets/driving/${videoId}-poster.webp`,
     provenance: 'ai-generated-illustrative',
-    durationMs
+    durationMs,
+    holdMs: endsStationary ? STATIONARY_HOLD_MS : 0
   });
 }
 
@@ -26,13 +32,14 @@ export const TURN_CLIPS = Object.freeze({
   // Manoeuvre clips (2026-08-14): the clip demonstrates the accepted
   // manoeuvre, so these scenes draw no gold glyph or route line.
   'parallel-parking-gap-photo-v1': Object.freeze({
-    park: turnClip('parallel-parking-v1', 4000)
+    park: turnClip('parallel-parking-v1', 4000, { endsStationary: true })
   }),
+  // The overtake ends back in lane at speed, so it cuts straight to the cruise.
   'overtaking-photo-v1': Object.freeze({
     overtake: turnClip('overtake-pass-v1', 4125)
   }),
   'urban-roadside-photo-v2': Object.freeze({
-    'voluntary-stop': turnClip('roadside-stop-v1', 4833)
+    'voluntary-stop': turnClip('roadside-stop-v1', 4833, { endsStationary: true })
   })
 });
 // A scene+result with a registered clip is demonstrated by the clip alone:
@@ -135,7 +142,10 @@ export function turnThroughIntro({
     turnScale: round(midScale + (END_SCALE - midScale) * TURN_BEAT_FRACTION),
     originX: pose.originX,
     originY: pose.originY,
-    durationMs: clip ? clip.durationMs : INTRO_DURATION_MS,
+    // The hold rides inside the intro's duration so both consumers pick it up
+    // untouched: the clip layer stays opaque over its frozen last frame, and
+    // the transition's auto-advance waits for it.
+    durationMs: clip ? clip.durationMs + clip.holdMs : INTRO_DURATION_MS,
     clip
   });
 }
