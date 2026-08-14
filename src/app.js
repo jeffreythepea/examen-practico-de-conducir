@@ -94,6 +94,10 @@ export const NULL_EVENT_COMMAND = Object.freeze({
   surfaceId: 'junction-v2'
 });
 export const NULL_EVENT_DWELL_MS = 1_600;
+// How long the end screen ignores a tap that was already travelling when it
+// rendered — long enough to cover one skipped transition, short enough that a
+// learner reaching for Continue never notices it.
+const RESULTS_TAP_GUARD_MS = 600;
 const SURFACE_RETRY_INCREMENT = 0x9e3779b9;
 const RESULT_ONLY_SURFACE_FAMILIES = Object.freeze([
   'junction',
@@ -1250,6 +1254,7 @@ async function bootstrap() {
   // Set when a manual check came back with nothing new, so a check that finds
   // no update still visibly did something.
   let offlineUpToDate = false;
+  let resultsShownAt = 0;
   let readinessFilters = { phase: 'mixed', state: 'all', flag: 'all', editor: null, noticeKey: '' };
 
   try {
@@ -1399,6 +1404,11 @@ async function bootstrap() {
       deferredFocusSnapshot = null;
     }
     focusScreen(document, { previousScreen, nextScreen: model.screen });
+    // The end screen can arrive under a finger still tapping through the
+    // closing transition. Record when it arrives so its buttons can ignore a
+    // tap that was already in flight; a re-render (a locale switch, say) is
+    // not an arrival and must not re-arm the guard.
+    if (model.screen === 'results' && previousScreen !== 'results') resultsShownAt = Date.now();
     lastRenderedScreen = model.screen;
     syncAmbience();
   }
@@ -2410,15 +2420,26 @@ async function bootstrap() {
     app.querySelector('[data-action="open-readiness"]')?.addEventListener('click', openReadiness);
     app.querySelector('[data-action="open-collection"]')?.addEventListener('click', openCollection);
     app.querySelector('[data-action="setup"]').addEventListener('click', () => {
+      if (tapArrivedWithTheScreen()) return;
       returnHomeFromResults();
       render();
     });
     // Another round on the settings just played, without a detour through
     // setup to press the same Start again.
     app.querySelector('[data-action="retry"]')?.addEventListener('click', () => {
+      if (tapArrivedWithTheScreen()) return;
       returnHomeFromResults();
       startSession();
     });
+  }
+
+  // A tap begun on the closing transition must not carry through onto the end
+  // screen that renders under it and dismiss the round unread. Deliberately a
+  // timestamp rather than a disabled state or pointer-events: if anything about
+  // this goes wrong the buttons still work, where a control left disabled by a
+  // throttled timer or animation would strand the learner on the screen.
+  function tapArrivedWithTheScreen() {
+    return Date.now() - resultsShownAt < RESULTS_TAP_GUARD_MS;
   }
 
   function returnHomeFromResults() {

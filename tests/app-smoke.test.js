@@ -301,6 +301,17 @@ test('the end screen acknowledges the round and waits for Continue or Retry', as
   // buttons, plus the readiness and collection links.
   const results = source.slice(source.indexOf('function bindResultsEvents()'), source.indexOf('function returnHomeFromResults()'));
   assert.doesNotMatch(results, /setTimeout|setInterval/);
+
+  // The screen can render under a finger still tapping through the closing
+  // transition, and that stray tap dismissed the round before it could be
+  // read. Both exits check the arrival time.
+  assert.match(results, /data-action="setup"\]'\)\.addEventListener\('click', \(\) => \{\s*\n\s*if \(tapArrivedWithTheScreen\(\)\) return;/);
+  assert.match(results, /data-action="retry"\]'\)\?\.addEventListener\('click', \(\) => \{\s*\n\s*if \(tapArrivedWithTheScreen\(\)\) return;/);
+  // Arrival only: a locale switch re-renders the screen and must not re-arm it.
+  assert.match(source, /model\.screen === 'results' && previousScreen !== 'results'\) resultsShownAt = Date\.now\(\)/);
+  // A timestamp, not a disabled control: a guard that fails open cannot strand
+  // the learner on the screen the way a throttled timer or animation could.
+  assert.match(source, /function tapArrivedWithTheScreen\(\) \{\s*\n\s*return Date\.now\(\) - resultsShownAt < RESULTS_TAP_GUARD_MS;/);
 });
 
 test('an installed offline package can be asked for updates without a relaunch', async () => {
