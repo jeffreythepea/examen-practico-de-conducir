@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import {
   adoptStableImages,
   adoptStableStages,
   capturedOpenDisclosures,
   captureFocusSnapshot,
+  createAdvanceScheduler,
   restoreOpenDisclosures,
   lessonEditorDraftFromForm,
   persistedActiveSessionAfterAttempt,
@@ -295,4 +297,89 @@ test('stage adoption matches surfaces by id, not render order', () => {
   assert.equal(adoptStableStages(fakeStageTree([previousOther, previous]), fakeStageTree([next])), 1);
   assert.equal(next.replacedWith, previous);
   assert.equal(previous.buttons[0].disabledAttribute, false);
+});
+
+test('an advance coming due while the app is hidden waits for the app to come back', () => {
+  // The drive advances itself: reveal → Continue → transition → next command,
+  // whose own timer can record a TIMEOUT miss. Backgrounded mid-drive, that
+  // chain used to run unattended and persist misses for questions the learner
+  // never heard.
+  const timers = [];
+  const documentRef = { hidden: false };
+  const windowRef = { setTimeout: (fn, delay) => { timers.push({ fn, delay }); return timers.length; } };
+  const scheduler = createAdvanceScheduler({ documentRef, windowRef });
+  const advanced = [];
+
+  scheduler.schedule(() => advanced.push('visible'), 1_300);
+  assert.equal(timers.at(-1).delay, 1_300);
+  timers.at(-1).fn();
+  assert.deepEqual(advanced, ['visible']);
+  assert.equal(scheduler.held, 0);
+
+  documentRef.hidden = true;
+  scheduler.schedule(() => advanced.push('reveal'), 1_300);
+  scheduler.schedule(() => advanced.push('transition'), 2_500);
+  timers.at(-1).fn();
+  timers.at(-2).fn();
+  assert.deepEqual(advanced, ['visible'], 'nothing may advance while hidden');
+  assert.equal(scheduler.held, 2);
+
+  // Coming back must not advance the screen out from under the learner the
+  // instant they look at it: each held advance serves its beat again.
+  documentRef.hidden = false;
+  const pending = timers.length;
+  assert.equal(scheduler.resume(), 2);
+  assert.deepEqual(advanced, ['visible'], 'returning must not advance immediately');
+  // Re-armed in the order they came due, each with its own beat again.
+  assert.deepEqual(timers.slice(pending).map(timer => timer.delay), [2_500, 1_300]);
+  assert.equal(scheduler.held, 0);
+  assert.equal(scheduler.resume(), 0, 'a resumed advance must not be replayed twice');
+
+  for (const timer of timers.slice(pending)) timer.fn();
+  assert.deepEqual(advanced, ['visible', 'transition', 'reveal']);
+});
+
+test('ending a session drops the advances held from it', () => {
+  const documentRef = { hidden: true };
+  const timers = [];
+  const scheduler = createAdvanceScheduler({
+    documentRef,
+    windowRef: { setTimeout: fn => { timers.push(fn); return timers.length; } }
+  });
+  let advanced = 0;
+  scheduler.schedule(() => { advanced += 1; }, 600);
+  timers.at(-1)();
+  assert.equal(scheduler.held, 1);
+
+  scheduler.clear();
+  documentRef.hidden = false;
+  assert.equal(scheduler.resume(), 0);
+  assert.equal(advanced, 0);
+});
+
+test('every exit from the end screen ignores a tap that arrived with it', async () => {
+  // a7eba0a guarded the two exits that return home. An in-flight tap landing
+  // on Readiness or Collection loses the round's results just as completely.
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const bindResults = source.match(/function bindResultsEvents\(\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+  assert.ok(bindResults, 'bindResultsEvents not found');
+  for (const action of ['open-readiness', 'open-collection', 'setup', 'retry']) {
+    const handler = bindResults.match(
+      new RegExp(`data-action="${action}"\\][\\s\\S]{0,200}?\\}\\);`)
+    )?.[0] ?? '';
+    assert.match(handler, /tapArrivedWithTheScreen\(\)/, `${action} is unguarded`);
+  }
+});
+
+test('a self-advance cannot outlive the session that scheduled it', async () => {
+  // Step ids restart at transition-0 every session, so the id alone cannot
+  // tell this session's first transition from the previous one's.
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  for (const binder of ['bindMockTransitionEvents', 'bindNullEventEvents']) {
+    const body = source.match(new RegExp(`function ${binder}\\(\\) \\{[\\s\\S]*?\\n  \\}`))?.[0] ?? '';
+    assert.ok(body, `${binder} not found`);
+    assert.match(body, /const sessionId = state\.activeSession\?\.id \?\? null;/, binder);
+    assert.match(body, /\(state\.activeSession\?\.id \?\? null\) !== sessionId\) return;/, binder);
+    assert.doesNotMatch(body, /window\.setTimeout\(/, `${binder} must schedule through scheduleAdvance`);
+  }
 });

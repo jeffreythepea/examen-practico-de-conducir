@@ -97,6 +97,41 @@ const OFFLINE_RESUME_ACTION = hasProgress => ({
   action: 'download',
   labelKey: hasProgress ? 'offline.resumeDownload' : 'offline.download'
 });
+/**
+ * Timers that advance the drive on their own. The drive is self-advancing
+ * now: a clip-backed reveal auto-advances into Continue, the transition times
+ * out into the next command, and that command's own timer can record a
+ * TIMEOUT miss. Hidden, that whole chain would run unattended and persist
+ * misses for questions the learner never heard — so an advance that comes due
+ * while the app is hidden is held until it comes back. Every advance callback
+ * re-checks its screen, session and step, which is what makes running one
+ * late safe rather than merely later.
+ */
+export function createAdvanceScheduler({ documentRef, windowRef }) {
+  const held = new Map();
+  const scheduler = Object.freeze({
+    schedule(advance, delay) {
+      return windowRef.setTimeout(() => {
+        if (documentRef.hidden) held.set(advance, delay);
+        else advance();
+      }, delay);
+    },
+    // Returning to a screen that instantly advances out from under you is its
+    // own bug: a held advance serves its beat again from the moment the
+    // learner is back, rather than firing on arrival.
+    resume() {
+      if (held.size === 0) return 0;
+      const resumed = [...held];
+      held.clear();
+      for (const [advance, delay] of resumed) scheduler.schedule(advance, delay);
+      return resumed.length;
+    },
+    clear() { held.clear(); },
+    get held() { return held.size; }
+  });
+  return scheduler;
+}
+
 export function offlineCardPresentation({ status, hasProgress = false }) {
   switch (status) {
     case 'unsupported':
@@ -1268,6 +1303,7 @@ async function bootstrap() {
   // no update still visibly did something.
   let offlineUpToDate = false;
   let resultsShownAt = 0;
+  const heldAdvances = createAdvanceScheduler({ documentRef: document, windowRef: window });
   let readinessFilters = { phase: 'mixed', state: 'all', flag: 'all', editor: null, noticeKey: '' };
 
   try {
@@ -1315,12 +1351,19 @@ async function bootstrap() {
   }
 
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden || !['prompt', 'loading-audio'].includes(model.screen)) return;
+    if (!document.hidden) {
+      resumeHiddenAdvances();
+      return;
+    }
+    if (!['prompt', 'loading-audio'].includes(model.screen)) return;
     stopTimer();
     player.cancel('visibilitychange');
     model = reduceScreen(model, { type: 'AUDIO_INTERRUPTED', reason: 'visibilitychange' });
     render();
   });
+
+  const scheduleAdvance = (advance, delay) => heldAdvances.schedule(advance, delay);
+  const resumeHiddenAdvances = () => heldAdvances.resume();
 
   function locale() {
     return model.settings.locale;
@@ -2315,7 +2358,7 @@ async function bootstrap() {
     });
     if (delay === null) return;
     revealAutoAdvanceFor = attemptId;
-    window.setTimeout(() => {
+    scheduleAdvance(() => {
       if (model.screen !== 'reveal' || currentAttemptId !== attemptId) return;
       // Never yank the screen away from a learner writing a lesson flag.
       if (readinessFilters.editor) return;
@@ -2326,10 +2369,15 @@ async function bootstrap() {
   function bindMockTransitionEvents() {
     app.querySelector('[data-action="end-session"]')?.addEventListener('click', endSession);
     const step = currentContinuityStep(state.activeSession);
+    // Step ids restart at transition-0 with every session, so the id alone
+    // cannot tell this session's first transition from the last one's; a
+    // timer outliving its session would otherwise clip the next drive.
+    const sessionId = state.activeSession?.id ?? null;
     if (step?.kind === 'transition') {
       let consumed = false;
       const advance = () => {
         if (consumed || model.screen !== 'mock-transition') return;
+        if ((state.activeSession?.id ?? null) !== sessionId) return;
         const current = currentContinuityStep(state.activeSession);
         if (current?.id !== step.id) return;
         consumed = true;
@@ -2351,11 +2399,12 @@ async function bootstrap() {
       }, { once: true });
       const delay = Math.max(1_200, CONTINUITY_SCENE_FAMILIES[family].camera.durationMs + 250)
         + (intro?.durationMs ?? 0);
-      window.setTimeout(advance, delay);
+      scheduleAdvance(advance, delay);
       return;
     }
-    window.setTimeout(() => {
+    scheduleAdvance(() => {
       if (model.screen !== 'mock-transition') return;
+      if ((state.activeSession?.id ?? null) !== sessionId) return;
       model = reduceScreen(model, { type: 'MOCK_CONTINUE' });
       if (model.screen === 'results') settleSessionEnd();
       render();
@@ -2366,17 +2415,19 @@ async function bootstrap() {
   function bindNullEventEvents() {
     app.querySelector('[data-action="end-session"]')?.addEventListener('click', endSession);
     const step = currentContinuityStep(state.activeSession);
+    const sessionId = state.activeSession?.id ?? null;
     const advance = () => {
       if (model.screen !== 'null-event') return;
+      if ((state.activeSession?.id ?? null) !== sessionId) return;
       if (currentContinuityStep(state.activeSession)?.id !== step?.id) return;
       advanceContinuityTransition();
     };
     if (!model.activeSurfaceModel) {
-      window.setTimeout(advance, 600);
+      scheduleAdvance(advance, 600);
       return;
     }
     if (['correct', 'incorrect'].includes(model.nullEvent?.state)) {
-      window.setTimeout(advance, NULL_EVENT_DWELL_MS);
+      scheduleAdvance(advance, NULL_EVENT_DWELL_MS);
       return;
     }
     app.querySelectorAll('.road-target').forEach(button => bindStageControl(button, 'click', () => {
@@ -2404,7 +2455,7 @@ async function bootstrap() {
         showHint();
       }, { once: true });
     } else if (model.nullEvent?.state === 'active') {
-      window.setTimeout(showHint, ROAD_APPROACH_MS);
+      scheduleAdvance(showHint, ROAD_APPROACH_MS);
     }
   }
 
@@ -2559,6 +2610,8 @@ async function bootstrap() {
 
   function startSession(target = null, selectionPhase = state.settings.phase) {
     sessionAttemptIds = [];
+    revealAutoAdvanceFor = null;
+    heldAdvances.clear();
     const practiceTarget = target ?? { kind: state.settings.mode === 'free' ? 'free' : 'recommended' };
     const isConfusionPairs = state.settings.challengeId === 'confusion-pairs';
     const baseSessionSettings = effectiveSessionSettings(state.settings);
@@ -2701,6 +2754,11 @@ async function bootstrap() {
     resumableSession = null;
     sessionAttemptIds = [];
     currentAttemptId = null;
+    revealAutoAdvanceFor = null;
+    // Advances held from a hidden app belong to the session being ended; they
+    // would find the wrong session on their own, but there is no reason to
+    // carry them into the next drive.
+    heldAdvances.clear();
     persistState();
     model = { screen: 'setup', settings: state.settings, session: [], index: 0 };
     render();
