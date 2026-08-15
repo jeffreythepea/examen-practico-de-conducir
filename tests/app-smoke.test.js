@@ -706,3 +706,19 @@ test('the mock-transition screen wires the correct-answer turn-through intro', a
   assert.match(bindSection, /\+ \(intro\?\.durationMs \?\? 0\)/,
     'the auto-advance delay must stretch to cover a playing intro');
 });
+
+test('the silent junction render path asks whether its clip will demonstrate the answer', async () => {
+  // The policy function having the right answer is not enough: the silent
+  // junction renders down its own path, and the bug was that this path never
+  // asked. A device found it because the explicit "go straight" suppressed
+  // its gold route and the silent one did not.
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const renderer = source.match(/function renderNullEvent\(\)[\s\S]*?\n  \}/)?.[0] ?? '';
+  assert.ok(renderer, 'renderNullEvent not found');
+  assert.match(renderer, /renderSurfaceModel\(/);
+  assert.match(
+    renderer,
+    /turnClipWillPlay: nullEventClipWillDemonstrate\(\{[\s\S]{0,320}?nullEventState: model\.nullEvent\?\.state/,
+    'renderNullEvent must pass a real clip decision, not omit it'
+  );
+});

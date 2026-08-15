@@ -97,3 +97,24 @@ export function revealDecision(input = {}) {
 export function revealAutoAdvanceMs(input = {}) {
   return revealDecision(input).autoAdvanceMs;
 }
+
+/**
+ * The same question for a silent junction. It has no reveal screen and never
+ * becomes a scored attempt, so it went its own way through the renderer and
+ * was missed when clip-backed reveals stopped drawing the gold route — the
+ * explicit "go straight" suppressed its line while the silent one still drew
+ * it, over the very same scene and clip.
+ */
+export function nullEventClipWillDemonstrate({
+  surfaceModel,
+  nullEventState,
+  roadMovement,
+  reducedMotion,
+  clipsEnabled
+} = {}) {
+  return nullEventState === 'correct'
+    && roadMovement === true
+    && reducedMotion !== true
+    && clipsEnabled === true
+    && hasTurnClip(surfaceModel?.geometry?.sceneId, surfaceModel?.expectedResult);
+}

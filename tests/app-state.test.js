@@ -21,12 +21,14 @@ import {
   sessionStartEligibility
 } from '../src/app.js';
 import {
+  NULL_EVENT_COMMAND,
   generateSurfaceWithRetries,
   nextSurfaceSeed,
   reduceScreen
 } from '../src/screen-reducer.js';
 import {
   REVEAL_DWELL_MS_BY_FAMILY,
+  nullEventClipWillDemonstrate,
   revealAutoAdvanceMs,
   revealDecision,
   revealHoldMs,
@@ -2192,4 +2194,40 @@ test('every family waits half its reviewed beat before the clip takes over', () 
     .sort((left, right) => left[1] - right[1]).map(([family]) => family);
   assert.deepEqual(byHold, byDwell, 'scaling must not reorder the families');
   assert.equal(revealHoldMs('not-a-family'), null);
+});
+
+test('a silent junction suppresses the gold route exactly as the spoken one does', () => {
+  // Device report 2026-08-15: the explicit "go straight" question suppressed
+  // its route line while the silent junction still drew it, over the same
+  // scene and the same clip. The silent question has no reveal screen and is
+  // never a scored attempt, so it renders down its own path and was missed.
+  const silent = generateSurfaceWithRetries(NULL_EVENT_COMMAND, 9).model;
+  assert.equal(silent.geometry.sceneId, 'four-way-intersection-photo-v1');
+  assert.equal(hasTurnClip(silent.geometry.sceneId, silent.expectedResult), true,
+    'the silent straight-ahead answer is clip-backed, so its glyph must be suppressed');
+
+  const eligible = {
+    surfaceModel: silent,
+    nullEventState: 'correct',
+    roadMovement: true,
+    reducedMotion: false,
+    clipsEnabled: true
+  };
+  assert.equal(nullEventClipWillDemonstrate(eligible), true);
+
+  // The clip only demonstrates a correct answer, and only when the session is
+  // actually going to play it.
+  for (const override of [
+    { nullEventState: 'incorrect' },
+    { nullEventState: 'active' },
+    { roadMovement: false },
+    { reducedMotion: true },
+    { clipsEnabled: false },
+    // Every result on this scene is clip-backed, so an unregistered scene is
+    // what proves the registry is actually consulted.
+    { surfaceModel: { ...silent, geometry: { ...silent.geometry, sceneId: 'junction-plate-v1' } } }
+  ]) {
+    assert.equal(nullEventClipWillDemonstrate({ ...eligible, ...override }), false, JSON.stringify(override));
+  }
+  assert.equal(nullEventClipWillDemonstrate(), false);
 });

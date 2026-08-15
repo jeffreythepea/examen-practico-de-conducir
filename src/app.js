@@ -25,7 +25,7 @@ import {
   nextSurfaceSeed,
   reduceScreen
 } from './screen-reducer.js';
-import { revealDecision } from './reveal-policy.js';
+import { nullEventClipWillDemonstrate, revealDecision } from './reveal-policy.js';
 import { commandsForPhase, validateCatalog } from './catalog.js';
 import {
   ACCOMPLISHMENTS,
@@ -1354,6 +1354,15 @@ async function bootstrap() {
               disabled: answered,
               reveal: answered && !isMock,
               selectedTargetId: answered ? model.nullEvent.selectedTargetId : null,
+              // A silent junction is demonstrated by the same clip in the same
+              // transition as the spoken one, so it suppresses the same glyph.
+              turnClipWillPlay: nullEventClipWillDemonstrate({
+                surfaceModel: model.activeSurfaceModel,
+                nullEventState: model.nullEvent?.state,
+                roadMovement: state.settings.roadMovement,
+                reducedMotion: prefersReducedMotion(),
+                clipsEnabled: clipsEnabledForSession()
+              }),
               motion
             })}</div>`
           : ''}
