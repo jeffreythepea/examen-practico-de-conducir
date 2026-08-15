@@ -163,6 +163,42 @@ test('activation isolates active fetches and retains prior version until confirm
   assert.equal((await cacheStorage.keys()).includes(runtimeCacheName('v1')), false);
 });
 
+test('a download in flight cannot resurrect the activation state that changed underneath it', async () => {
+  // downloadPackage used to spread the state it read at entry into every
+  // later write, so a confirmation landing mid-download was undone: the card
+  // went back to "unconfirmed" and the meta record pointed at a predecessor
+  // package whose cache the confirmation had just deleted.
+  const cacheStorage = new MemoryCacheStorage();
+  const first = packageManifest('v1');
+  await downloadPackage({
+    packageManifest: first.manifest, packageUrl: 'https://example.test/app/offline-package.json',
+    cacheStorage, fetchImpl: fetchFiles(first.files)
+  });
+  await activatePackage({ cacheStorage, version: 'v1' });
+
+  const next = packageManifest('v2', { 'index.html': '<main>new</main>', 'audio/next.mp3': 'audio' });
+  let confirmed = null;
+  const state = await downloadPackage({
+    packageManifest: next.manifest,
+    packageUrl: 'https://example.test/app/offline-package.json',
+    cacheStorage,
+    fetchImpl: async request => {
+      // The boot confirmation runs on its own, between two of this
+      // download's writes.
+      confirmed ??= await confirmActivePackage({ cacheStorage, version: 'v1' });
+      return fetchFiles(next.files)(request);
+    }
+  });
+
+  assert.equal(confirmed.activeConfirmed, true);
+  assert.equal(state.activeVersion, 'v1');
+  assert.equal(state.activeConfirmed, true);
+  assert.equal(state.previousVersion, null);
+  assert.equal(state.stagedVersion, 'v2');
+  assert.equal(state.stagedComplete, true);
+  assert.equal((await readOfflineState(cacheStorage)).activeConfirmed, true);
+});
+
 test('cached hits honour byte ranges so iPadOS Safari plays offline video', async () => {
   const cacheStorage = new MemoryCacheStorage();
   const { manifest, files } = packageManifest('v1', { 'assets/clip.mp4': '0123456789' });

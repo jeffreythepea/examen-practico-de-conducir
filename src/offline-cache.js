@@ -13,6 +13,10 @@ const DEFAULT_STATE = Object.freeze({
   previousVersion: null,
   activeConfirmed: false,
   stagedVersion: null,
+  // stagedVersion is claimed the moment a download starts, so on its own it
+  // cannot tell "fully downloaded, waiting to be applied" from "half a
+  // package in the cache". Only the manifest write at the end sets this.
+  stagedComplete: false,
   recordedCorpusComplete: false,
   completedAssets: 0,
   totalAssets: 0,
@@ -144,6 +148,13 @@ export async function downloadPackage({
   assertPackageManifest(packageManifest);
   const base = packageBase(packageUrl);
   const prior = await readRawState(cacheStorage);
+  // Every write re-reads first and contributes only download-owned fields: an
+  // activation can land between two of these writes, and spreading the state
+  // captured at entry would resurrect the activeVersion it replaced.
+  const writeDownloadState = async fields => writeState(cacheStorage, {
+    ...await readRawState(cacheStorage),
+    ...fields
+  });
   if (prior.stagedVersion && prior.stagedVersion !== packageManifest.version
     && prior.stagedVersion !== prior.activeVersion) {
     await cacheStorage.delete(runtimeCacheName(prior.stagedVersion));
@@ -167,9 +178,9 @@ export async function downloadPackage({
       completedBytes += asset.bytes;
     }
 
-    let state = await writeState(cacheStorage, {
-      ...prior,
+    let state = await writeDownloadState({
       stagedVersion: packageManifest.version,
+      stagedComplete: false,
       recordedCorpusComplete: Boolean(packageManifest.recordedCorpusComplete),
       completedAssets,
       totalAssets: packageManifest.assets.length,
@@ -190,8 +201,7 @@ export async function downloadPackage({
       await cache.put(url, verified.response);
       completedAssets += 1;
       completedBytes += asset.bytes;
-      state = await writeState(cacheStorage, {
-        ...state,
+      state = await writeDownloadState({
         completedAssets,
         completedBytes,
         error: null
@@ -203,19 +213,21 @@ export async function downloadPackage({
       ...packageManifest,
       packageBaseUrl: base.href
     }));
-    return state;
+    // Only now is the staged package answerable for: the manifest is stored
+    // and every asset it lists has been fetched and verified.
+    return writeDownloadState({ stagedComplete: true });
   } catch (error) {
     if (error.offlineIntegrityFailure) {
       await cacheStorage.delete(cacheName);
-      await writeState(cacheStorage, {
-        ...prior,
+      await writeDownloadState({
         stagedVersion: null,
+        stagedComplete: false,
         error: 'OFFLINE_INTEGRITY_FAILED'
       });
     } else {
-      await writeState(cacheStorage, {
-        ...prior,
+      await writeDownloadState({
         stagedVersion: packageManifest.version,
+        stagedComplete: false,
         recordedCorpusComplete: Boolean(packageManifest.recordedCorpusComplete),
         completedAssets,
         totalAssets: packageManifest.assets.length,
@@ -246,6 +258,7 @@ export async function activatePackage({ cacheStorage, version }) {
     activeVersion: version,
     activeConfirmed: false,
     stagedVersion: null,
+    stagedComplete: false,
     recordedCorpusComplete: true,
     completedAssets: manifest.assets.length,
     totalAssets: manifest.assets.length,

@@ -8,6 +8,18 @@ import {
 } from './src/offline-cache.js';
 
 let downloadController = null;
+// State-mutating commands run one at a time. Two handlers interleaving their
+// readState/writeState pairs on the one meta record lose whichever write
+// landed first — a double-tapped Apply could hand the page a package the
+// second command had already replaced.
+let commandQueue = Promise.resolve();
+let activeDownload = null;
+
+function enqueue(run) {
+  const result = commandQueue.then(run, run);
+  commandQueue = result.then(() => {}, () => {});
+  return result;
+}
 
 async function broadcast(message) {
   const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
@@ -27,6 +39,29 @@ async function fetchPackageManifest() {
   return { manifest: await response.json(), url: url.href };
 }
 
+async function runDownload(manifest, url) {
+  // The controller slot belongs to this download until this download leaves
+  // it: a later one overwriting the slot, or a shared catch clearing it,
+  // stranded Cancel with nothing to abort.
+  const controller = new AbortController();
+  downloadController = controller;
+  try {
+    const before = await readOfflineState(caches);
+    const state = await downloadPackage({
+      packageManifest: manifest,
+      packageUrl: url,
+      cacheStorage: caches,
+      fetchImpl: fetch,
+      signal: controller.signal,
+      onProgress: progress => broadcast({ type: 'OFFLINE_PROGRESS', state: progress, version: manifest.version })
+    });
+    if (before.activeVersion) return state;
+    return activatePackage({ cacheStorage: caches, version: manifest.version });
+  } finally {
+    if (downloadController === controller) downloadController = null;
+  }
+}
+
 async function handleMessage(event) {
   const { type, version } = event.data ?? {};
   if (type === 'SKIP_WAITING') {
@@ -35,7 +70,11 @@ async function handleMessage(event) {
     return;
   }
   if (type === 'CANCEL_DOWNLOAD') {
+    // Abort ahead of the queue — waiting our turn behind the very download we
+    // are cancelling would never come — then let it finish writing its
+    // cancelled state before reporting one.
     downloadController?.abort();
+    await commandQueue;
     reply(event, { ok: true, state: await readOfflineState(caches) });
     return;
   }
@@ -59,28 +98,28 @@ async function handleMessage(event) {
     return;
   }
   if (type === 'DOWNLOAD_OFFLINE') {
-    const before = await readOfflineState(caches);
     const { manifest, url } = await fetchPackageManifest();
-    downloadController = new AbortController();
-    let state = await downloadPackage({
-      packageManifest: manifest,
-      packageUrl: url,
-      cacheStorage: caches,
-      fetchImpl: fetch,
-      signal: downloadController.signal,
-      onProgress: progress => broadcast({ type: 'OFFLINE_PROGRESS', state: progress, version: manifest.version })
-    });
-    if (!before.activeVersion) state = await activatePackage({ cacheStorage: caches, version: manifest.version });
-    downloadController = null;
-    reply(event, { ok: true, state });
+    // A second tap on Download while the same package is already coming down
+    // rides the first download's result instead of starting a rival one.
+    if (activeDownload?.version === manifest.version) {
+      reply(event, { ok: true, state: await activeDownload.promise });
+      return;
+    }
+    const promise = enqueue(() => runDownload(manifest, url));
+    activeDownload = { version: manifest.version, promise };
+    try {
+      reply(event, { ok: true, state: await promise });
+    } finally {
+      if (activeDownload?.promise === promise) activeDownload = null;
+    }
     return;
   }
   if (type === 'APPLY_UPDATE') {
-    reply(event, { ok: true, state: await activatePackage({ cacheStorage: caches, version }) });
+    reply(event, { ok: true, state: await enqueue(() => activatePackage({ cacheStorage: caches, version })) });
     return;
   }
   if (type === 'CONFIRM_ACTIVE') {
-    reply(event, { ok: true, state: await confirmActivePackage({ cacheStorage: caches, version }) });
+    reply(event, { ok: true, state: await enqueue(() => confirmActivePackage({ cacheStorage: caches, version })) });
     return;
   }
   throw new Error(`Unsupported offline message: ${type}`);
@@ -113,7 +152,6 @@ self.addEventListener('fetch', event => {
 
 self.addEventListener('message', event => {
   event.waitUntil(handleMessage(event).catch(error => {
-    downloadController = null;
     reply(event, { ok: false, error: error?.message ?? String(error) });
   }));
 });
