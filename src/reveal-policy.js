@@ -23,6 +23,20 @@ const TURN_CLIP_REVEAL_FAMILIES = new Set(Object.keys(REVEAL_DWELL_MS_BY_FAMILY)
 // The learner is reading the result label before the transition begins.
 const REVEAL_READING_BEAT_MS = 1_200;
 
+// Jeffrey's device pass 2026-08-15 judged the wait before the clip takes over
+// a little slow and asked for about a third less. One knob scales every
+// family together, so the relative pacing he calibrated per family — and the
+// reviewed beats above — survive the change instead of being retyped.
+const REVEAL_PACE_SCALE = 2 / 3;
+
+// Rounded to a hundredth of a second: these are perceived beats, and a
+// timer of 1666.6667 ms only pretends to a precision the eye does not have.
+export function revealHoldMs(family) {
+  const dwell = REVEAL_DWELL_MS_BY_FAMILY[family];
+  if (!Number.isFinite(dwell)) return null;
+  return Math.round((dwell + REVEAL_READING_BEAT_MS) * REVEAL_PACE_SCALE / 10) * 10;
+}
+
 /**
  * A clip-backed reveal holds for its reviewed family dwell plus a reading
  * beat, then moves into the transition—and therefore the clip—on its own. Correct
@@ -74,7 +88,7 @@ export function revealDecision(input = {}) {
   const family = input.screenModel?.activeSurfaceModel?.family;
   return Object.freeze({
     willPlay,
-    autoAdvanceMs: willPlay ? REVEAL_DWELL_MS_BY_FAMILY[family] + REVEAL_READING_BEAT_MS : null
+    autoAdvanceMs: willPlay ? revealHoldMs(family) : null
   });
 }
 

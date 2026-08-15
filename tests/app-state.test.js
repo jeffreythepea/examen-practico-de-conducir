@@ -26,8 +26,10 @@ import {
   reduceScreen
 } from '../src/screen-reducer.js';
 import {
+  REVEAL_DWELL_MS_BY_FAMILY,
   revealAutoAdvanceMs,
   revealDecision,
+  revealHoldMs,
   turnClipWillDemonstrateReveal
 } from '../src/reveal-policy.js';
 import { EXAMINERS, selectTodaysExaminer } from '../src/examiners.js';
@@ -478,22 +480,24 @@ test('a clip-backed reveal advances itself after the reviewed result-reading dwe
     clipsEnabled: true
   };
 
-  // The dwell is the family's own motion duration plus a reading beat: the
-  // bare motion duration read as rushed on device, since the learner is
-  // reading the result label rather than watching the car.
-  assert.equal(revealAutoAdvanceMs(eligible), 1_300 + 1_200);
+  // The dwell is the family's own motion duration plus a reading beat, the
+  // whole thing paced to two thirds: the bare motion duration read as rushed
+  // on device (the learner reads the label rather than watching the car), and
+  // dwell-plus-full-beat then read as slow before the clip took over.
+  assert.equal(revealAutoAdvanceMs(eligible), revealHoldMs('junction'));
+  assert.equal(revealHoldMs('junction'), 1_670);
   assert.equal(revealAutoAdvanceMs({
     ...eligible,
     screenModel: { ...eligible.screenModel, activeSurfaceModel: parking }
-  }), 1_450 + 1_200);
+  }), 1_770);
   assert.equal(revealAutoAdvanceMs({
     ...eligible,
     screenModel: { ...eligible.screenModel, activeSurfaceModel: uTurn }
-  }), 1_800 + 1_200);
+  }), 2_000);
   assert.equal(revealAutoAdvanceMs({
     ...eligible,
     screenModel: { ...eligible.screenModel, activeSurfaceModel: joinTraffic }
-  }), 1_100 + 1_200);
+  }), 1_530);
 
   const clipless = {
     ...junction,
@@ -2160,4 +2164,29 @@ test('a fresh trial does not share its reset arrays with the trial before it', (
   const first = reduceScreen(promptModel(), { type: 'AUDIO_INTERRUPTED', reason: 'a' });
   const second = reduceScreen(promptModel(), { type: 'AUDIO_INTERRUPTED', reason: 'b' });
   assert.notStrictEqual(first.allowedMissReasons, second.allowedMissReasons);
+});
+
+test('every family waits two thirds of its reviewed beat before the clip takes over', () => {
+  // Jeffrey's device pass 2026-08-15: dwell plus the full reading beat read
+  // as slow. The scale is one knob so the relative pacing between families —
+  // a roundabout gets longer than a junction — survives any retune.
+  const holds = [];
+  for (const [family, dwell] of Object.entries(REVEAL_DWELL_MS_BY_FAMILY)) {
+    const hold = revealHoldMs(family);
+    assert.ok(Number.isInteger(hold), `${family} hold must be a whole ms`);
+    assert.equal(hold % 10, 0, `${family} hold must be a round beat, got ${hold}`);
+    assert.ok(
+      Math.abs(hold / (dwell + 1_200) - 2 / 3) < 0.01,
+      `${family} must wait about two thirds of its reviewed beat (${hold} of ${dwell + 1_200})`
+    );
+    // Long enough to read the outcome label, short enough not to feel stalled.
+    assert.ok(hold >= 1_500 && hold <= 2_100, `${family} hold ${hold} is outside the reviewed range`);
+    holds.push([family, hold]);
+  }
+  // The order Jeffrey calibrated: the busiest scenes hold longest.
+  const byHold = [...holds].sort((left, right) => left[1] - right[1]).map(([family]) => family);
+  const byDwell = Object.entries(REVEAL_DWELL_MS_BY_FAMILY)
+    .sort((left, right) => left[1] - right[1]).map(([family]) => family);
+  assert.deepEqual(byHold, byDwell, 'scaling must not reorder the families');
+  assert.equal(revealHoldMs('not-a-family'), null);
 });
