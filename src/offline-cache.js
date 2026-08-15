@@ -161,6 +161,34 @@ export async function downloadPackage({
   }
   const cacheName = runtimeCacheName(packageManifest.version);
   const cache = await cacheStorage.open(cacheName);
+  // Most of an update is already on the device. Recorded audio and video are
+  // 98% of the package and almost never change, and the previous version's
+  // cache is retained until the new one has booted, so unchanged assets can
+  // be copied across instead of pulled down again. Only cache names that
+  // already exist are opened — opening a missing one would create it.
+  const existingNames = new Set(await cacheStorage.keys());
+  const donors = [];
+  for (const version of [prior.activeVersion, prior.previousVersion]) {
+    if (!version || version === packageManifest.version) continue;
+    const name = runtimeCacheName(version);
+    if (existingNames.has(name)) donors.push(await cacheStorage.open(name));
+  }
+  // Same URL and same digest means these are the bytes this package wants. A
+  // file that changed between versions fails the digest and is fetched, so
+  // the manifests never have to be compared. A stale or damaged copy is not
+  // an integrity failure of the new package either — it just gets fetched.
+  const donatedResponse = async (asset, url) => {
+    for (const donor of donors) {
+      const stored = await donor.match(url);
+      if (!stored) continue;
+      try {
+        return await verifiedResponse(stored, asset);
+      } catch {
+        continue;
+      }
+    }
+    return null;
+  };
   let completedAssets = 0;
   let completedBytes = 0;
   const missing = [];
@@ -196,8 +224,10 @@ export async function downloadPackage({
         error.name = 'AbortError';
         throw error;
       }
-      const fetched = await fetchImpl(url, { cache: 'no-store', signal });
-      const verified = await verifiedResponse(fetched, asset);
+      // Copying is checked exactly as fetching is: the digest is the contract,
+      // whichever side of the network the bytes came from.
+      const verified = await donatedResponse(asset, url)
+        ?? await verifiedResponse(await fetchImpl(url, { cache: 'no-store', signal }), asset);
       await cache.put(url, verified.response);
       completedAssets += 1;
       completedBytes += asset.bytes;

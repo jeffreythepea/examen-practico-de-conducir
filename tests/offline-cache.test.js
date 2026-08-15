@@ -390,3 +390,100 @@ test('service worker update checks expose exact package size and corpus complete
   assert.match(worker, /totalBytes:\s*manifest\.totalBytes/);
   assert.match(worker, /recordedCorpusComplete:\s*manifest\.recordedCorpusComplete/);
 });
+
+test('an update copies unchanged assets from the installed package instead of refetching', async () => {
+  // Recorded audio and video are 98% of the package and almost never change,
+  // yet every update opened a fresh per-version cache and pulled all of it
+  // down again. A code-only update should cost only the code.
+  const cacheStorage = new MemoryCacheStorage();
+  const first = packageManifest('v1', {
+    'index.html': '<main>app</main>',
+    'audio/one.mp3': 'recording one',
+    'audio/two.mp3': 'recording two'
+  });
+  await downloadPackage({
+    packageManifest: first.manifest,
+    packageUrl: 'https://example.test/app/offline-package.json',
+    cacheStorage,
+    fetchImpl: fetchFiles(first.files)
+  });
+  await activatePackage({ cacheStorage, version: 'v1' });
+  await confirmActivePackage({ cacheStorage, version: 'v1' });
+
+  // Only the markup changed; both recordings are byte-identical.
+  const second = packageManifest('v2', {
+    'index.html': '<main>app v2</main>',
+    'audio/one.mp3': 'recording one',
+    'audio/two.mp3': 'recording two'
+  });
+  const calls = [];
+  const state = await downloadPackage({
+    packageManifest: second.manifest,
+    packageUrl: 'https://example.test/app/offline-package.json',
+    cacheStorage,
+    fetchImpl: fetchFiles(second.files, calls)
+  });
+
+  assert.deepEqual(calls, ['index.html'], 'unchanged recordings must not be refetched');
+  assert.equal(state.stagedVersion, 'v2');
+  assert.equal(state.stagedComplete, true);
+  assert.equal(state.completedAssets, 3);
+  assert.equal(state.completedBytes, second.manifest.totalBytes);
+
+  // The copies are real, verifiable entries in the new package's own cache,
+  // not references into the old one — activation checks every asset.
+  const activated = await activatePackage({ cacheStorage, version: 'v2' });
+  assert.equal(activated.activeVersion, 'v2');
+  const cache = await cacheStorage.open(runtimeCacheName('v2'));
+  assert.equal(await (await cache.match('https://example.test/app/audio/one.mp3')).text(), 'recording one');
+  assert.equal(await (await cache.match('https://example.test/app/index.html')).text(), '<main>app v2</main>');
+});
+
+test('a damaged copy in the installed package is refetched, not installed', async () => {
+  // The digest is the contract whichever side of the network the bytes came
+  // from: a corrupt donor entry must fall through to the network rather than
+  // failing the update or installing bad bytes.
+  const cacheStorage = new MemoryCacheStorage();
+  const first = packageManifest('v1', { 'index.html': '<main>app</main>', 'audio/one.mp3': 'recording one' });
+  await downloadPackage({
+    packageManifest: first.manifest,
+    packageUrl: 'https://example.test/app/offline-package.json',
+    cacheStorage,
+    fetchImpl: fetchFiles(first.files)
+  });
+  await activatePackage({ cacheStorage, version: 'v1' });
+  await confirmActivePackage({ cacheStorage, version: 'v1' });
+  const installed = await cacheStorage.open(runtimeCacheName('v1'));
+  await installed.put('https://example.test/app/audio/one.mp3', new Response('corrupted on disk'));
+
+  const second = packageManifest('v2', { 'index.html': '<main>v2</main>', 'audio/one.mp3': 'recording one' });
+  const calls = [];
+  const state = await downloadPackage({
+    packageManifest: second.manifest,
+    packageUrl: 'https://example.test/app/offline-package.json',
+    cacheStorage,
+    fetchImpl: fetchFiles(second.files, calls)
+  });
+
+  assert.deepEqual(calls.sort(), ['audio/one.mp3', 'index.html']);
+  assert.equal(state.stagedComplete, true);
+  const cache = await cacheStorage.open(runtimeCacheName('v2'));
+  assert.equal(await (await cache.match('https://example.test/app/audio/one.mp3')).text(), 'recording one');
+});
+
+test('copying never opens a cache for a version that is not installed', async () => {
+  // Opening a missing cache creates it; a first install has no donor and must
+  // not leave an empty runtime cache behind.
+  const cacheStorage = new MemoryCacheStorage();
+  const { manifest, files } = packageManifest('v1');
+  await downloadPackage({
+    packageManifest: manifest,
+    packageUrl: 'https://example.test/app/offline-package.json',
+    cacheStorage,
+    fetchImpl: fetchFiles(files)
+  });
+  assert.deepEqual(
+    (await cacheStorage.keys()).filter(name => name.startsWith('examen-practico-runtime-')),
+    [runtimeCacheName('v1')]
+  );
+});

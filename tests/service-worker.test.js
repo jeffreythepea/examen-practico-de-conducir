@@ -25,10 +25,14 @@ class MemoryCacheStorage {
 }
 
 const SCOPE = 'https://example.test/app/';
-const FILES = { 'index.html': '<main>app</main>', 'audio/test.mp3': 'audio' };
+// The markup carries its version so an update genuinely changes one asset,
+// while the recording stays byte-identical — the shape of a real code-only
+// update, where the audio corpus is copied from the installed package rather
+// than refetched.
+const filesFor = version => ({ 'index.html': `<main>app ${version}</main>`, 'audio/test.mp3': 'audio' });
 
 function manifestFor(version) {
-  const assets = Object.entries(FILES).map(([path, contents]) => ({
+  const assets = Object.entries(filesFor(version)).map(([path, contents]) => ({
     path,
     bytes: Buffer.byteLength(contents),
     sha256: createHash('sha256').update(contents).digest('hex')
@@ -67,8 +71,9 @@ globalThis.fetch = async request => {
   }
   assetFetches.push(path);
   if (gateAssetFetch) await gateAssetFetch;
-  if (!(path in FILES)) return new Response('missing', { status: 404 });
-  return new Response(FILES[path], { status: 200 });
+  const files = filesFor(manifestOverride?.version ?? manifestVersion);
+  if (!(path in files)) return new Response('missing', { status: 404 });
+  return new Response(files[path], { status: 200 });
 };
 
 await import('../sw.js');
@@ -156,6 +161,7 @@ test('an update download stages completely before it is offered for applying', a
   assert.equal(installed.state.activeVersion, 'v1');
 
   manifestVersion = 'v2';
+  assetFetches.length = 0;
   const gate = deferred();
   gateAssetFetch = gate.promise;
   const update = send('DOWNLOAD_OFFLINE');
@@ -177,6 +183,9 @@ test('an update download stages completely before it is offered for applying', a
   assert.equal(applied.state.stagedComplete, false);
   assert.equal(applied.state.stagedVersion, null);
   assert.ok((await caches.keys()).includes(runtimeCacheName('v2')));
+  // Only the changed asset crossed the network: the recording was copied out
+  // of the installed package, which is what keeps a code-only update small.
+  assert.deepEqual(assetFetches, ['index.html']);
 });
 
 test('an update check refuses a manifest the download path would have rejected', async () => {
