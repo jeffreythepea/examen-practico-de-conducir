@@ -27,9 +27,15 @@ export const CUE_DEFINITIONS = deepFreeze({
  *
  * @param {{ contextFactory?: () => AudioContext }} options
  */
-export function createFeedbackCuePlayer({ contextFactory = defaultContextFactory } = {}) {
+export function createFeedbackCuePlayer({
+  contextFactory = defaultContextFactory,
+  fetchImpl = (...args) => globalThis.fetch(...args)
+} = {}) {
   let context = null;
   const activeOscillators = new Set();
+  // Decoded once and reused: these are a few hundred milliseconds each, and
+  // decoding on the tap would put the sound behind the answer it confirms.
+  const samples = new Map();
 
   async function play(cue, { enabled = true, busy = false } = {}) {
     if (!enabled || busy || !FEEDBACK_CUES.includes(cue)) return false;
@@ -116,7 +122,37 @@ export function createFeedbackCuePlayer({ contextFactory = defaultContextFactory
     activeOscillators.clear();
   }
 
-  return Object.freeze({ play, prewarm, stop });
+  // A recorded action sound — a buckle, a relay, a latch — played through the
+  // same context as the cues. It must NOT be an <audio> element: iPadOS hands
+  // the media session to whichever element plays last, and a fresh one here
+  // would take it from the command audio and park this context in the silent
+  // 'interrupted' state that no state check can detect.
+  async function playSample(path, { enabled = true, busy = false, gain = 0.5 } = {}) {
+    if (!enabled || busy || typeof path !== 'string' || path.length === 0) return false;
+    const running = await ensureRunningContext();
+    if (!running || typeof running.decodeAudioData !== 'function') return false;
+    try {
+      let buffer = samples.get(path);
+      if (!buffer) {
+        const response = await fetchImpl(path);
+        if (!response?.ok) return false;
+        buffer = await running.decodeAudioData(await response.arrayBuffer());
+        samples.set(path, buffer);
+      }
+      const source = running.createBufferSource();
+      const level = running.createGain();
+      source.buffer = buffer;
+      level.gain.setValueAtTime(gain, running.currentTime);
+      source.connect(level).connect(running.destination);
+      source.start();
+      return true;
+    } catch {
+      // A missing or undecodable file must never break the answer it follows.
+      return false;
+    }
+  }
+
+  return Object.freeze({ play, playSample, prewarm, stop });
 }
 
 function scheduleTone(context, tone, baseTime, activeOscillators) {

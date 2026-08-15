@@ -38,6 +38,7 @@ import {
 } from './collection.js';
 import { computeConfusionPairs, confusionDrillCommandIds } from './confusion-pairs.js';
 import { createFeedbackCuePlayer } from './feedback-audio.js';
+import { actionSoundFor, actionSoundPath } from './action-sounds.js';
 import { createAmbiencePlayer, pickAmbienceClip } from './ambience.js';
 import {
   EXAMINERS,
@@ -2320,11 +2321,24 @@ async function bootstrap() {
     playFeedbackCue(cue);
   }
 
+  // Exactly one confirmation per answer. Where the action makes a noise of its
+  // own — a buckle, a relay, a latch — that noise is the confirmation and the
+  // chime stands aside, the same way a turn clip replaces the gold glyph. The
+  // chime still answers for every silent action, and a wrong answer always
+  // keeps its sputter: an action sound must never reward a mistaken tap.
   function playFeedbackCue(cue) {
     if (!cue) return;
-    void feedbackPlayer.play(cue, {
-      enabled: state.settings.feedbackSounds,
-      busy: audioBusy
+    const options = { enabled: state.settings.feedbackSounds, busy: audioBusy };
+    const soundId = cue === 'correct' ? actionSoundFor(model.selectedResult) : null;
+    const path = soundId ? actionSoundPath(soundId) : null;
+    if (!path) {
+      void feedbackPlayer.play(cue, options);
+      return;
+    }
+    // Falling back to the chime keeps the answer confirmed when the file is
+    // missing or the decode fails, rather than confirming it with silence.
+    void feedbackPlayer.playSample(path, options).then(played => {
+      if (!played) void feedbackPlayer.play(cue, options);
     });
   }
 

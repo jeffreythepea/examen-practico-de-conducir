@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { translate } from '../src/i18n.js';
+import { actionSoundFor, actionSoundPath } from '../src/action-sounds.js';
+import commands from '../data/commands.json' with { type: 'json' };
 
 test('static shell exposes the localized application mount', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
@@ -717,4 +719,38 @@ test('a tap in flight cannot act on the offline button that replaced its target'
     const handler = binder.match(new RegExp(`data-offline-action="${action}"\\][\\s\\S]{0,120}?=> \\{\\s*\\n\\s*([^\\n]+)`))?.[1] ?? '';
     assert.match(handler, /if \(offlineActionArrivedWithTheButton\(\)\) return;/, `${action} is unguarded`);
   }
+});
+
+test('a correct answer is confirmed once: its own sound, or the chime, never both', () => {
+  // The same rule the reveal follows when a clip replaces its glyph. A wrong
+  // answer always keeps the sputter — an action sound must never reward a
+  // mistaken tap — and a missing file falls back rather than confirming the
+  // answer with silence.
+  const sounded = [];
+  const silent = [];
+  for (const result of [...new Set(commands.filter(c => c.active !== false).map(c => c.acceptedResult))]) {
+    (actionSoundFor(result) ? sounded : silent).push(result);
+  }
+  assert.ok(sounded.length > 0 && silent.length > 0, 'both paths must be exercised');
+
+  for (const result of sounded) {
+    assert.ok(actionSoundPath(actionSoundFor(result)), `${result} resolves to no file`);
+  }
+  for (const result of silent) {
+    assert.equal(actionSoundFor(result), null, `${result} must leave the chime to confirm it`);
+  }
+});
+
+test('the confirmation is chosen from the answer that was actually given', async () => {
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const player = source.match(/function playFeedbackCue\(cue\) \{[\s\S]*?\n  \}/)?.[0] ?? '';
+  assert.ok(player, 'playFeedbackCue not found');
+
+  // Only a correct answer earns its action sound.
+  assert.match(player, /cue === 'correct' \? actionSoundFor\(model\.selectedResult\) : null/);
+  // No sound for this action means the chime still plays, so every answer is
+  // confirmed by exactly one of the two.
+  assert.match(player, /if \(!path\) \{\s*\n\s*void feedbackPlayer\.play\(cue, options\);/);
+  // And a file that will not load falls back rather than going silent.
+  assert.match(player, /playSample\(path, options\)\.then\(played => \{\s*\n\s*if \(!played\) void feedbackPlayer\.play\(cue, options\);/);
 });
