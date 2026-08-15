@@ -131,9 +131,10 @@ test('app wires best-effort feedback cues without coupling them to command audio
 
 test('Mock hides replay and answer feedback during the drive and advances through a neutral frame', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  const reducer = await readFile(new URL('../src/screen-reducer.js', import.meta.url), 'utf8');
 
-  assert.match(source, /model\.experience\?\.replayPolicy !== 'none'/);
-  assert.match(source, /screen:\s*model\.experience\?\.revealPolicy === 'session-end'\s*\? 'mock-transition'/);
+  assert.match(reducer, /model\.experience\?\.replayPolicy !== 'none'/);
+  assert.match(reducer, /screen:\s*model\.experience\?\.revealPolicy === 'session-end'\s*\? 'mock-transition'/);
   assert.match(source, /data-screen-focus[^>]*>\$\{translate\(locale\(\), 'screen\.mockTransition'\)\}/);
   assert.match(source, /type:\s*'MOCK_CONTINUE'/);
   assert.match(source, /model\.screen === 'mock-transition'/);

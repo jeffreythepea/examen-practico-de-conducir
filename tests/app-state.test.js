@@ -18,11 +18,13 @@ import {
   restoreOrDeferFocus,
   selectPlaybackVariant,
   sessionIdentityData,
-  sessionStartEligibility,
+  sessionStartEligibility
+} from '../src/app.js';
+import {
   generateSurfaceWithRetries,
   nextSurfaceSeed,
   reduceScreen
-} from '../src/app.js';
+} from '../src/screen-reducer.js';
 import {
   revealAutoAdvanceMs,
   revealDecision,
