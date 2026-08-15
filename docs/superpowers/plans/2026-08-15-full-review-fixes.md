@@ -1,5 +1,12 @@
 # Plan: fixes from the 2026-08-15 six-area review
 
+**Status:** All five batches shipped 2026-08-15 (`fa4a838..467b827`), suite
+794 -> 824 green, `npm run release:check` clean. Batch 1 was additionally
+verified on the iPad, including the offline checks. The structural work in
+Batch 5 stopped deliberately after the reveal decision, the trial-reset
+fields and two module extractions; the rest of the app.js decomposition was
+left undone by choice.
+
 Source: full-project review of main @ 5f73f73 (six independent agents: security,
 correctness, races, architecture, quality, tests). Already fixed on main:
 "Play again" rename (f80d3db) and the mock silent-junction turn-through
