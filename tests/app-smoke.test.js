@@ -754,3 +754,27 @@ test('the confirmation is chosen from the answer that was actually given', async
   // And a file that will not load falls back rather than going silent.
   assert.match(player, /playSample\(path, options\)\.then\(played => \{\s*\n\s*if \(!played\) void feedbackPlayer\.play\(cue, options\);/);
 });
+
+test('a mock ends on its results, not on a closing scene that flashes past', async () => {
+  // Device report 2026-08-15, every single game: after the final immobilize
+  // answer a screen appeared, said "the simulated drive is continuing", and
+  // vanished about a second later. It was the route's closing transition —
+  // which in a mock can never play a clip, because mock withholds them — so
+  // it showed nothing, contradicted itself, and delayed the results.
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  // The answer path asks whether the transition it is about to enter closes
+  // the route with nothing to show, and skips it when it does.
+  assert.match(
+    source,
+    /if \(continuityEnabled && isClosingTransition\(activeSession, nextStep\)\s*\n\s*&& !turnClipWillPlayInTransition\(\)\) \{\s*\n\s*nextStep = null;/
+  );
+  // Skipping is expressed by clearing the step, so the existing "no next step
+  // means the route is complete" path carries it to the results.
+  assert.match(source, /if \(continuityEnabled && !nextStep\) activeSession = null;/);
+  // And the question asked is the real one: whether a clip will actually play.
+  assert.match(
+    source,
+    /function turnClipWillPlayInTransition\(\) \{[\s\S]{0,220}?mockTransitionIntro\([\s\S]{0,120}?\)\?\.clip/
+  );
+});

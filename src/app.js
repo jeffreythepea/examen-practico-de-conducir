@@ -10,6 +10,7 @@ import {
   continuityEnabledForExperience,
   continuityTransitionViewModel,
   currentContinuityStep,
+  isClosingTransition,
   prepareContinuitySession
 } from './continuity-controller.js';
 import {
@@ -756,6 +757,14 @@ async function bootstrap() {
   // Clips reveal the chosen direction, so a session that withholds its results
   // until the end withholds them too; one failed load turns them off for the
   // rest of the session.
+  // Whether the transition the drive is about to enter will actually play a
+  // clip: the same inputs the intro uses, asked before the transition renders.
+  function turnClipWillPlayInTransition() {
+    return Boolean(mockTransitionIntro(
+      state.settings.roadMovement === true && !prefersReducedMotion()
+    )?.clip);
+  }
+
   function clipsEnabledForSession() {
     return model.experience?.revealPolicy !== 'session-end' && !turnClipFailed;
   }
@@ -2297,7 +2306,16 @@ async function bootstrap() {
       let activeSession = continuityEnabled || before.experience?.revealPolicy === 'session-end'
         ? advanceActiveSession(state.activeSession, progress)
         : persistedActiveSessionAfterAttempt(state.activeSession, progress);
-      const nextStep = continuityEnabled ? currentContinuityStep(activeSession) : null;
+      let nextStep = continuityEnabled ? currentContinuityStep(activeSession) : null;
+      // The route ends on a closing transition. It earns its place when the
+      // final answer has a clip to drive away into; with nothing to show — as
+      // in every mock, where clips are withheld — it is a scene that appears
+      // after the last answer, claims the drive is continuing, and is gone
+      // again in a second. Skip straight to the results in that case.
+      if (continuityEnabled && isClosingTransition(activeSession, nextStep)
+        && !turnClipWillPlayInTransition()) {
+        nextStep = null;
+      }
       const continuityIndex = activeSession?.nextIndex ?? progress.nextIndex;
       if (continuityEnabled && !nextStep) activeSession = null;
       state = { ...result.state, activeSession };

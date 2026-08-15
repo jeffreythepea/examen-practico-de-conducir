@@ -35,6 +35,21 @@ export function prepareContinuitySession(session, commands, rng = Math.random) {
   });
 }
 
+/**
+ * A transition with no command after it: the drive is over and this step is
+ * the closing shot. Worth playing when the last answer has a clip to drive
+ * away into, and worth skipping when it does not — an empty one, as every
+ * mock produces, is a scene that appears after the final answer, says the
+ * drive is continuing, and vanishes before it can be read.
+ */
+export function isClosingTransition(activeSession, step) {
+  if (step?.kind !== 'transition') return false;
+  const route = activeSession?.continuity?.route;
+  const index = activeSession?.continuity?.nextRouteStepIndex;
+  if (!Array.isArray(route) || !Number.isInteger(index)) return false;
+  return route.slice(index + 1).every(later => later.kind !== 'command');
+}
+
 export function currentContinuityStep(activeSession) {
   const continuity = activeSession?.continuity;
   if (!continuity) return null;

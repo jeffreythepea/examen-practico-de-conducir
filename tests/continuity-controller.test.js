@@ -4,6 +4,7 @@ import {
   continuityEnabledForExperience,
   continuityTransitionViewModel,
   currentContinuityStep,
+  isClosingTransition,
   prepareContinuitySession
 } from '../src/continuity-controller.js';
 
@@ -99,5 +100,50 @@ test('route scene tokens map to transition-view families', () => {
       progressText: 'x'
     }),
     /Unknown continuity route scene/
+  );
+});
+
+test('a transition with no command after it is the closing shot', () => {
+  // The route ends on one. It earns its place when the last answer has a clip
+  // to drive away into; empty — as in every mock, where clips are withheld —
+  // it appears after the final answer, says the drive is continuing, and is
+  // gone in a second. Device report 2026-08-15.
+  const route = [
+    { kind: 'command', id: 'command-0', commandId: 'c-der' },
+    { kind: 'transition', id: 'transition-0', sceneId: 'urban-street' },
+    { kind: 'command', id: 'command-1', commandId: 'c-inmov' },
+    { kind: 'transition', id: 'transition-1-parked-closure', sceneId: 'urban-street' }
+  ];
+  const at = index => ({ continuity: { route, nextRouteStepIndex: index } });
+
+  assert.equal(isClosingTransition(at(3), route[3]), true, 'nothing follows the last transition');
+  assert.equal(isClosingTransition(at(1), route[1]), false, 'a command still follows this one');
+  // Only transitions can close a route.
+  assert.equal(isClosingTransition(at(0), route[0]), false);
+  assert.equal(isClosingTransition(at(2), route[2]), false);
+  // A null event after the transition is not a command, so the drive is over.
+  const withNullEvent = [...route, { kind: 'null-event', id: 'null-0' }];
+  assert.equal(
+    isClosingTransition({ continuity: { route: withNullEvent, nextRouteStepIndex: 3 } }, withNullEvent[3]),
+    true
+  );
+  // Malformed or absent continuity must not throw on the answer path.
+  assert.equal(isClosingTransition(null, route[3]), false);
+  assert.equal(isClosingTransition(at(3), null), false);
+  assert.equal(isClosingTransition({ continuity: { route: 'nope', nextRouteStepIndex: 0 } }, route[3]), false);
+});
+
+test('the simulated route really does end on a transition, which is why this matters', async () => {
+  const { buildSimulatedExamRoute } = await import('../src/simulated-exam-route.js');
+  const commands = (await import('../data/commands.json', { with: { type: 'json' } })).default;
+  const active = commands.filter(command => command.active !== false);
+  const items = active.slice(0, 20).map(command => ({
+    commandId: command.id, phrasingId: command.phrasings[0].id, voiceId: 'v', speed: 0.9
+  }));
+  const route = buildSimulatedExamRoute(items, active, () => 0.5);
+  assert.equal(route.at(-1).kind, 'transition', 'the closing transition is what the fix skips');
+  assert.equal(
+    isClosingTransition({ continuity: { route, nextRouteStepIndex: route.length - 1 } }, route.at(-1)),
+    true
   );
 });
