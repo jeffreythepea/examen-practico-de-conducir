@@ -246,20 +246,29 @@ export function turnClipWillDemonstrateReveal({
     && hasTurnClip(surface?.geometry?.sceneId, surface?.expectedResult);
 }
 
-export function revealAutoAdvanceMs({
-  screenModel,
-  attempt,
-  nextStepKind,
-  roadMovement,
-  reducedMotion,
-  clipsEnabled
-} = {}) {
-  const surface = screenModel?.activeSurfaceModel;
-  const family = surface?.family;
-  const eligible = turnClipWillDemonstrateReveal({
-    screenModel, attempt, nextStepKind, roadMovement, reducedMotion, clipsEnabled
+/**
+ * The whole reveal decision, made once from one set of inputs: whether the
+ * clip will demonstrate the answer, and how long the reveal therefore waits
+ * before advancing itself.
+ *
+ * These two answers must never disagree. A reveal that suppresses the glyph
+ * because a clip will play, but does not auto-advance, leaves a motionless
+ * dead end; one that auto-advances without the clip playing yanks the screen
+ * away. They used to be derived at separate call sites from separately
+ * assembled inputs, and agreed only because both ran in the same synchronous
+ * pass.
+ */
+export function revealDecision(input = {}) {
+  const willPlay = turnClipWillDemonstrateReveal(input);
+  const family = input.screenModel?.activeSurfaceModel?.family;
+  return Object.freeze({
+    willPlay,
+    autoAdvanceMs: willPlay ? REVEAL_DWELL_MS_BY_FAMILY[family] + REVEAL_READING_BEAT_MS : null
   });
-  return eligible ? REVEAL_DWELL_MS_BY_FAMILY[family] + REVEAL_READING_BEAT_MS : null;
+}
+
+export function revealAutoAdvanceMs(input = {}) {
+  return revealDecision(input).autoAdvanceMs;
 }
 
 export function feedbackCueForTransition(before, after, event) {
@@ -670,14 +679,7 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
           sceneId
         })
         : null,
-      outcome: null,
-      selectedResult: null,
-      responseMs: null,
-      timeout: false,
-      missReason: null,
-      allowedMissReasons: [],
-      replayPending: false,
-      replayOperationId: null
+      ...trialResetFields()
     };
   }
   if (event.type === 'AUDIO_STARTED' && model.screen === 'prompt' && model.initialAudioPending) {
@@ -725,14 +727,7 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       promptStartedAt: event.completedAt,
       initialAudioPending: false,
       roadMotion: continuingTrial ? model.roadMotion : null,
-      outcome: null,
-      selectedResult: null,
-      responseMs: null,
-      timeout: false,
-      missReason: null,
-      allowedMissReasons: [],
-      replayPending: false,
-      replayOperationId: null
+      ...trialResetFields()
     };
   }
   if (event.type === 'AUDIO_FAILED'
@@ -748,14 +743,7 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       surfaceError: initialMotionFailed ? null : model.surfaceError,
       initialAudioPending: false,
       roadMotion: initialMotionFailed ? null : model.roadMotion,
-      outcome: null,
-      selectedResult: null,
-      responseMs: null,
-      timeout: false,
-      missReason: null,
-      allowedMissReasons: [],
-      replayPending: false,
-      replayOperationId: null
+      ...trialResetFields()
     };
   }
   if (event.type === 'AUDIO_INTERRUPTED' && ['prompt', 'loading-audio'].includes(model.screen)) {
@@ -770,14 +758,7 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       surfaceError: initialMotionFailed ? null : model.surfaceError,
       initialAudioPending: false,
       roadMotion: initialMotionFailed ? null : model.roadMotion,
-      outcome: null,
-      selectedResult: null,
-      responseMs: null,
-      timeout: false,
-      missReason: null,
-      allowedMissReasons: [],
-      replayPending: false,
-      replayOperationId: null
+      ...trialResetFields()
     };
   }
   if (event.type === 'RETRY_AUDIO' && model.screen === 'loading-audio') {
@@ -814,14 +795,7 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       ...model,
       screen: 'loading-audio',
       audioError: event.reason ?? 'error',
-      outcome: null,
-      selectedResult: null,
-      responseMs: null,
-      timeout: false,
-      missReason: null,
-      allowedMissReasons: [],
-      replayPending: false,
-      replayOperationId: null
+      ...trialResetFields()
     };
   }
   if (event.type === 'SHOW_SPANISH'
@@ -1175,6 +1149,27 @@ export function resolvePhrasing(command, variant) {
   return phrasing;
 }
 
+/**
+ * The answer fields a new trial always starts clean, whatever event starts
+ * it. They were written out at each of the five branches that begin one, and
+ * a branch that missed a field leaked the previous question's answer into the
+ * next. Surface, motion and audio state stay inline at each branch, since
+ * those genuinely differ: continuing a trial keeps its surface, a failed
+ * initial play throws its away.
+ */
+function trialResetFields() {
+  return {
+    outcome: null,
+    selectedResult: null,
+    responseMs: null,
+    timeout: false,
+    missReason: null,
+    allowedMissReasons: [],
+    replayPending: false,
+    replayOperationId: null
+  };
+}
+
 function resetTrial(model, index) {
   return {
     ...model,
@@ -1189,16 +1184,9 @@ function resetTrial(model, index) {
     promptStartedAt: null,
     initialAudioPending: false,
     roadMotion: null,
-    outcome: null,
-    selectedResult: null,
+    ...trialResetFields(),
     selectedTargetId: null,
     correct: false,
-    responseMs: null,
-    timeout: false,
-    missReason: null,
-    allowedMissReasons: [],
-    replayPending: false,
-    replayOperationId: null,
     nullEvent: null,
     turnThrough: null
   };
@@ -1304,6 +1292,8 @@ async function bootstrap() {
   // no update still visibly did something.
   let offlineUpToDate = false;
   let resultsShownAt = 0;
+  // The reveal decision for the render pass in flight; null off the reveal.
+  let revealPass = null;
   const heldAdvances = createAdvanceScheduler({ documentRef: document, windowRef: window });
   let readinessFilters = { phase: 'mixed', state: 'all', flag: 'all', editor: null, noticeKey: '' };
 
@@ -1371,20 +1361,33 @@ async function bootstrap() {
   }
 
   function movingRoadEnabled(command) {
-    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+    const reducedMotion = prefersReducedMotion();
     return ROAD_MOTION_SURFACE_IDS.has(command?.surfaceId)
       && state.settings.roadMovement
       && !reducedMotion;
   }
 
-  function turnClipWillPlayForReveal(attempt) {
-    return turnClipWillDemonstrateReveal({
+  function prefersReducedMotion() {
+    return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+  }
+
+  // Clips reveal the chosen direction, so a session that withholds its results
+  // until the end withholds them too; one failed load turns them off for the
+  // rest of the session.
+  function clipsEnabledForSession() {
+    return model.experience?.revealPolicy !== 'session-end' && !turnClipFailed;
+  }
+
+  // One assembly of the reveal's inputs, so the render, the auto-advance and
+  // the transition intro cannot answer the same question differently.
+  function currentRevealDecision() {
+    return revealDecision({
       screenModel: model,
-      attempt,
+      attempt: state.attempts.find(attempt => attempt.id === currentAttemptId),
       nextStepKind: currentContinuityStep(state.activeSession)?.kind,
       roadMovement: state.settings.roadMovement,
-      reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false,
-      clipsEnabled: !turnClipFailed
+      reducedMotion: prefersReducedMotion(),
+      clipsEnabled: clipsEnabledForSession()
     });
   }
 
@@ -1419,6 +1422,9 @@ async function bootstrap() {
     setDocumentLocale(locale());
     document.title = translate(locale(), 'app.title');
     document.querySelector('#skip-link').textContent = translate(locale(), 'app.skip');
+    // Decided once for this pass and read by both the reveal's markup and its
+    // auto-advance, rather than derived twice from inputs assembled twice.
+    revealPass = model.screen === 'reveal' ? currentRevealDecision() : null;
     const screen = model.screen === 'title'
       ? renderTitle()
       : model.screen === 'setup'
@@ -1562,7 +1568,7 @@ async function bootstrap() {
     if (scene) {
       // Reduced motion keeps the poster frame: a looping video is exactly the
       // motion that setting asks us to stop.
-      if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+      if (prefersReducedMotion()) {
         scene.autoplay = false;
         scene.pause();
       } else {
@@ -1846,9 +1852,7 @@ async function bootstrap() {
     const motion = model.roadMotion
       ? roadMotionView(model.roadMotion, Date.now())
       : null;
-    const turnClipWillPlay = turnClipWillPlayForReveal(
-      state.attempts.find(attempt => attempt.id === currentAttemptId)
-    );
+    const turnClipWillPlay = (revealPass ?? currentRevealDecision()).willPlay;
     return `<section class="panel reveal" aria-labelledby="outcome-title">
       <p class="progress">${progressText()}</p>
       <h2 id="outcome-title" role="status" aria-live="polite" class="outcome ${model.outcome}" data-screen-focus tabindex="-1">${translate(locale(), `result.${model.outcome}`)}</h2>
@@ -1892,7 +1896,7 @@ async function bootstrap() {
   function renderMockTransition() {
     const step = currentContinuityStep(state.activeSession);
     if (step?.kind === 'transition') {
-      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+      const reducedMotion = prefersReducedMotion();
       const motionEnabled = state.settings.roadMovement === true && !reducedMotion;
       const transition = continuityTransitionViewModel(step, {
         motionEnabled,
@@ -1934,7 +1938,7 @@ async function bootstrap() {
       motionEnabled,
       nextStepKind: 'transition',
       startPose: source.pose ?? null,
-      clipsEnabled: model.experience?.revealPolicy !== 'session-end' && !turnClipFailed
+      clipsEnabled: clipsEnabledForSession()
     });
   }
 
@@ -2349,14 +2353,7 @@ async function bootstrap() {
   function scheduleRevealAutoAdvance() {
     const attemptId = currentAttemptId;
     if (attemptId === null || revealAutoAdvanceFor === attemptId) return;
-    const delay = revealAutoAdvanceMs({
-      screenModel: model,
-      attempt: state.attempts.find(attempt => attempt.id === attemptId),
-      nextStepKind: currentContinuityStep(state.activeSession)?.kind,
-      roadMovement: state.settings.roadMovement,
-      reducedMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false,
-      clipsEnabled: !turnClipFailed
-    });
+    const delay = (revealPass ?? currentRevealDecision()).autoAdvanceMs;
     if (delay === null) return;
     revealAutoAdvanceFor = attemptId;
     scheduleAdvance(() => {
@@ -2390,7 +2387,7 @@ async function bootstrap() {
         motionEnabled: true,
         progressText: continuityProgressText()
       }).family;
-      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+      const reducedMotion = prefersReducedMotion();
       const intro = mockTransitionIntro(state.settings.roadMovement === true && !reducedMotion);
       // A clip that cannot load falls back to the CSS turn-through-pan for
       // the rest of the session; this transition re-renders onto that path.

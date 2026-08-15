@@ -531,7 +531,8 @@ test('the app opens on a bilingual title screen that enters setup on one tap', a
   // paths the transition view already owns, so a v3 bump would split them.
   assert.match(source, /class="title-scene-media" src="\$\{URBAN_DRIVE_VIDEO\.asset\}"/);
   assert.doesNotMatch(source, /\.\/assets\/driving\/urban-roadside-drive-v2/);
-  assert.match(source, /prefers-reduced-motion: reduce[\s\S]{0,120}?scene\.pause\(\)/);
+  assert.match(source, /if \(prefersReducedMotion\(\)\) \{[\s\S]{0,120}?scene\.pause\(\)/);
+  assert.match(source, /function prefersReducedMotion\(\)[\s\S]{0,120}?prefers-reduced-motion: reduce/);
   assert.match(source, /scene\.playbackRate = 0\.5/);
 });
 

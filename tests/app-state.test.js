@@ -9,20 +9,21 @@ import {
   effectiveSessionSettings,
   feedbackCueForTransition,
   focusScreen,
-  generateSurfaceWithRetries,
   localizedVehicleAnswer,
   mockResultStatus,
-  nextSurfaceSeed,
   promptControlsDisabled,
-  reduceScreen,
   resolveSessionExperience,
   resolvePhrasing,
-  revealAutoAdvanceMs,
   restoreFocusSnapshot,
   restoreOrDeferFocus,
   selectPlaybackVariant,
   sessionIdentityData,
   sessionStartEligibility,
+  generateSurfaceWithRetries,
+  nextSurfaceSeed,
+  reduceScreen,
+  revealAutoAdvanceMs,
+  revealDecision,
   turnClipWillDemonstrateReveal
 } from '../src/app.js';
 import { EXAMINERS, selectTodaysExaminer } from '../src/examiners.js';
@@ -512,6 +513,48 @@ test('a clip-backed reveal advances itself after the reviewed result-reading dwe
     { nextStepKind: null }
   ]) {
     assert.equal(revealAutoAdvanceMs({ ...eligible, ...override }), null);
+  }
+});
+
+test('the reveal never both draws the glyph and advances itself, and never does neither', () => {
+  // The two halves of the decision used to be derived at separate call sites
+  // from separately assembled inputs, agreeing only because both ran in the
+  // same synchronous pass. A reveal that suppresses the glyph without
+  // advancing is a motionless dead end; one that advances without the clip
+  // playing yanks the screen away mid-read.
+  const junction = generateSurfaceWithRetries(
+    { id: 'c-izq', actionId: 'turn-left', acceptedResult: 'turn-left', surfaceId: 'junction-v2' }, 11
+  ).model;
+  const eligible = {
+    screenModel: {
+      screen: 'reveal', correct: true, timeout: false, continuityActive: true,
+      experience: { revealPolicy: 'per-question' }, activeSurfaceModel: junction
+    },
+    attempt: { outcome: 'unaided' },
+    nextStepKind: 'transition', roadMovement: true, reducedMotion: false, clipsEnabled: true
+  };
+
+  for (const override of [
+    {},
+    { roadMovement: false },
+    { reducedMotion: true },
+    { clipsEnabled: false },
+    { nextStepKind: null },
+    { attempt: { outcome: 'incorrect' } },
+    { screenModel: { ...eligible.screenModel, timeout: true } },
+    { screenModel: { ...eligible.screenModel, continuityActive: false } },
+    { screenModel: { ...eligible.screenModel, experience: { revealPolicy: 'session-end' } } }
+  ]) {
+    const input = { ...eligible, ...override };
+    const decision = revealDecision(input);
+    assert.ok(Object.isFrozen(decision));
+    assert.equal(decision.willPlay, turnClipWillDemonstrateReveal(input));
+    assert.equal(decision.autoAdvanceMs, revealAutoAdvanceMs(input));
+    assert.equal(
+      decision.willPlay, decision.autoAdvanceMs !== null,
+      `a clip that ${decision.willPlay ? 'plays' : 'does not play'} must ${decision.willPlay ? '' : 'not '}auto-advance`
+    );
+    if (decision.willPlay) assert.ok(Number.isFinite(decision.autoAdvanceMs) && decision.autoAdvanceMs > 0);
   }
 });
 
@@ -2049,4 +2092,68 @@ test('mock reveals withhold the turn-through because they bypass CONTINUE entire
   });
   assert.equal(mockTransition.screen, 'mock-transition');
   assert.equal(mockTransition.turnThrough, null, 'mock must never leak correctness through the intro');
+});
+
+test('every event that starts a trial clears the previous answer completely', () => {
+  // Five reducer branches begin a trial, and each used to write the reset
+  // fields out longhand. One that missed a field carried the previous
+  // question's outcome, timeout or miss reason into the next question.
+  const answered = {
+    ...promptModel(),
+    outcome: 'incorrect',
+    selectedResult: 'turn-left',
+    responseMs: 4_200,
+    timeout: true,
+    missReason: 'hearing',
+    allowedMissReasons: ['hearing', 'meaning'],
+    replayPending: true,
+    replayOperationId: 7
+  };
+  const starts = [
+    ['AUDIO_STARTED on a retry', { ...answered, screen: 'loading-audio', initialAudioPending: false },
+      { type: 'AUDIO_STARTED', variant: rightVariant, startedAt: 3_000, seed: 999, motionEnabled: true }],
+    ['SCENE_STARTED', { ...answered, screen: 'loading-audio', initialAudioPending: false },
+      { type: 'SCENE_STARTED', startedAt: 3_000, seed: 999, motionEnabled: true }],
+    ['AUDIO_COMPLETED into the prompt', { ...answered, screen: 'loading-audio', initialAudioPending: false },
+      { type: 'AUDIO_COMPLETED', variant: rightVariant, completedAt: 3_000, seed: 999 }],
+    ['TRIAL_AUDIO_ENDED', { ...answered, screen: 'loading-audio', initialAudioPending: false },
+      { type: 'TRIAL_AUDIO_ENDED', completedAt: 3_000, seed: 999 }],
+    ['AUDIO_FAILED', { ...answered, screen: 'loading-audio' }, { type: 'AUDIO_FAILED', reason: 'error' }],
+    ['AUDIO_INTERRUPTED', answered, { type: 'AUDIO_INTERRUPTED', reason: 'visibilitychange' }],
+    ['REPLAY_FAILED', answered, { type: 'REPLAY_FAILED', reason: 'error', operationId: 7 }]
+  ];
+
+  for (const [label, before, event] of starts) {
+    const after = reduceScreen(before, event);
+    assert.notStrictEqual(after, before, `${label} did not reduce`);
+    assert.deepEqual(
+      {
+        outcome: after.outcome,
+        selectedResult: after.selectedResult,
+        responseMs: after.responseMs,
+        timeout: after.timeout,
+        missReason: after.missReason,
+        allowedMissReasons: after.allowedMissReasons,
+        replayPending: after.replayPending,
+        replayOperationId: after.replayOperationId
+      },
+      {
+        outcome: null,
+        selectedResult: null,
+        responseMs: null,
+        timeout: false,
+        missReason: null,
+        allowedMissReasons: [],
+        replayPending: false,
+        replayOperationId: null
+      },
+      `${label} left the previous answer behind`
+    );
+  }
+});
+
+test('a fresh trial does not share its reset arrays with the trial before it', () => {
+  const first = reduceScreen(promptModel(), { type: 'AUDIO_INTERRUPTED', reason: 'a' });
+  const second = reduceScreen(promptModel(), { type: 'AUDIO_INTERRUPTED', reason: 'b' });
+  assert.notStrictEqual(first.allowedMissReasons, second.allowedMissReasons);
 });
