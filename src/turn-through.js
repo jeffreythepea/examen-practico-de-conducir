@@ -1,7 +1,7 @@
 import { drivingScene } from './driving-scenes.js';
 
 const CORRECT_OUTCOMES = new Set(['unaided', 'assisted']);
-const TURN_THROUGH_FAMILIES = new Set([
+export const TURN_THROUGH_FAMILIES = new Set([
   'junction',
   'roundabout',
   'parking',
@@ -72,7 +72,7 @@ export function hasTurnClip(sceneId, resultId) {
 // whether a command ends in a clip before any surface has been generated, so
 // it cannot ask a model — hence the table. A test regenerates every catalog
 // command and fails if this drifts from what the generators actually produce.
-const CLIP_SURFACE_SCENES = Object.freeze({
+export const CLIP_SURFACE_SCENES = Object.freeze({
   'junction-v2': 'four-way-intersection-photo-v1',
   'parking-v1': 'parallel-parking-gap-photo-v1',
   'overtake-v1': 'overtaking-photo-v1',

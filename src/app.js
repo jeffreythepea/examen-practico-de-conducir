@@ -149,12 +149,13 @@ const ROAD_MOTION_SURFACE_IDS = new Set([
   'parking-v1',
   'stopping-v1'
 ]);
-const TURN_CLIP_REVEAL_FAMILIES = new Set([
-  'junction', 'roundabout', 'parking', 'stopping', 'join-traffic', 'overtake', 'u-turn'
-]);
 // Preserve the reviewed result-reading beats that preceded each transition;
 // these values no longer drive or describe an animated answer glyph.
-const REVEAL_DWELL_MS_BY_FAMILY = Object.freeze({
+// This map is the single roster of clip-backed reveal families. A family
+// listed as clip-backed without a dwell here yielded `undefined + 1200 = NaN`,
+// and setTimeout(fn, NaN) fires at once — the reveal flashed away, a symptom
+// only visible on the device.
+export const REVEAL_DWELL_MS_BY_FAMILY = Object.freeze({
   junction: 1_300,
   roundabout: 1_650,
   parking: 1_450,
@@ -163,6 +164,7 @@ const REVEAL_DWELL_MS_BY_FAMILY = Object.freeze({
   overtake: 1_550,
   'u-turn': 1_800
 });
+const TURN_CLIP_REVEAL_FAMILIES = new Set(Object.keys(REVEAL_DWELL_MS_BY_FAMILY));
 
 export function promptControlsDisabled(model) {
   return model.screen !== 'prompt'

@@ -2,7 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { TURN_CLIPS, turnThroughIntro } from '../src/turn-through.js';
+import {
+  CLIP_SURFACE_SCENES,
+  TURN_CLIPS,
+  TURN_THROUGH_FAMILIES,
+  turnThroughIntro
+} from '../src/turn-through.js';
+import { REVEAL_DWELL_MS_BY_FAMILY } from '../src/app.js';
+import { generateSurface } from '../src/surfaces.js';
+import { activeCommands } from '../src/catalog.js';
+import commands from '../data/commands.json' with { type: 'json' };
 
 const TARGETS = Object.freeze([
   Object.freeze({ id: 'left', resultId: 'turn-left', kind: 'road', x: 15, y: 50, width: 18, height: 18 }),
@@ -210,6 +219,13 @@ test('registers immutable turn and manoeuvre clips with stable IDs and illustrat
       assert.equal(clip.provenance, 'ai-generated-illustrative');
       assert.ok(Number.isFinite(clip.durationMs) && clip.durationMs > 0 && clip.durationMs <= 10_000);
       assert.ok(Number.isFinite(clip.holdMs) && clip.holdMs >= 0);
+      // The hold rides inside intro.durationMs, and the intro validator
+      // throws above 10 s — a longer clip would crash the transition mid-drive
+      // rather than fail here. Worst case today is 6,000 + 2,500.
+      assert.ok(
+        clip.durationMs + clip.holdMs <= 10_000,
+        `${clip.videoId} exceeds the intro ceiling with its hold`
+      );
     }
   }
 });
@@ -332,4 +348,37 @@ test('scenes and directions without a registered clip keep the CSS pan path', ()
   assert.equal(intro({ clipsEnabled: true, surfaceModel: roundabout, selectedTargetId: 'exit-2' }).clip, null);
   assert.equal(intro({ clipsEnabled: true, selectedTargetId: 'straight' }).clip, null,
     'the test fixture go-straight result has no clip; only continue-forward is registered');
+});
+
+test('the family registries that decide a reveal all agree with the dwell map', () => {
+  // Four tables used to enumerate these families independently. A family
+  // missing from the dwell map made the auto-advance NaN, which fires
+  // immediately and flashes the reveal away; a family missing from the reveal
+  // set double-demonstrated with both a glyph and a clip.
+  assert.deepEqual(
+    Object.keys(REVEAL_DWELL_MS_BY_FAMILY).sort(),
+    [...TURN_THROUGH_FAMILIES].sort()
+  );
+  for (const dwell of Object.values(REVEAL_DWELL_MS_BY_FAMILY)) {
+    assert.ok(Number.isFinite(dwell) && dwell > 0);
+  }
+
+  // Every clip-backed surface generates the scene the route builder expects,
+  // and every registered clip scene is reachable from some surface.
+  const generated = new Map();
+  for (const command of activeCommands(commands)) {
+    const surface = generateSurface(command, 0);
+    const sceneId = surface?.geometry?.sceneId;
+    if (sceneId) generated.set(command.surfaceId, sceneId);
+  }
+  for (const [surfaceId, sceneId] of Object.entries(CLIP_SURFACE_SCENES)) {
+    assert.ok(TURN_CLIPS[sceneId], `${sceneId} is mapped from ${surfaceId} but has no clips`);
+    if (generated.has(surfaceId)) {
+      assert.equal(generated.get(surfaceId), sceneId, `${surfaceId} generates a different scene`);
+    }
+  }
+  const mappedScenes = new Set(Object.values(CLIP_SURFACE_SCENES));
+  for (const sceneId of Object.keys(TURN_CLIPS)) {
+    assert.ok(mappedScenes.has(sceneId), `${sceneId} has clips no surface maps to`);
+  }
 });
