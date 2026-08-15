@@ -185,6 +185,7 @@ test('Task 7 atomically activates every eligible model-aware surface and exactly
     'c-rot1': 'roundabout-v2',
     'c-rot2': 'roundabout-v2',
     'c-rot3': 'roundabout-v2',
+    'c-sentido-rotonda': 'roundabout-v2',
     'c-rot4': 'roundabout-v2',
     'c-rot5': 'roundabout-v2',
     'c-parada': 'stopping-v1',
@@ -209,11 +210,11 @@ test('Task 7 atomically activates every eligible model-aware surface and exactly
   for (const command of commands.filter(command => command.phase === 'precheck')) {
     assert.equal(command.surfaceId, YARIS_COMMAND_CONTRACT[command.id].diagramId, command.id);
   }
-  assert.deepEqual(supportedCommands(commands), commands);
+  assert.deepEqual(supportedCommands(commands), commands.filter(command => command.active !== false));
 });
 
 test('every active catalog surface generates, reduces, and renders in both locales', () => {
-  for (const command of commands) {
+  for (const command of commands.filter(command => command.active !== false)) {
     const model = generateSurface(command, 7);
     const correctTarget = model.targets.find(target => target.resultId === model.expectedResult);
     assert.ok(correctTarget, `${command.id} needs an expected target`);

@@ -13,24 +13,21 @@ function command(action, surfaceId = 'roundabout-v2') {
   };
 }
 
-test('roundabouts normally have four exits and five-exit maps do not imply exit five', () => {
-  const counts = { four: 0, five: 0, fiveWithNonFiveTarget: 0 };
+test('active roundabouts always use one four-branch scene with three exits and a return target', () => {
   for (let seed = 1; seed <= 500; seed += 1) {
-    const action = `roundabout-exit-${(seed % 4) + 1}`;
+    const action = ['roundabout-exit-1', 'roundabout-exit-2', 'roundabout-exit-3', 'roundabout-change-direction'][seed % 4];
     const model = generateSpatialSurface(command(action), seed);
-    counts[model.geometry.exitCount === 4 ? 'four' : 'five'] += 1;
-    if (model.geometry.exitCount === 5 && action !== 'roundabout-exit-5') counts.fiveWithNonFiveTarget += 1;
+    assert.equal(model.geometry.sceneId, 'roundabout-four-photo-v3');
+    assert.equal(model.geometry.physicalBranchCount, 4);
+    assert.equal(model.geometry.numberedExitCount, 3);
   }
-  assert.ok(counts.four > counts.five * 2);
-  assert.ok(counts.fiveWithNonFiveTarget > 0);
-  assert.equal(generateSpatialSurface(command('roundabout-exit-5'), 99).geometry.exitCount, 5);
 });
 
 test('entry stays at bottom and exit order follows counterclockwise circulation from the driver entry', () => {
-  const model = generateSpatialSurface(command('roundabout-exit-3'), 17, { exitCount: 4 });
+  const model = generateSpatialSurface(command('roundabout-exit-3'), 17);
   assert.equal(model.geometry.entry, 'bottom');
   assert.deepEqual(model.targets.map(target => target.resultId), [
-    'roundabout-exit-1', 'roundabout-exit-2', 'roundabout-exit-3', 'roundabout-exit-4'
+    'roundabout-exit-1', 'roundabout-exit-2', 'roundabout-exit-3', 'roundabout-change-direction'
   ]);
   assertNonOverlappingTargets(model.targets);
 });
@@ -52,8 +49,8 @@ test('spatial geometry varies subtly while junctions expose left, straight, and 
     'turn-left', 'continue-forward', 'turn-right'
   ]);
 
-  const roundabout = generateSpatialSurface(command('roundabout-exit-4'), 42, { exitCount: 5 });
-  const bases = [24, -22, -90, -154, -200];
+  const roundabout = generateSpatialSurface(command('roundabout-change-direction'), 42);
+  const bases = [0, -90, -180, -270];
   roundabout.geometry.angles.forEach((angle, index) => assert.ok(Math.abs(angle - bases[index]) <= 8));
   for (const target of [...junction.targets, ...roundabout.targets]) {
     assert.ok(target.width >= 11);
@@ -111,86 +108,73 @@ test('straight-ahead junction commands use the photographed center road across s
   }
 });
 
-test('a playable junction clip suppresses its route while clip-less roundabouts keep theirs', () => {
+test('a playable clip suppresses its route while static fallback keeps it', () => {
   const junction = generateSpatialSurface(command('turn-right', 'junction-v2'), 7);
   assert.doesNotMatch(renderSpatialSurface(junction, 'en', {
     reveal: true, turnClipWillPlay: true
   }), /data-correct-route/);
 
-  const roundabout = generateSpatialSurface(command('roundabout-exit-2'), 7, { exitCount: 4 });
+  const roundabout = generateSpatialSurface(command('roundabout-exit-2'), 7);
   assert.match(renderSpatialSurface(roundabout, 'en', { reveal: true }), /data-correct-route/);
 });
 
-test('four- and five-exit targets stay within their photographed road mouths', () => {
-  const bands = {
-    4: [
-      [86, 88, 42, 44],
-      [54, 56, 10, 12],
-      [12, 14, 38, 40],
-      // Exit 4 sits half a target-height lower than the other left mouths so
-      // the circle lands squarely on the photographed road surface (task #11).
-      [12, 14, 73, 75]
-    ],
-    5: [
-      [86, 88, 66, 68],
-      [86, 88, 33, 35],
-      [49, 51, 10, 12],
-      [12, 14, 33, 35],
-      [12, 14, 66, 68]
-    ]
-  };
-
-  for (const exitCount of [4, 5]) {
-    for (let seed = 1; seed <= 64; seed += 1) {
-      const model = generateSpatialSurface(command('roundabout-exit-1'), seed, { exitCount });
-      model.targets.forEach((target, index) => {
-        const [minX, maxX, minY, maxY] = bands[exitCount][index];
+test('canonical targets stay within the photographed mouths and return outbound lane', () => {
+  const bands = [
+    [86, 88, 37, 39],
+    [53, 55, 12, 14],
+    [12, 14, 37, 39],
+    [40, 42, 87, 89]
+  ];
+  for (let seed = 1; seed <= 64; seed += 1) {
+    const model = generateSpatialSurface(command('roundabout-exit-1'), seed);
+    model.targets.forEach((target, index) => {
+        const [minX, maxX, minY, maxY] = bands[index];
         assert.ok(target.x >= minX && target.x <= maxX,
-          `${exitCount}-exit ${target.id} x=${target.x} must remain in its photographed mouth`);
+          `${target.id} x=${target.x} must remain in its photographed mouth`);
         assert.ok(target.y >= minY && target.y <= maxY,
-          `${exitCount}-exit ${target.id} y=${target.y} must remain in its photographed mouth`);
-      });
-    }
+          `${target.id} y=${target.y} must remain in its photographed mouth`);
+    });
+    const returning = model.targets.at(-1);
+    assert.ok(returning.x + returning.width / 2 < 48, 'return target must clear splitter and inbound lane');
   }
 });
 
 test('roundabout reveal routes stay on the photographed lane and finish at the selected road mouth', () => {
-  for (const exitCount of [4, 5]) {
-    for (let ordinal = 1; ordinal <= exitCount; ordinal += 1) {
-      const model = generateSpatialSurface(command(`roundabout-exit-${ordinal}`), 40 + ordinal, { exitCount });
-      const target = model.targets[ordinal - 1];
-      const join = model.geometry.exitJoins?.[ordinal - 1];
+  const results = ['roundabout-exit-1', 'roundabout-exit-2', 'roundabout-exit-3', 'roundabout-change-direction'];
+  for (const [index, result] of results.entries()) {
+      const model = generateSpatialSurface(command(result), 41 + index);
+      const target = model.targets[index];
+      const join = model.geometry.exitJoins?.[index];
       const circle = model.geometry.routeCircle;
 
-      assert.ok(join, `${exitCount}-exit route ${ordinal} needs a calibrated lane join`);
-      assert.ok(circle, `${exitCount}-exit scene needs a calibrated roundabout lane`);
+      assert.ok(join, `${result} needs a calibrated lane join`);
+      assert.ok(circle, `${result} needs a calibrated roundabout lane`);
       assert.ok(Math.abs(Math.hypot(join.x - circle.x, join.y - circle.y) - circle.radius) < 0.1,
-        `${exitCount}-exit route ${ordinal} join must remain on the roundabout lane`);
+        `${result} join must remain on the roundabout lane`);
 
       const route = model.geometry.correctRoute;
-      assert.deepEqual(route[0], { x: 50, y: 100 });
+      assert.deepEqual(route[0], { x: 56, y: 100 });
       assert.deepEqual(route.at(-1), { x: target.x, y: target.y });
       assert.ok(route.length >= 7, 'roundabout route must retain enough lane points for smooth movement');
       for (const point of route.slice(2, -1)) {
         assert.ok(Math.abs(Math.hypot(point.x - circle.x, point.y - circle.y) - circle.radius) < 0.1,
-          `${exitCount}-exit route ${ordinal} movement point must remain on the roundabout lane`);
+          `${result} movement point must remain on the roundabout lane`);
       }
 
       const markup = renderSpatialSurface(model, 'en', { reveal: true });
       assert.match(markup, new RegExp(`L ${join.x} ${join.y} L ${target.x} ${target.y}`),
-        `${exitCount}-exit route ${ordinal} must connect the retained lane join to its exact target`);
-    }
+        `${result} must connect the retained lane join to its exact target`);
   }
 });
 
 test('renderer draws unlabeled localized road targets and disables every target during replay', () => {
-  const model = generateSpatialSurface(command('roundabout-exit-2'), 17, { exitCount: 4 });
+  const model = generateSpatialSurface(command('roundabout-exit-2'), 17);
   const markup = renderSpatialSurface(model, 'es', { disabled: true });
 
-  assert.equal(model.geometry.sceneId, 'roundabout-four-photo-v2');
+  assert.equal(model.geometry.sceneId, 'roundabout-four-photo-v3');
   assert.match(markup, /^<div class="surface-stage roundabout driving-photo-stage" data-surface="roundabout-v2">/);
-  assert.match(markup, /class="driving-scene-image"[^>]+data-scene="roundabout-four-photo-v2"/);
-  assert.match(markup, /src="\.\/assets\/driving\/roundabout-four-photo-v2\.webp"/);
+  assert.match(markup, /class="driving-scene-image"[^>]+data-scene="roundabout-four-photo-v3"/);
+  assert.match(markup, /src="\.\/assets\/driving\/roundabout-four-photo-v3\.webp"/);
   assert.match(markup, /<svg viewBox="0 0 100 100" preserveAspectRatio="none"[^>]+aria-hidden="true"[^>]+focusable="false"/);
   assert.equal((markup.match(/class="road-target"/g) ?? []).length, 4);
   assert.equal((markup.match(/ disabled/g) ?? []).length, 4);
@@ -198,12 +182,12 @@ test('renderer draws unlabeled localized road targets and disables every target 
   assert.equal(labels.length, 4);
   assert.ok(labels.every(label => label.length > 0));
   assert.equal(new Set(labels).size, labels.length, 'every target label must be distinct');
-  assert.deepEqual(labels, ['Primera salida', 'Segunda salida', 'Tercera salida', 'Cuarta salida']);
+  assert.deepEqual(labels, ['Primera salida', 'Segunda salida', 'Tercera salida', 'Cambio de sentido por el ramal de entrada']);
   assert.doesNotMatch(markup, /surface-result-label|data-correct-route|aria-current/);
 });
 
 test('roundabout and junction photo plates replace their old synthetic roads', () => {
-  const five = generateSpatialSurface(command('roundabout-exit-5'), 42, { exitCount: 5 });
+  const five = generateSpatialSurface({ ...command('roundabout-exit-5'), active: false }, 42, { exitCount: 5 });
   assert.equal(five.geometry.sceneId, 'roundabout-five-photo-v1');
   const fiveMarkup = renderSpatialSurface(five, 'en');
   assert.match(fiveMarkup, /data-scene="roundabout-five-photo-v1"/);
@@ -260,7 +244,7 @@ test('road motion keeps each spatial photograph, route, and targets in one calib
   });
   assert.match(staticFallback, /data-correct-route/);
   assert.doesNotMatch(renderSpatialSurface(junction, 'en'), /road-motion-scene/);
-  const roundabout = generateSpatialSurface(command('roundabout-exit-2'), 17, { exitCount: 4 });
+  const roundabout = generateSpatialSurface(command('roundabout-exit-2'), 17);
   const roundaboutMarkup = renderSpatialSurface(roundabout, 'en', {
     reveal: true,
     motion: {
@@ -272,31 +256,24 @@ test('road motion keeps each spatial photograph, route, and targets in one calib
   assert.match(roundaboutMarkup, /class="road-motion-scene"/);
   assert.match(roundaboutMarkup, /--road-motion-end-scale:1\.03/);
   assert.match(roundaboutMarkup, /--road-motion-origin-y:80%/);
-  // Clip-less scenes keep the in-scene gold route at reveal.
+  // Static fallback keeps the in-scene route when the clip will not play.
   assert.match(roundaboutMarkup, /<svg[\s\S]*data-correct-route/);
 });
 
-test('correct post-answer movement stays decorative inside the calibrated spatial scene, replacing the static route line', () => {
+test('a reveal without a playable clip keeps the static fallback route', () => {
   const model = generateSpatialSurface(command('turn-right', 'junction-v2'), 42);
   const markup = renderSpatialSurface(model, 'en', {
     disabled: true,
     reveal: true,
-    postAnswerMotion: {
-      phase: 'running', family: 'junction', progress: 0, moving: true,
-      durationMs: 1_300, elapsedMs: 0, remainingMs: 1_300,
-      route: model.geometry.correctRoute
-    }
+    turnClipWillPlay: false
   });
 
-  assert.match(markup, /class="post-answer-motion"[\s\S]*class="road-target"/);
-  assert.match(markup, /aria-hidden="true"[\s\S]*<animateMotion/);
-  assert.doesNotMatch(markup, /post-answer-motion[^>]*(?:button|tabindex|aria-live)/);
-  // "car only, no trail" — the static ghost route is dropped once the car glyph is eligible.
-  assert.doesNotMatch(markup, /data-correct-route/);
+  assert.doesNotMatch(markup, /animateMotion/);
+  assert.match(markup, /data-correct-route/);
 });
 
 test('reveal marks the correct target, draws its route, and shows a localized result label', () => {
-  const model = generateSpatialSurface(command('roundabout-exit-3'), 17, { exitCount: 4 });
+  const model = generateSpatialSurface(command('roundabout-exit-3'), 17);
   const markup = renderSpatialSurface(model, 'en', { reveal: true });
 
   assert.match(markup, /data-correct-route/);
@@ -306,7 +283,7 @@ test('reveal marks the correct target, draws its route, and shows a localized re
 });
 
 test('spatial reveal distinguishes the selected wrong road from the correct road without color alone', () => {
-  const model = generateSpatialSurface(command('roundabout-exit-3'), 17, { exitCount: 4 });
+  const model = generateSpatialSurface(command('roundabout-exit-3'), 17);
   const wrong = model.targets.find(target => target.resultId !== model.expectedResult);
   const markup = renderSpatialSurface(model, 'es', { reveal: true, selectedTargetId: wrong.id });
   const wrongButton = markup.match(new RegExp(`<button[^>]+data-target="${wrong.id}"[^>]*>[\\s\\S]*?</button>`))?.[0];
@@ -324,7 +301,7 @@ test('every spatial target exposes a non-empty, distinct, bilingual accessible n
     ['continue-forward', 'junction-v2'],
     ['roundabout-exit-1', 'roundabout-v2'],
     ['roundabout-exit-3', 'roundabout-v2'],
-    ['roundabout-exit-5', 'roundabout-v2']
+    ['roundabout-change-direction', 'roundabout-v2']
   ];
   for (const [action, surfaceId] of cases) {
     for (let seed = 1; seed <= 8; seed += 1) {

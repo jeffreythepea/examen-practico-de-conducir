@@ -419,7 +419,50 @@
     ]
   },
   {
+    "id": "c-sentido-rotonda",
+    "actionId": "roundabout-change-direction",
+    "category": "rot",
+    "phase": "driving",
+    "responseType": "terminology-maneuver",
+    "surfaceId": "roundabout-v2",
+    "icon": "🔄",
+    "acceptedResult": "roundabout-change-direction",
+    "phrasings": [
+      {
+        "id": "c-sentido-rotonda-canonical",
+        "es": "Cambio de sentido",
+        "en": "change of direction",
+        "wording": "verbatim",
+        "validation": "guide-only",
+        "sourcePage": 6,
+        "sourceText": "Cambio de sentido"
+      },
+      {
+        "id": "c-sentido-rotonda-supplementary-1",
+        "es": "Cambie de sentido cuando pueda",
+        "en": "change direction when you can",
+        "wording": "source-derived",
+        "validation": "supplementary-composite",
+        "sourcePage": "composite ft_02/general",
+        "sourceText": "Cambie de sentido cuando pueda",
+        "sourceDocument": "spanish_driving_exam_commands.json"
+      },
+      {
+        "id": "c-sentido-rotonda-supplementary-2",
+        "es": "Dé la vuelta cuando pueda",
+        "en": "Turn around when you can",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "review-derived 2026-07-20",
+        "sourceText": "Dé la vuelta cuando pueda",
+        "sourceDocument": "review-derived 2026-07-20",
+        "provenanceNote": "review-derived 2026-07-20, instructor-plausible"
+      }
+    ]
+  },
+  {
     "id": "c-rot4",
+    "active": false,
     "actionId": "roundabout-exit-4",
     "category": "rot",
     "phase": "driving",
@@ -462,6 +505,7 @@
   },
   {
     "id": "c-rot5",
+    "active": false,
     "actionId": "roundabout-exit-5",
     "category": "rot",
     "phase": "driving",

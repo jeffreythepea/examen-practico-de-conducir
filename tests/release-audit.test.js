@@ -201,6 +201,24 @@ test('published audio manifest is an integrity-valid subset of catalog phrasings
   }
 });
 
+test('roundabout change-of-direction variants checksum-reuse identical road wording', async () => {
+  const manifest = JSON.parse(await readFile(resolve(ROOT, 'data/audio-manifest.json'), 'utf8'));
+  const road = manifest.filter(variant => variant.commandId === 'c-sentido');
+  const roundabout = manifest.filter(variant => variant.commandId === 'c-sentido-rotonda');
+  assert.equal(road.length, 45);
+  assert.equal(roundabout.length, 45);
+  for (const variant of roundabout) {
+    const phrasingSuffix = variant.phrasingId.slice('c-sentido-rotonda-'.length);
+    const source = road.find(candidate =>
+      candidate.phrasingId === `c-sentido-${phrasingSuffix}`
+      && candidate.voiceId === variant.voiceId
+      && candidate.speed === variant.speed
+    );
+    assert.ok(source, variant.id);
+    assert.deepEqual(variant.integrity, source.integrity, variant.id);
+  }
+});
+
 test('expanded recorded corpus is complete after audio generation', async t => {
   const [manifest, catalog] = await Promise.all([
     readFile(resolve(ROOT, 'data/audio-manifest.json'), 'utf8').then(JSON.parse),
@@ -277,7 +295,8 @@ test('Stage 2 release documents the activated action surfaces and review limits'
       .map(command => command.id).sort(),
     ['c-adapte', 'c-detencion', 'c-final']
   );
-  assert.equal(catalog.filter(command => command.surfaceId === 'roundabout-v2').length, 5);
+  assert.equal(catalog.filter(command => command.surfaceId === 'roundabout-v2').length, 6);
+  assert.equal(catalog.filter(command => command.surfaceId === 'roundabout-v2' && command.active !== false).length, 4);
   assert.ok(catalog.filter(command => command.phase === 'precheck')
     .every(command => command.surfaceId.startsWith('yaris-') && command.surfaceId.endsWith('-v2')));
 
@@ -430,14 +449,14 @@ test('active documentation records the complete five-voice audio corpus', async 
     readFile(resolve(ROOT, 'data/audio-manifest.json'), 'utf8').then(JSON.parse)
   ]);
 
-  assert.equal(manifest.length, 1215);
+  assert.equal(manifest.length, 1260);
   for (const [name, text] of [['README', readme], ['design', design]]) {
     const normalized = text.replace(/\s+/g, ' ');
-    assert.match(normalized, /39 commands?.{0,120}81.{0,120}phrasings?/i, `${name} must state the expanded catalog size`);
+    assert.match(normalized, /40 commands?.{0,120}84.{0,120}phrasings?/i, `${name} must state the expanded catalog size`);
     assert.match(normalized, /(?:five|5) voices/i, `${name} must state the voice count`);
     assert.match(normalized, /(?:456.{0,120}(?:reus|previous|existing)|(?:reus|previous|existing).{0,120}456)/i, `${name} must distinguish the reused corpus`);
     assert.match(normalized, /(?:684.{0,120}(?:added|generated|published)|(?:added|generated|published).{0,120}684)/i, `${name} must state the generation increment`);
-    assert.match(normalized, /(?:complete.{0,120}(?:1,215|1215).{0,120}(?:published|recorded)|complete.{0,120}(?:published|recorded).{0,120}(?:1,215|1215)|(?:1,215|1215).{0,120}(?:published|recorded).{0,120}(?:complete|integrity)|(?:published|recorded).{0,120}(?:1,215|1215).{0,120}(?:complete|integrity))/i, `${name} must state that the complete five-voice corpus is recorded`);
+    assert.match(normalized, /(?:complete.{0,120}(?:1,260|1260).{0,120}(?:published|recorded)|complete.{0,120}(?:published|recorded).{0,120}(?:1,260|1260)|(?:1,260|1260).{0,120}(?:published|recorded).{0,120}(?:complete|integrity)|(?:published|recorded).{0,120}(?:1,260|1260).{0,120}(?:complete|integrity))/i, `${name} must state that the complete five-voice corpus is recorded`);
   }
   assert.match(changelog, /22[^\n]*(?:phrasing|variant)/i);
   assert.match(changelog, /deferred[^\n]*B list/i);

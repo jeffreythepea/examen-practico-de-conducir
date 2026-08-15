@@ -1,4 +1,5 @@
 import { generateControlSurface, reduceControlResponse, renderControlSurface } from './control-surfaces.js';
+import { activeCommands } from './catalog.js';
 import { translate } from './i18n.js';
 import { generateManoeuvreSurface, renderManoeuvreSurface } from './manoeuvre-surfaces.js';
 import { PRECHECK_SCENES } from './precheck-scenes.js';
@@ -36,7 +37,7 @@ export const SUPPORTED_SURFACE_IDS = Object.freeze([
 const SUPPORTED_SURFACES = new Set(SUPPORTED_SURFACE_IDS);
 
 export function supportedCommands(commands, onUnsupported = () => {}) {
-  return commands.filter(command => {
+  return activeCommands(commands).filter(command => {
     const supported = SUPPORTED_SURFACES.has(command.surfaceId);
     if (!supported) onUnsupported(`Excluded ${command.id}: unsupported surface ${command.surfaceId}`);
     return supported;

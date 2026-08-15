@@ -1,5 +1,8 @@
 # Changelog
 
+- Integrated the canonical four-branch roundabout scene with separate first-, second-, third-exit, and roundabout change-of-direction clips; retired fourth- and fifth-exit questions from new sessions while preserving their stable historical records.
+- Added approved regular-road U-turn and incorporation clips, completing motion-video coverage for every active route-backed driving command. Removed the obsolete animated gold-car answer layer; Road movement Off, reduced motion, video failure, deferred reveal, and historical saved commands retain static routes.
+
 ## Correct post-answer road movement — complete
 
 - Added visual-only accepted-route movement after safely saved correct Learn

@@ -5880,6 +5880,636 @@
     }
   },
   {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-canonical--CwhRBWXzGAHq8TQ4Fs17--0.75",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-canonical",
+    "voiceId": "CwhRBWXzGAHq8TQ4Fs17",
+    "speed": 0.75,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-canonical/CwhRBWXzGAHq8TQ4Fs17/0.75.mp3",
+    "integrity": {
+      "bytes": 29301,
+      "sha256": "39227efec4630b43f662fcdd41ef843d274a43cf434560a7435902de99344a72"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-canonical--CwhRBWXzGAHq8TQ4Fs17--0.9",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-canonical",
+    "voiceId": "CwhRBWXzGAHq8TQ4Fs17",
+    "speed": 0.9,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-canonical/CwhRBWXzGAHq8TQ4Fs17/0.9.mp3",
+    "integrity": {
+      "bytes": 24703,
+      "sha256": "73d5a95908704f574b3459f95d9e9cfea59363efa1df8bf07f762134f40cf29a"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-canonical--CwhRBWXzGAHq8TQ4Fs17--1",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-canonical",
+    "voiceId": "CwhRBWXzGAHq8TQ4Fs17",
+    "speed": 1,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-canonical/CwhRBWXzGAHq8TQ4Fs17/1.mp3",
+    "integrity": {
+      "bytes": 22613,
+      "sha256": "f3ea689813e23eb78823a1e480333b50660695880bab567548f8a2d1a891401b"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-canonical--EXAVITQu4vr4xnSDxMaL--0.75",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-canonical",
+    "voiceId": "EXAVITQu4vr4xnSDxMaL",
+    "speed": 0.75,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-canonical/EXAVITQu4vr4xnSDxMaL/0.75.mp3",
+    "integrity": {
+      "bytes": 27211,
+      "sha256": "38908647488ba8d60e399e8b43e50efcb68bd6320ed11c3b6927e1c9c99adb48"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-canonical--EXAVITQu4vr4xnSDxMaL--0.9",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-canonical",
+    "voiceId": "EXAVITQu4vr4xnSDxMaL",
+    "speed": 0.9,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-canonical/EXAVITQu4vr4xnSDxMaL/0.9.mp3",
+    "integrity": {
+      "bytes": 24285,
+      "sha256": "3355bfe12a18f75912b7158df976f3a0f513d514b2ed9ff9e846fce8df6a30b9"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-canonical--EXAVITQu4vr4xnSDxMaL--1",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-canonical",
+    "voiceId": "EXAVITQu4vr4xnSDxMaL",
+    "speed": 1,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-canonical/EXAVITQu4vr4xnSDxMaL/1.mp3",
+    "integrity": {
+      "bytes": 24285,
+      "sha256": "c9c0c54490aeceb935f94c24f6135a0fa52ce10656d9b34421ede4d5eaad4d05"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-canonical--JBFqnCBsd6RMkjVDRZzb--0.75",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-canonical",
+    "voiceId": "JBFqnCBsd6RMkjVDRZzb",
+    "speed": 0.75,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-canonical/JBFqnCBsd6RMkjVDRZzb/0.75.mp3",
+    "integrity": {
+      "bytes": 29301,
+      "sha256": "7524609c9ed297f51ddf55423c4b3f7daf671da5f0deb2e8845e1500b8961299"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-canonical--JBFqnCBsd6RMkjVDRZzb--0.9",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-canonical",
+    "voiceId": "JBFqnCBsd6RMkjVDRZzb",
+    "speed": 0.9,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-canonical/JBFqnCBsd6RMkjVDRZzb/0.9.mp3",
+    "integrity": {
+      "bytes": 24703,
+      "sha256": "24f8cf0331aae8786d3d3d862e31155270e70ba1d3553b77c86ff5841d24778d"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-canonical--JBFqnCBsd6RMkjVDRZzb--1",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-canonical",
+    "voiceId": "JBFqnCBsd6RMkjVDRZzb",
+    "speed": 1,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-canonical/JBFqnCBsd6RMkjVDRZzb/1.mp3",
+    "integrity": {
+      "bytes": 20942,
+      "sha256": "0075410487f6a01635ea45867a7abded730a61c8f1e59d3dc12ea3d0df78d434"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-canonical--XrExE9yKIg1WjnnlVkGX--0.75",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-canonical",
+    "voiceId": "XrExE9yKIg1WjnnlVkGX",
+    "speed": 0.75,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-canonical/XrExE9yKIg1WjnnlVkGX/0.75.mp3",
+    "integrity": {
+      "bytes": 29301,
+      "sha256": "6490f5a10c8abdc9cf7d0e45eacd4f958d3100a8f7a5ba2a22d9f9256180085b"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-canonical--XrExE9yKIg1WjnnlVkGX--0.9",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-canonical",
+    "voiceId": "XrExE9yKIg1WjnnlVkGX",
+    "speed": 0.9,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-canonical/XrExE9yKIg1WjnnlVkGX/0.9.mp3",
+    "integrity": {
+      "bytes": 24285,
+      "sha256": "4f032780b4ec06744c9e87ffce67c4db4ad41e5549947c9c5c2c3e2ccf43ab2f"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-canonical--XrExE9yKIg1WjnnlVkGX--1",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-canonical",
+    "voiceId": "XrExE9yKIg1WjnnlVkGX",
+    "speed": 1,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-canonical/XrExE9yKIg1WjnnlVkGX/1.mp3",
+    "integrity": {
+      "bytes": 21777,
+      "sha256": "041ab407d349d383d753d8445f2aa97eb4f1b28b6a7232ca5142cb9cbe16ffc9"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-canonical--cjVigY5qzO86Huf0OWal--0.75",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-canonical",
+    "voiceId": "cjVigY5qzO86Huf0OWal",
+    "speed": 0.75,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-canonical/cjVigY5qzO86Huf0OWal/0.75.mp3",
+    "integrity": {
+      "bytes": 27629,
+      "sha256": "1292fe70477bdb69e36d38a32fa3a0c897a4b658d9034b26095d4e78128f496a"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-canonical--cjVigY5qzO86Huf0OWal--0.9",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-canonical",
+    "voiceId": "cjVigY5qzO86Huf0OWal",
+    "speed": 0.9,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-canonical/cjVigY5qzO86Huf0OWal/0.9.mp3",
+    "integrity": {
+      "bytes": 22613,
+      "sha256": "4cfd1e52f1d42a9bd2afe0951a05fe43eb11d7d1bb1e3a74281bf0207ac0f163"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-canonical--cjVigY5qzO86Huf0OWal--1",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-canonical",
+    "voiceId": "cjVigY5qzO86Huf0OWal",
+    "speed": 1,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-canonical/cjVigY5qzO86Huf0OWal/1.mp3",
+    "integrity": {
+      "bytes": 18852,
+      "sha256": "0c17af6032437478777734fc4e2c8f8ecfd3a465e7aa0279c02ddfe9a570d919"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-1--CwhRBWXzGAHq8TQ4Fs17--0.75",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-1",
+    "voiceId": "CwhRBWXzGAHq8TQ4Fs17",
+    "speed": 0.75,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-1/CwhRBWXzGAHq8TQ4Fs17/0.75.mp3",
+    "integrity": {
+      "bytes": 43511,
+      "sha256": "9d19b0d93b8811451e76af96c725ecd9e14bd2bd47a788edbb834a6604978fb1"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-1--CwhRBWXzGAHq8TQ4Fs17--0.9",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-1",
+    "voiceId": "CwhRBWXzGAHq8TQ4Fs17",
+    "speed": 0.9,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-1/CwhRBWXzGAHq8TQ4Fs17/0.9.mp3",
+    "integrity": {
+      "bytes": 35988,
+      "sha256": "faf64b0073757616d65dca2fe26c202457bef45af4173e2fc5bebea6fe5df3a7"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-1--CwhRBWXzGAHq8TQ4Fs17--1",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-1",
+    "voiceId": "CwhRBWXzGAHq8TQ4Fs17",
+    "speed": 1,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-1/CwhRBWXzGAHq8TQ4Fs17/1.mp3",
+    "integrity": {
+      "bytes": 32226,
+      "sha256": "3f5d99772a27948ad790ac7b7b676ae7fef44d44e77ac7b9e7f1fb7a68b86e8e"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-1--EXAVITQu4vr4xnSDxMaL--0.75",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-1",
+    "voiceId": "EXAVITQu4vr4xnSDxMaL",
+    "speed": 0.75,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-1/EXAVITQu4vr4xnSDxMaL/0.75.mp3",
+    "integrity": {
+      "bytes": 38914,
+      "sha256": "fb941800a5acd68acfb0834f4d9b0b2159f55fbf2d36acd55387ae222282a123"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-1--EXAVITQu4vr4xnSDxMaL--0.9",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-1",
+    "voiceId": "EXAVITQu4vr4xnSDxMaL",
+    "speed": 0.9,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-1/EXAVITQu4vr4xnSDxMaL/0.9.mp3",
+    "integrity": {
+      "bytes": 33898,
+      "sha256": "ed24da497ca67ff64c87903bb186e0efda0b6bc5780548839a652e51d8d56adf"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-1--EXAVITQu4vr4xnSDxMaL--1",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-1",
+    "voiceId": "EXAVITQu4vr4xnSDxMaL",
+    "speed": 1,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-1/EXAVITQu4vr4xnSDxMaL/1.mp3",
+    "integrity": {
+      "bytes": 32226,
+      "sha256": "18ab90d913e23dc68458e76cc42dffb18a879faf0308160b5bdf1458f62046d9"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-1--JBFqnCBsd6RMkjVDRZzb--0.75",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-1",
+    "voiceId": "JBFqnCBsd6RMkjVDRZzb",
+    "speed": 0.75,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-1/JBFqnCBsd6RMkjVDRZzb/0.75.mp3",
+    "integrity": {
+      "bytes": 42675,
+      "sha256": "c5c2ba7d7343ffcf526502deb2b561c78a677a0bdbd214c431bb7e08200c830c"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-1--JBFqnCBsd6RMkjVDRZzb--0.9",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-1",
+    "voiceId": "JBFqnCBsd6RMkjVDRZzb",
+    "speed": 0.9,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-1/JBFqnCBsd6RMkjVDRZzb/0.9.mp3",
+    "integrity": {
+      "bytes": 34316,
+      "sha256": "9bcb9700d7026e16dfad870c7b2883fce0211c469978d553bec5f73745cc9259"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-1--JBFqnCBsd6RMkjVDRZzb--1",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-1",
+    "voiceId": "JBFqnCBsd6RMkjVDRZzb",
+    "speed": 1,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-1/JBFqnCBsd6RMkjVDRZzb/1.mp3",
+    "integrity": {
+      "bytes": 30973,
+      "sha256": "323869ac81958886f74eabd3dfca16959ae311612640af3bb6fba6e6a37f06a2"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-1--XrExE9yKIg1WjnnlVkGX--0.75",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-1",
+    "voiceId": "XrExE9yKIg1WjnnlVkGX",
+    "speed": 0.75,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-1/XrExE9yKIg1WjnnlVkGX/0.75.mp3",
+    "integrity": {
+      "bytes": 41004,
+      "sha256": "f1d95ab4bf8eae691ec669f02d2c6dd969cc99aa7e558de0769a6b7dd1b7db48"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-1--XrExE9yKIg1WjnnlVkGX--0.9",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-1",
+    "voiceId": "XrExE9yKIg1WjnnlVkGX",
+    "speed": 0.9,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-1/XrExE9yKIg1WjnnlVkGX/0.9.mp3",
+    "integrity": {
+      "bytes": 33062,
+      "sha256": "c19a74e4d8ce994a9df534e8f6487031f05ff82a319b682431761bc35b31155f"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-1--XrExE9yKIg1WjnnlVkGX--1",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-1",
+    "voiceId": "XrExE9yKIg1WjnnlVkGX",
+    "speed": 1,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-1/XrExE9yKIg1WjnnlVkGX/1.mp3",
+    "integrity": {
+      "bytes": 30137,
+      "sha256": "6cbdcda047365281682ac37665c7371995910272e82916a60953d5fc0af6c14d"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-1--cjVigY5qzO86Huf0OWal--0.75",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-1",
+    "voiceId": "cjVigY5qzO86Huf0OWal",
+    "speed": 0.75,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-1/cjVigY5qzO86Huf0OWal/0.75.mp3",
+    "integrity": {
+      "bytes": 38078,
+      "sha256": "e3f9503a1366838013c578a310f31d5f4f861f94ac695978ab562e99612e5a0d"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-1--cjVigY5qzO86Huf0OWal--0.9",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-1",
+    "voiceId": "cjVigY5qzO86Huf0OWal",
+    "speed": 0.9,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-1/cjVigY5qzO86Huf0OWal/0.9.mp3",
+    "integrity": {
+      "bytes": 29301,
+      "sha256": "8fc194f17415a16308b188b243ab8a18bc0f74b857aeae42673c3a8ee2dd7a2b"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-1--cjVigY5qzO86Huf0OWal--1",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-1",
+    "voiceId": "cjVigY5qzO86Huf0OWal",
+    "speed": 1,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-1/cjVigY5qzO86Huf0OWal/1.mp3",
+    "integrity": {
+      "bytes": 29301,
+      "sha256": "612df693a951fbbc029bcdcdacd8271a83e3daf429942dd2f967fa0b7cec55a7"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-2--CwhRBWXzGAHq8TQ4Fs17--0.75",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-2",
+    "voiceId": "CwhRBWXzGAHq8TQ4Fs17",
+    "speed": 0.75,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-2/CwhRBWXzGAHq8TQ4Fs17/0.75.mp3",
+    "integrity": {
+      "bytes": 33898,
+      "sha256": "608ad3c0992ebd8660eaeb7f0bfb09ad42452ddb3491886a014d5b9b116448f9"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-2--CwhRBWXzGAHq8TQ4Fs17--0.9",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-2",
+    "voiceId": "CwhRBWXzGAHq8TQ4Fs17",
+    "speed": 0.9,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-2/CwhRBWXzGAHq8TQ4Fs17/0.9.mp3",
+    "integrity": {
+      "bytes": 27629,
+      "sha256": "0d117c6db97bf45c2fb38ed9b715a2d93765bf30e8905cda7f94b506f39e1547"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-2--CwhRBWXzGAHq8TQ4Fs17--1",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-2",
+    "voiceId": "CwhRBWXzGAHq8TQ4Fs17",
+    "speed": 1,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-2/CwhRBWXzGAHq8TQ4Fs17/1.mp3",
+    "integrity": {
+      "bytes": 25539,
+      "sha256": "5585042c7496d2d2a13925a1b18187afcb8844a4bb569335e8b0f2fad3c70216"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-2--EXAVITQu4vr4xnSDxMaL--0.75",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-2",
+    "voiceId": "EXAVITQu4vr4xnSDxMaL",
+    "speed": 0.75,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-2/EXAVITQu4vr4xnSDxMaL/0.75.mp3",
+    "integrity": {
+      "bytes": 33062,
+      "sha256": "dbeb202d0145d5ba5b84e617f6cc915e58412af8751058ad766eae739b662680"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-2--EXAVITQu4vr4xnSDxMaL--0.9",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-2",
+    "voiceId": "EXAVITQu4vr4xnSDxMaL",
+    "speed": 0.9,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-2/EXAVITQu4vr4xnSDxMaL/0.9.mp3",
+    "integrity": {
+      "bytes": 26375,
+      "sha256": "c149e132059547ea047c8ed68b284d1e7270fb7665d6a0060f20dd2df68cd228"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-2--EXAVITQu4vr4xnSDxMaL--1",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-2",
+    "voiceId": "EXAVITQu4vr4xnSDxMaL",
+    "speed": 1,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-2/EXAVITQu4vr4xnSDxMaL/1.mp3",
+    "integrity": {
+      "bytes": 25539,
+      "sha256": "cb7d2a2397d0fc3023b8c159df87f81e0aead7e71c98dba5561c00b1c26e06ea"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-2--JBFqnCBsd6RMkjVDRZzb--0.75",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-2",
+    "voiceId": "JBFqnCBsd6RMkjVDRZzb",
+    "speed": 0.75,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-2/JBFqnCBsd6RMkjVDRZzb/0.75.mp3",
+    "integrity": {
+      "bytes": 34316,
+      "sha256": "cf5089cf6c5d553245c0de9b1ca45d71043d33b5ac6812a0c078796c58c66f0f"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-2--JBFqnCBsd6RMkjVDRZzb--0.9",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-2",
+    "voiceId": "JBFqnCBsd6RMkjVDRZzb",
+    "speed": 0.9,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-2/JBFqnCBsd6RMkjVDRZzb/0.9.mp3",
+    "integrity": {
+      "bytes": 27211,
+      "sha256": "3875caf04ea901b575919b9f6f0fd3de51ba408f94d0fb5bdcec574c5429f3ae"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-2--JBFqnCBsd6RMkjVDRZzb--1",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-2",
+    "voiceId": "JBFqnCBsd6RMkjVDRZzb",
+    "speed": 1,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-2/JBFqnCBsd6RMkjVDRZzb/1.mp3",
+    "integrity": {
+      "bytes": 25539,
+      "sha256": "819f5ceaebd392e566f478fd0c55088ae4e71e56e5bc7b0607e416a5e8583f83"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-2--XrExE9yKIg1WjnnlVkGX--0.75",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-2",
+    "voiceId": "XrExE9yKIg1WjnnlVkGX",
+    "speed": 0.75,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-2/XrExE9yKIg1WjnnlVkGX/0.75.mp3",
+    "integrity": {
+      "bytes": 33062,
+      "sha256": "979831c1586aa32e96c74f4f9dbc3195f305139e8a98655479b8c23d44a2d66f"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-2--XrExE9yKIg1WjnnlVkGX--0.9",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-2",
+    "voiceId": "XrExE9yKIg1WjnnlVkGX",
+    "speed": 0.9,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-2/XrExE9yKIg1WjnnlVkGX/0.9.mp3",
+    "integrity": {
+      "bytes": 27211,
+      "sha256": "61118d3b5a4fc8b855f0ffd67397808768aa2109609e3533a73d33827e2ce34e"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-2--XrExE9yKIg1WjnnlVkGX--1",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-2",
+    "voiceId": "XrExE9yKIg1WjnnlVkGX",
+    "speed": 1,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-2/XrExE9yKIg1WjnnlVkGX/1.mp3",
+    "integrity": {
+      "bytes": 25539,
+      "sha256": "b8f84e85e979e89c505987787fc228ee90b2495f6c30758fa5231a8d8c7d6264"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-2--cjVigY5qzO86Huf0OWal--0.75",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-2",
+    "voiceId": "cjVigY5qzO86Huf0OWal",
+    "speed": 0.75,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-2/cjVigY5qzO86Huf0OWal/0.75.mp3",
+    "integrity": {
+      "bytes": 30973,
+      "sha256": "8ddebcae03522cef7e54bea7a138ae3a1e56288bf3f49c8e2d9c4893efc096f7"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-2--cjVigY5qzO86Huf0OWal--0.9",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-2",
+    "voiceId": "cjVigY5qzO86Huf0OWal",
+    "speed": 0.9,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-2/cjVigY5qzO86Huf0OWal/0.9.mp3",
+    "integrity": {
+      "bytes": 23449,
+      "sha256": "d82ccc018d3aa0b63147b97d1dcb05cd9b93df46ceb6e1f1651f4b23907a13ae"
+    }
+  },
+  {
+    "id": "c-sentido-rotonda--c-sentido-rotonda-supplementary-2--cjVigY5qzO86Huf0OWal--1",
+    "commandId": "c-sentido-rotonda",
+    "phrasingId": "c-sentido-rotonda-supplementary-2",
+    "voiceId": "cjVigY5qzO86Huf0OWal",
+    "speed": 1,
+    "provider": "elevenlabs",
+    "model": "eleven_multilingual_v2",
+    "path": "audio/c-sentido-rotonda/c-sentido-rotonda-supplementary-2/cjVigY5qzO86Huf0OWal/1.mp3",
+    "integrity": {
+      "bytes": 23449,
+      "sha256": "16aac5c14cd052c37faff115daaffac3498f82ebb151d7480216d6220a55245e"
+    }
+  },
+  {
     "id": "c-rot4--c-rot4-canonical--CwhRBWXzGAHq8TQ4Fs17--0.75",
     "commandId": "c-rot4",
     "phrasingId": "c-rot4-canonical",

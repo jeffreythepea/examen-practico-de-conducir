@@ -164,10 +164,11 @@ test('selectThemeCommands returns deeply frozen caller-independent values', asyn
 
 test('selectThemeCommands filters by theme criteria', async () => {
   const commands = JSON.parse(await readFile(new URL('../data/commands.json', import.meta.url), 'utf8'));
-  // Test that roundabout-circuit only returns roundabout exits
+  // Roundabout circuit contains the three numbered exits and its distinct return.
   const roundaboutResult = selectThemeCommands(commands, 'roundabout-circuit', 20, () => 0.5);
   for (const command of roundaboutResult) {
-    assert.equal(command.actionId.startsWith('roundabout-exit-'), true);
+    assert.ok(command.actionId.startsWith('roundabout-exit-')
+      || command.actionId === 'roundabout-change-direction');
   }
   // Test that precheck-inspection only returns precheck phase
   const precheckResult = selectThemeCommands(commands, 'precheck-inspection', 20, () => 0.5);
@@ -176,7 +177,7 @@ test('selectThemeCommands filters by theme criteria', async () => {
   }
   // Test that full-mock returns all commands
   const fullMockResult = selectThemeCommands(commands, 'full-mock', commands.length, () => 0.5);
-  assert.equal(fullMockResult.length, commands.length);
+  assert.equal(fullMockResult.length, commands.filter(command => command.active !== false).length);
 });
 
 test('every theme has the approved stable command composition', async () => {
@@ -190,8 +191,8 @@ test('every theme has the approved stable command composition', async () => {
       'park', 'turn-left', 'turn-right', 'voluntary-stop'
     ],
     'roundabout-circuit': [
-      'roundabout-exit-1', 'roundabout-exit-2', 'roundabout-exit-3',
-      'roundabout-exit-4', 'roundabout-exit-5'
+      'roundabout-change-direction', 'roundabout-exit-1', 'roundabout-exit-2',
+      'roundabout-exit-3'
     ],
     manoeuvres: [
       'change-direction', 'involuntary-stop', 'overtake', 'park',
@@ -211,7 +212,7 @@ test('every theme has the approved stable command composition', async () => {
   const fullMock = selectThemeCommands(commands, 'full-mock', commands.length, () => 0.5);
   assert.deepEqual(
     fullMock.map(({ id }) => id).sort(),
-    commands.map(({ id }) => id).sort()
+    commands.filter(command => command.active !== false).map(({ id }) => id).sort()
   );
 });
 
@@ -232,7 +233,9 @@ test('selectThemeCommands preserves original command values in independent copie
 test('eligibility filters without shuffling, truncating, duplicating, or mutating', async () => {
   const commands = JSON.parse(await readFile(new URL('../data/commands.json', import.meta.url), 'utf8'));
   const before = structuredClone(commands);
-  const expected = commands.filter(command => command.actionId.startsWith('roundabout-exit-'));
+  const expected = commands.filter(command => command.active !== false
+    && (command.actionId.startsWith('roundabout-exit-')
+      || command.actionId === 'roundabout-change-direction'));
 
   const eligible = eligibleCommandsForTheme(commands, 'roundabout-circuit');
   assert.deepEqual(eligible.map(({ id }) => id), expected.map(({ id }) => id));

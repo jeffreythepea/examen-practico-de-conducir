@@ -1,4 +1,5 @@
 import { masteryForAction } from './training.js';
+import { activeCommands } from './catalog.js';
 
 export const READINESS_STATES = Object.freeze([
   'ready', 'in-progress', 'needs-practice', 'not-tested'
@@ -100,7 +101,7 @@ function groupBy(items, keyFn) {
 export function readinessForCatalog(commands, attempts, lessonFlags = [], now = Date.now()) {
   const attemptsByCommand = groupBy(attempts, attempt => attempt.commandId);
   const attemptsByAction = groupBy(attempts, attempt => attempt.actionId);
-  const records = commands.map(command =>
+  const records = activeCommands(commands).map(command =>
     readinessForCommand(command, attempts, lessonFlags, now, {
       commandAttempts: attemptsByCommand.get(command.id) ?? [],
       actionAttempts: attemptsByAction.get(command.actionId) ?? []

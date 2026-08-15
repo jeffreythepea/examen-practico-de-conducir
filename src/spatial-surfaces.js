@@ -1,6 +1,5 @@
 import { createSurfaceModel, seededRandom } from './surface-model.js';
 import { drivingScene } from './driving-scenes.js';
-import { renderPostAnswerMotion } from './post-answer-motion-view.js';
 import {
   assertNonOverlappingTargets,
   jitterAngle,
@@ -11,6 +10,25 @@ import {
 
 const FOUR_EXIT_ANGLES = Object.freeze([-12, -83, -163, -206]);
 const FIVE_EXIT_ANGLES = Object.freeze([24, -22, -90, -154, -200]);
+const ACTIVE_ROUNDABOUT_RESULTS = Object.freeze([
+  'roundabout-exit-1',
+  'roundabout-exit-2',
+  'roundabout-exit-3',
+  'roundabout-change-direction'
+]);
+const ACTIVE_ROUNDABOUT_SCENE = Object.freeze({
+  sceneId: 'roundabout-four-photo-v3',
+  angles: Object.freeze([0, -90, -180, -270]),
+  routeCircle: Object.freeze({ x: 50, y: 39, radius: 19 }),
+  targetAnchors: Object.freeze([
+    Object.freeze({ id: 'exit-1', resultId: 'roundabout-exit-1', x: 87, y: 38 }),
+    Object.freeze({ id: 'exit-2', resultId: 'roundabout-exit-2', x: 54, y: 13 }),
+    Object.freeze({ id: 'exit-3', resultId: 'roundabout-exit-3', x: 13, y: 38 }),
+    // Outbound lane for a vehicle travelling toward the foreground. The box
+    // remains left of both the splitter and the inbound half of the branch.
+    Object.freeze({ id: 'return-through-entry', resultId: 'roundabout-change-direction', x: 41, y: 88 })
+  ])
+});
 const ROUNDABOUT_SCENES = Object.freeze({
   4: Object.freeze({
     sceneId: 'roundabout-four-photo-v2',
@@ -67,6 +85,7 @@ const ROAD_LABELS = Object.freeze({
     'roundabout-exit-3': 'third exit',
     'roundabout-exit-4': 'fourth exit',
     'roundabout-exit-5': 'fifth exit',
+    'roundabout-change-direction': 'change direction through the entry branch',
     targetLabel: Object.freeze({
       left: 'Left road',
       straight: 'Road straight ahead',
@@ -75,7 +94,8 @@ const ROAD_LABELS = Object.freeze({
       'roundabout-exit-2': 'Second exit',
       'roundabout-exit-3': 'Third exit',
       'roundabout-exit-4': 'Fourth exit',
-      'roundabout-exit-5': 'Fifth exit'
+      'roundabout-exit-5': 'Fifth exit',
+      'return-through-entry': 'Change direction through the entry branch'
     })
   }),
   es: Object.freeze({
@@ -91,6 +111,7 @@ const ROAD_LABELS = Object.freeze({
     'roundabout-exit-3': 'tercera salida',
     'roundabout-exit-4': 'cuarta salida',
     'roundabout-exit-5': 'quinta salida',
+    'roundabout-change-direction': 'cambio de sentido por el ramal de entrada',
     targetLabel: Object.freeze({
       left: 'Vía izquierda',
       straight: 'Vía recta al frente',
@@ -99,7 +120,8 @@ const ROAD_LABELS = Object.freeze({
       'roundabout-exit-2': 'Segunda salida',
       'roundabout-exit-3': 'Tercera salida',
       'roundabout-exit-4': 'Cuarta salida',
-      'roundabout-exit-5': 'Quinta salida'
+      'roundabout-exit-5': 'Quinta salida',
+      'return-through-entry': 'Cambio de sentido por el ramal de entrada'
     })
   })
 });
@@ -117,6 +139,61 @@ export function generateSpatialSurface(command, seed, options = {}) {
     throw new Error(`Unsupported spatial surface: ${command?.surfaceId}`);
   }
 
+  if (command.active !== false) return generateActiveRoundabout(command, seed, options);
+  return generateLegacyRoundabout(command, seed, options);
+}
+
+function generateActiveRoundabout(command, seed, options) {
+  if (!ACTIVE_ROUNDABOUT_RESULTS.includes(command?.acceptedResult)
+      || command.actionId !== command.acceptedResult) {
+    throw new Error(`Unsupported active roundabout action: ${command?.actionId}`);
+  }
+  if (options.exitCount !== undefined && options.exitCount !== 3) {
+    throw new Error('Active roundabouts have exactly three numbered exits');
+  }
+  const rng = seededRandom(seed);
+  const scene = ACTIVE_ROUNDABOUT_SCENE;
+  const angles = scene.angles.map(angle => jitterAngle(angle, ROUTE_ANGLE_JITTER, rng));
+  const targets = scene.targetAnchors.map(anchor => roadResultTarget(anchor, rng));
+  const exitJoins = angles.map(angle => polarPoint(
+    scene.routeCircle.x,
+    scene.routeCircle.y,
+    scene.routeCircle.radius,
+    angle
+  ));
+  assertNonOverlappingTargets(targets);
+  const correctIndex = targets.findIndex(target => target.resultId === command.acceptedResult);
+  const correctRoute = roundaboutRoute(
+    scene.routeCircle,
+    angles[correctIndex],
+    exitJoins[correctIndex],
+    targets[correctIndex],
+    { x: 56, y: 100 }
+  );
+
+  return createSurfaceModel({
+    id: `roundabout-v2:${seed}`,
+    family: 'roundabout',
+    version: 2,
+    seed,
+    expectedResult: command.acceptedResult,
+    targets,
+    geometry: {
+      entry: 'bottom',
+      physicalBranchCount: 4,
+      numberedExitCount: 3,
+      exitCount: 3,
+      angles,
+      exitJoins,
+      correctRoute,
+      routeCircle: scene.routeCircle,
+      sceneId: scene.sceneId
+    },
+    meta: { commandId: command.id }
+  });
+}
+
+function generateLegacyRoundabout(command, seed, options) {
   const ordinal = roundaboutOrdinal(command);
   const rng = seededRandom(seed);
   // Sequential seeds correlate in the PRNG's first sample; warm it once so
@@ -179,12 +256,10 @@ export function renderSpatialSurface(model, locale, state = {}) {
   }
   const labels = locale === 'es' ? ROAD_LABELS.es : ROAD_LABELS.en;
   const surfaceId = `${model.family}-v2`;
-  const postAnswerMotion = renderPostAnswerMotion(state.postAnswerMotion);
-  // The car glyph is the whole route indicator once it's eligible to animate;
-  // the static line is only a fallback for ineligible/reduced-motion cases.
-  // A controller-confirmed playable clip draws neither.
-  const route = state.reveal && !postAnswerMotion
-    && state.turnClipWillPlay !== true
+  // A playable clip demonstrates the route. Every other reveal—including
+  // reduced motion, Road movement Off, video failure, and retired saved
+  // commands—keeps the static route as its accessible fallback.
+  const route = state.reveal && state.turnClipWillPlay !== true
     ? `<path data-correct-route d="${escapeAttribute(svgRoadPath(model.geometry.correctRoute))}"/>`
     : '';
   const targets = model.targets.map(target => roadTargetButton(target, labels, model.expectedResult, state)).join('');
@@ -201,7 +276,6 @@ export function renderSpatialSurface(model, locale, state = {}) {
       ${roadDrawing(model)}
       ${route}
     </svg>
-    ${postAnswerMotion}
     ${targets}`;
   const roadMotion = validRoadMotion(state.motion);
   const renderedScene = roadMotion
@@ -310,6 +384,16 @@ function roadExitTarget(ordinal, anchor, rng) {
   );
 }
 
+function roadResultTarget(anchor, rng) {
+  return targetBox(
+    anchor.id,
+    anchor.resultId,
+    jitterRoadMouthCoordinate(anchor.x, rng),
+    jitterRoadMouthCoordinate(anchor.y, rng),
+    STAGE
+  );
+}
+
 function jitterRoadMouthCoordinate(base, rng) {
   return Math.round((base + (rng() * 2 - 1) * ROAD_MOUTH_JITTER) * 100) / 100;
 }
@@ -336,12 +420,12 @@ function roadDrawing(model) {
     <path d="M 50 98 L 50 80" class="road-marking"/>`;
 }
 
-function roundaboutRoute(circle, exitAngle, exitJoin, target) {
+function roundaboutRoute(circle, exitAngle, exitJoin, target, entry = { x: 50, y: 100 }) {
   const entryAngle = 90;
   const angleDelta = exitAngle - entryAngle;
   const segmentCount = Math.ceil(Math.abs(angleDelta) / 12);
   const route = [
-    { x: 50, y: 100 },
+    entry,
     polarPoint(circle.x, circle.y, circle.radius, entryAngle)
   ];
   for (let segment = 1; segment < segmentCount; segment += 1) {

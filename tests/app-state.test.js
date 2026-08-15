@@ -6,7 +6,6 @@ import {
   buildManifestIndex,
   captureFocusSnapshot,
   commandOnsetDelayMs,
-  createSavedPostAnswerMotion,
   effectiveSessionSettings,
   feedbackCueForTransition,
   focusScreen,
@@ -26,7 +25,6 @@ import {
   sessionStartEligibility,
   turnClipWillDemonstrateReveal
 } from '../src/app.js';
-import { createPostAnswerMotion } from '../src/post-answer-motion.js';
 import { EXAMINERS, selectTodaysExaminer } from '../src/examiners.js';
 import { defaultState, loadState, saveState } from '../src/storage.js';
 import { renderSurfaceModel } from '../src/surfaces.js';
@@ -89,7 +87,7 @@ const motionCommands = Object.freeze([
       surfaceId: 'roundabout-v2',
       phrasings: [{ id: 'c-rot2-canonical', es: 'Segunda salida', en: 'second exit' }]
     }),
-    'roundabout-four-photo-v2'
+    'roundabout-four-photo-v3'
   ],
   [
     Object.freeze({
@@ -417,60 +415,6 @@ test('moving junction waits at approach end and freezes on answers and timeouts'
   assert.equal(timed.roadMotion.frozenProgress, 0.75);
 });
 
-test('saved correct immediate reveals alone qualify for bounded post-answer movement', () => {
-  const revealed = reduceScreen(promptModel(), {
-    type: 'SELECT_RESULT', selectedResult: 'turn-right', completedAt: 1_500
-  });
-  const correctAttempt = { outcome: 'unaided' };
-  const assistedAttempt = { outcome: 'assisted' };
-
-  // The four-way junction scene is clip-backed, which itself suppresses the
-  // glyph; the positive path needs a scene without a registered turn clip.
-  const clipless = {
-    ...revealed,
-    activeSurfaceModel: {
-      ...revealed.activeSurfaceModel,
-      geometry: { ...revealed.activeSurfaceModel.geometry, sceneId: 'junction-plate-v1' }
-    }
-  };
-
-  for (const attempt of [correctAttempt, assistedAttempt]) {
-    const motion = createSavedPostAnswerMotion({
-      screenModel: clipless,
-      attempt,
-      roadMovement: true,
-      reducedMotion: false,
-      startedAt: 2_000
-    });
-    assert.equal(motion.phase, 'running');
-    assert.equal(motion.family, 'junction');
-    assert.notStrictEqual(motion.route, revealed.activeSurfaceModel.geometry.correctRoute);
-    assert.deepEqual(motion.route, revealed.activeSurfaceModel.geometry.correctRoute);
-  }
-
-  for (const override of [
-    { attempt: { outcome: 'incorrect' } },
-    { attempt: null },
-    { roadMovement: false },
-    { reducedMotion: true },
-    { screenModel: { ...clipless, screen: 'mock-transition' } },
-    { screenModel: { ...clipless, experience: { revealPolicy: 'session-end' } } },
-    { screenModel: { ...clipless, activeSurfaceModel: { family: 'wheel', geometry: clipless.activeSurfaceModel.geometry } } },
-    // A controller-confirmed clip supersedes the glyph.
-    { screenModel: revealed, turnClipWillPlay: true }
-  ]) {
-    const motion = createSavedPostAnswerMotion({
-      screenModel: clipless,
-      attempt: correctAttempt,
-      roadMovement: true,
-      reducedMotion: false,
-      startedAt: 2_000,
-      ...override
-    });
-    assert.equal(motion.phase, 'static');
-  }
-});
-
 test('turn-clip reveal eligibility owns the mutually exclusive presentation policy', () => {
   const junction = generateSurfaceWithRetries(
     { id: 'c-izq', actionId: 'turn-left', acceptedResult: 'turn-left', surfaceId: 'junction-v2' }, 11
@@ -492,53 +436,27 @@ test('turn-clip reveal eligibility owns the mutually exclusive presentation poli
   ]) assert.equal(turnClipWillDemonstrateReveal({ ...playable, ...override }), false);
 });
 
-test('the answer glyph follows controller-owned turn-clip eligibility across the whole catalog', () => {
-  // Device pass 2026-08-14 reported the glyph still animating on junction
-  // reveals. The single dispatch site builds its motion through
-  // createSavedPostAnswerMotion — the "saved" name notwithstanding, that is
-  // the live answer path — so pin the invariant for every command the
-  // catalog can serve, not just the one junction result spot-checked above:
-  // a registered clip suppresses the glyph, an unregistered scene keeps it.
+test('every active route-backed catalog command has a registered clip', () => {
   let clipBacked = 0;
-  let glyphBacked = 0;
-  for (const command of commands) {
+  for (const command of commands.filter(candidate => candidate.active !== false)) {
     const { model: surface } = generateSurfaceWithRetries(command, 11);
     if (!surface?.geometry?.correctRoute) continue;
-    const motion = createSavedPostAnswerMotion({
-      screenModel: {
-        screen: 'reveal',
-        correct: true,
-        timeout: false,
-        experience: { revealPolicy: 'per-question' },
-        activeSurfaceModel: surface
-      },
-      attempt: { outcome: 'unaided' },
-      roadMovement: true,
-      reducedMotion: false,
-      turnClipWillPlay: hasTurnClip(surface.geometry.sceneId, surface.expectedResult),
-      startedAt: 2_000
-    });
-    const suppressed = hasTurnClip(surface.geometry.sceneId, surface.expectedResult);
-    if (suppressed) clipBacked += 1;
-    else glyphBacked += 1;
-    assert.equal(
-      motion.phase,
-      suppressed ? 'static' : 'running',
-      `${command.id} (${surface.geometry.sceneId} / ${surface.expectedResult})`
-    );
+    assert.equal(hasTurnClip(surface.geometry.sceneId, surface.expectedResult), true,
+      `${command.id} (${surface.geometry.sceneId} / ${surface.expectedResult})`);
+    clipBacked += 1;
   }
-  // Both arms must actually be exercised, or the assertion above proves nothing.
-  assert.ok(clipBacked >= 3, `expected clip-backed commands, saw ${clipBacked}`);
-  assert.ok(glyphBacked > 0, `expected glyph-backed commands, saw ${glyphBacked}`);
+  assert.ok(clipBacked >= 9, `expected the complete route-backed catalog, saw ${clipBacked}`);
 });
 
-test('a clip-backed reveal advances itself after the dwell the glyph would have taken', () => {
+test('a clip-backed reveal advances itself after the reviewed result-reading dwell', () => {
   const junction = generateSurfaceWithRetries(
     { id: 'c-izq', actionId: 'turn-left', acceptedResult: 'turn-left', surfaceId: 'junction-v2' }, 11
   ).model;
   const parking = generateSurfaceWithRetries(
     { id: 'c-est', actionId: 'park', acceptedResult: 'park', surfaceId: 'parking-v1' }, 11
   ).model;
+  const uTurn = generateSurfaceWithRetries(commands.find(command => command.id === 'c-sentido'), 11).model;
+  const joinTraffic = generateSurfaceWithRetries(commands.find(command => command.id === 'c-incorp'), 11).model;
   const eligible = {
     screenModel: {
       screen: 'reveal',
@@ -563,13 +481,21 @@ test('a clip-backed reveal advances itself after the dwell the glyph would have 
     ...eligible,
     screenModel: { ...eligible.screenModel, activeSurfaceModel: parking }
   }), 1_450 + 1_200);
+  assert.equal(revealAutoAdvanceMs({
+    ...eligible,
+    screenModel: { ...eligible.screenModel, activeSurfaceModel: uTurn }
+  }), 1_800 + 1_200);
+  assert.equal(revealAutoAdvanceMs({
+    ...eligible,
+    screenModel: { ...eligible.screenModel, activeSurfaceModel: joinTraffic }
+  }), 1_100 + 1_200);
 
   const clipless = {
     ...junction,
     geometry: { ...junction.geometry, sceneId: 'junction-plate-v1' }
   };
   for (const override of [
-    // No clip: the glyph plays and the learner keeps the tap.
+    // No clip: the static route remains and the learner keeps the tap.
     { screenModel: { ...eligible.screenModel, activeSurfaceModel: clipless } },
     { attempt: { outcome: 'incorrect' } },
     { attempt: null },
@@ -633,47 +559,6 @@ test('a silent junction answered correctly carries the straight clip into its tr
   assert.equal(reduceScreen(missed, {
     type: 'CONTINUITY_SYNC', index: 0, stepKind: 'transition', sceneId: 'urban-cruise'
   }).turnThrough, null);
-});
-
-test('a reveal never both draws the glyph and advances itself', () => {
-  for (const command of commands) {
-    const { model: surface } = generateSurfaceWithRetries(command, 11);
-    if (!surface?.geometry?.correctRoute) continue;
-    const screenModel = {
-      screen: 'reveal',
-      correct: true,
-      timeout: false,
-      continuityActive: true,
-      experience: { revealPolicy: 'per-question' },
-      activeSurfaceModel: surface
-    };
-    const shared = { screenModel, attempt: { outcome: 'unaided' }, roadMovement: true, reducedMotion: false };
-    const glyph = createSavedPostAnswerMotion({ ...shared, startedAt: 2_000 }).phase === 'running';
-    const advances = revealAutoAdvanceMs(shared) !== null;
-    assert.equal(glyph && advances, false, `${command.id} must not do both`);
-    assert.equal(glyph || advances, true, `${command.id} reveal must have motion or a dwell`);
-  }
-});
-
-test('post-answer motion reducer state survives locale rerender and clears on Continue', () => {
-  const revealed = reduceScreen(promptModel(), {
-    type: 'SELECT_RESULT', selectedResult: 'turn-right', completedAt: 1_500
-  });
-  const motion = createPostAnswerMotion({
-    eligible: true,
-    family: 'junction',
-    route: revealed.activeSurfaceModel.geometry.correctRoute,
-    startedAt: 2_000,
-    durationMs: 1_300
-  });
-  const started = reduceScreen(revealed, { type: 'POST_ANSWER_MOTION_STARTED', motion });
-  assert.strictEqual(started.postAnswerMotion, motion);
-  assert.strictEqual(reduceScreen(started, { type: 'SET_LOCALE', locale: 'es' }).postAnswerMotion, motion);
-  assert.equal(reduceScreen(started, { type: 'CONTINUE' }).postAnswerMotion.phase, 'static');
-  assert.strictEqual(
-    reduceScreen(promptModel(), { type: 'POST_ANSWER_MOTION_STARTED', motion }).postAnswerMotion.phase,
-    'static'
-  );
 });
 
 test('initial moving audio failure is unscored and all trial resets clear motion fields', () => {

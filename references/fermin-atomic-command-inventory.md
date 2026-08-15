@@ -120,9 +120,10 @@ classification so implementation does not need the PDF.
 | `c-est` | 5 | same grouped line | `Realice un estacionamiento` | spoken maneuver | `source-derived` expansion; preserve ID |
 | `c-inmov` | 5 | `Inmovilice el vehículo` | same | spoken multi-step maneuver | `verbatim` |
 | `c-final` | 5 | `Finalización del examen` | same | exam-state recognition | `verbatim` heading; spoken use unverified |
-| `c-rot4` | 6 | `Primera (segunda, tercera, cuarta, quinta) salida` | `Cuarta salida` | terminology/direction recognition | `source-derived` expansion; preserve ID |
-| `c-rot5` | 6 | same grouped line | `Quinta salida` | terminology/direction recognition | `source-derived` expansion |
+| `c-rot4` | 6 | `Primera (segunda, tercera, cuarta, quinta) salida` | `Cuarta salida` | terminology/direction recognition | `source-derived` expansion; retired from new sessions; preserve ID |
+| `c-rot5` | 6 | same grouped line | `Quinta salida` | terminology/direction recognition | `source-derived` expansion; retired from new sessions; preserve ID |
 | `c-sentido` | 6 | `Cambio de sentido` | same | terminology/maneuver recognition | `verbatim`; preserve ID |
+| `c-sentido-rotonda` | 6 | `Cambio de sentido` | same wording, roundabout context | roundabout maneuver recognition | distinct stable action/surface; checksum-reuses identical approved audio |
 | `c-detencion` | 6 | `Detención` | same | terminology recognition | `verbatim` |
 | `c-adel` | 6 | `Adelantamiento` | same | terminology/maneuver recognition | `verbatim`; preserve ID |
 | `c-adapte` | 6 | `Adapte la velocidad a la vía` | same | spoken speed instruction | `verbatim` |

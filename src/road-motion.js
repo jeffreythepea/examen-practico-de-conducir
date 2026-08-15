@@ -10,6 +10,7 @@ export const ROAD_MOTION_PROFILES = deepFreeze({
   'four-way-intersection-photo-v1': { endScale: 1.06, originX: 50, originY: 82 },
   'roundabout-four-photo-v2': { endScale: 1.03, originX: 50, originY: 80 },
   'roundabout-five-photo-v1': { endScale: 1.03, originX: 50, originY: 80 },
+  'roundabout-four-photo-v3': { endScale: 1.03, originX: 50, originY: 80 },
   'u-turn-photo-v1': { endScale: 1.05, originX: 50, originY: 84 },
   'overtaking-photo-v1': { endScale: 1.18, originX: 54, originY: 86 },
   'join-traffic-photo-v1': { endScale: 1.06, originX: 66, originY: 84 },

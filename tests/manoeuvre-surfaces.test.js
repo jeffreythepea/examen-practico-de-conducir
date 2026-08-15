@@ -528,26 +528,12 @@ test('road motion wraps every photo-backed manoeuvre scene with its calibrated t
   }
 });
 
-test('parking and stopping show the car-glyph movement layer instead of the static route line once eligible', () => {
+test('playable manoeuvre clips suppress the static route and every fallback retains it', () => {
   for (const [action, surfaceId, family] of [
     ['park', 'parking-v1', 'parking'],
     ['voluntary-stop', 'stopping-v1', 'stopping']
   ]) {
     const model = generateManoeuvreSurface(command(action, surfaceId), 12);
-    const markup = renderManoeuvreSurface(model, 'en', {
-      disabled: true,
-      reveal: true,
-      postAnswerMotion: {
-        phase: 'running', family, progress: 0.5, moving: true,
-        durationMs: 1_400, elapsedMs: 700, remainingMs: 700,
-        route: model.geometry.correctRoute
-      }
-    });
-    assert.match(markup, /class="post-answer-motion"[\s\S]*class="manoeuvre-target"/);
-    assert.match(markup, /<animateMotion[^>]*begin="-700ms"/);
-    // "car only, no trail" — the static ghost route is dropped once the car glyph is eligible.
-    assert.doesNotMatch(markup, /data-correct-route/);
-
     // Registry membership is not playback. The controller explicitly says
     // whether this reveal will enter the clip-backed transition.
     const playableClip = renderManoeuvreSurface(model, 'en', {
@@ -558,7 +544,7 @@ test('parking and stopping show the car-glyph movement layer instead of the stat
       disabled: true, reveal: true, turnClipWillPlay: false
     });
     assert.match(staticFallback, /data-correct-route/);
-    assert.doesNotMatch(staticFallback, /class="post-answer-motion"/);
+    assert.doesNotMatch(staticFallback, /animateMotion/);
   }
 });
 
@@ -604,7 +590,7 @@ test('production activation includes every eligible manoeuvre and only three sem
     assert.equal(commands.find(item => item.id === id).surfaceId, surfaceId);
   }
 
-  assert.deepEqual(supportedCommands(commands), commands);
+  assert.deepEqual(supportedCommands(commands), commands.filter(command => command.active !== false));
 });
 
 function targetButtonMarkup(markup, targetId) {

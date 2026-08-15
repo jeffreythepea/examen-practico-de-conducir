@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { TURN_CLIPS, turnThroughIntro } from '../src/turn-through.js';
 
 const TARGETS = Object.freeze([
@@ -182,8 +184,11 @@ test('registers immutable turn and manoeuvre clips with stable IDs and illustrat
   assert.ok(Object.isFrozen(TURN_CLIPS));
   assert.deepEqual(Object.keys(TURN_CLIPS).sort(), [
     'four-way-intersection-photo-v1',
+    'join-traffic-photo-v1',
     'overtaking-photo-v1',
     'parallel-parking-gap-photo-v1',
+    'roundabout-four-photo-v3',
+    'u-turn-photo-v1',
     'urban-roadside-photo-v2'
   ]);
   assert.deepEqual(Object.keys(TURN_CLIPS['four-way-intersection-photo-v1']).sort(),
@@ -191,6 +196,11 @@ test('registers immutable turn and manoeuvre clips with stable IDs and illustrat
   assert.deepEqual(Object.keys(TURN_CLIPS['parallel-parking-gap-photo-v1']), ['park']);
   assert.deepEqual(Object.keys(TURN_CLIPS['overtaking-photo-v1']), ['overtake']);
   assert.deepEqual(Object.keys(TURN_CLIPS['urban-roadside-photo-v2']), ['voluntary-stop']);
+  assert.deepEqual(Object.keys(TURN_CLIPS['u-turn-photo-v1']), ['change-direction']);
+  assert.deepEqual(Object.keys(TURN_CLIPS['join-traffic-photo-v1']), ['join-traffic']);
+  assert.deepEqual(Object.keys(TURN_CLIPS['roundabout-four-photo-v3']), [
+    'roundabout-exit-1', 'roundabout-exit-2', 'roundabout-exit-3', 'roundabout-change-direction'
+  ]);
   for (const clips of Object.values(TURN_CLIPS)) {
     for (const clip of Object.values(clips)) {
       assert.ok(Object.isFrozen(clip));
@@ -201,6 +211,54 @@ test('registers immutable turn and manoeuvre clips with stable IDs and illustrat
       assert.ok(Number.isFinite(clip.durationMs) && clip.durationMs > 0 && clip.durationMs <= 10_000);
       assert.ok(Number.isFinite(clip.holdMs) && clip.holdMs >= 0);
     }
+  }
+});
+
+test('every registered turn clip and poster is a nonempty packaged media asset', async () => {
+  for (const clips of Object.values(TURN_CLIPS)) {
+    for (const clip of Object.values(clips)) {
+      const [video, poster] = await Promise.all([
+        readFile(new URL(`../${clip.asset.slice(2)}`, import.meta.url)),
+        readFile(new URL(`../${clip.poster.slice(2)}`, import.meta.url))
+      ]);
+      assert.ok(video.length > 100_000, clip.videoId);
+      assert.equal(video.subarray(4, 8).toString('ascii'), 'ftyp', `${clip.videoId} must be MP4`);
+      assert.ok(poster.length > 10_000, clip.videoId);
+      assert.equal(poster.subarray(0, 4).toString('ascii'), 'RIFF', `${clip.videoId} poster must be WebP`);
+      assert.equal(poster.subarray(8, 12).toString('ascii'), 'WEBP', `${clip.videoId} poster must be WebP`);
+    }
+  }
+});
+
+test('approved final glyph-replacement media retains its frozen bytes and fast-start layout', async () => {
+  const approved = [
+    {
+      sceneId: 'u-turn-photo-v1',
+      resultId: 'change-direction',
+      durationMs: 6000,
+      videoSha256: '059f7c566ad5cc1e72d47c4f9f312deb37cc7b0be23023398ceed43e9be54b66',
+      posterSha256: 'fcf2c93c8a82c6374b1d59892d1239842399014411e5af82ff99cdde8699bd82'
+    },
+    {
+      sceneId: 'join-traffic-photo-v1',
+      resultId: 'join-traffic',
+      durationMs: 5000,
+      videoSha256: '5dc8133a06912d9d8cb968130bcbb42c809d59febf401b08e90dbb0aa6a715e1',
+      posterSha256: '45a82d0bcc63c3baae09f9fa0d596e3218303917e69b1521356b8842920d7038'
+    }
+  ];
+
+  for (const expected of approved) {
+    const clip = TURN_CLIPS[expected.sceneId][expected.resultId];
+    const [video, poster] = await Promise.all([
+      readFile(new URL(`../${clip.asset.slice(2)}`, import.meta.url)),
+      readFile(new URL(`../${clip.poster.slice(2)}`, import.meta.url))
+    ]);
+    assert.equal(clip.durationMs, expected.durationMs, clip.videoId);
+    assert.equal(createHash('sha256').update(video).digest('hex'), expected.videoSha256, clip.videoId);
+    assert.equal(createHash('sha256').update(poster).digest('hex'), expected.posterSha256, clip.videoId);
+    assert.ok(video.indexOf(Buffer.from('moov')) < video.indexOf(Buffer.from('mdat')),
+      `${clip.videoId} must keep fast-start metadata before media data`);
   }
 });
 

@@ -231,20 +231,15 @@ test('null events render silently with live targets and never reach attempt reco
   assert.doesNotMatch(binder, /recordAttempt|completeTrial|dispatchSurfaceEvent/);
 });
 
-test('correct post-answer movement starts only after saved scoring and remains presentation-only', async () => {
+test('scored reveal persists before rendering and contains no obsolete answer-glyph runtime', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
   const controller = source.slice(source.indexOf('function completeTrial(event)'), source.indexOf('function playFeedbackCue'));
   const saveIndex = controller.indexOf('persistState()');
-  const startIndex = controller.indexOf("type: 'POST_ANSWER_MOTION_STARTED'");
   const renderIndex = controller.lastIndexOf('render()');
 
-  assert.ok(saveIndex >= 0 && startIndex > saveIndex, 'movement must start only after the scored state is saved');
-  assert.ok(renderIndex > startIndex, 'the saved movement state must be installed before reveal rendering');
-  assert.match(source, /postAnswerMotionView\(model\.postAnswerMotion, Date\.now\(\)\)/);
-  assert.match(source, /postAnswerMotion,\s*\n\s*turnClipWillPlay\s*\n\s*\}\)\}/);
-  assert.match(source, /attempt:\s*result\.attempt/);
-  assert.match(source, /reducedMotion/);
-  assert.doesNotMatch(controller, /await .*postAnswer|setTimeout\([^)]*postAnswer/);
+  assert.ok(saveIndex >= 0 && renderIndex > saveIndex, 'scored state must persist before reveal rendering');
+  assert.doesNotMatch(source, /postAnswerMotion|POST_ANSWER_MOTION|post-answer-motion/);
+  assert.match(source, /turnClipWillPlay/);
 });
 
 test('the clip-backed reveal auto-advance is keyed to its attempt and yields to the flag editor', async () => {

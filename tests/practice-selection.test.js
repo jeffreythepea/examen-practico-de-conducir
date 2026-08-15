@@ -88,6 +88,20 @@ const FLAG_COMMANDS = [
   command('c-izq', 'turn-left'),
 ];
 
+test('retired commands are excluded from free, recommended, and targeted practice', () => {
+  const active = command('active', 'active-action');
+  const retired = { ...command('retired', 'retired-action'), active: false };
+  for (const target of [{ kind: 'free' }, { kind: 'recommended' }]) {
+    const selected = selectPracticeCommands([active, retired], {
+      phase: 'driving', length: 'all', target, rng: () => 0
+    });
+    assert.deepEqual(selected.map(({ id }) => id), ['active']);
+  }
+  assert.throws(() => selectPracticeCommands([active, retired], {
+    phase: 'driving', length: 'all', target: { kind: 'command', commandId: 'retired' }, rng: () => 0
+  }), /Command not found/);
+});
+
 test('recommended orders unseen before needs-practice before due before in-progress before ready', () => {
   const selected = selectPracticeCommands(PRIORITY_COMMANDS, {
     phase: 'mixed', length: 'all', attempts: PRIORITY_ATTEMPTS, now: NOW, rng: () => 0

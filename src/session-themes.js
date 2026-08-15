@@ -1,5 +1,6 @@
 // Theme registry and selection layer for Solo E2
 // See docs/superpowers/specs/2026-08-06-examiner-modes-themed-drives-design.md for themed drive contract
+import { activeCommands } from './catalog.js';
 
 const PHASES = new Set(['driving', 'precheck']);
 
@@ -26,6 +27,10 @@ const ROUNDABOUT_ACTIONS = new Set([
   'roundabout-exit-1',
   'roundabout-exit-2',
   'roundabout-exit-3',
+  'roundabout-change-direction',
+  // Historical active-session snapshots still validate against their original
+  // theme. The centralized active filter below keeps these reserved actions
+  // out of every newly selected session.
   'roundabout-exit-4',
   'roundabout-exit-5'
 ]);
@@ -244,7 +249,7 @@ export function selectThemeCommands(commands, themeId, sessionLength, rng = Math
   }
 
   // Filter commands by theme criteria
-  const filtered = commands.filter(command => theme.criteria(command));
+  const filtered = activeCommands(commands).filter(command => theme.criteria(command));
   if (filtered.length === 0) {
     throw new Error(`No commands match theme ${themeId}`);
   }
@@ -261,7 +266,7 @@ export function eligibleCommandsForTheme(commands, themeId) {
   validateCommands(commands);
   validateThemeId(themeId);
   const theme = SESSION_THEMES.find(candidate => candidate.id === themeId);
-  return cloneAndFreeze(commands.filter(command => theme.criteria(command)));
+  return cloneAndFreeze(activeCommands(commands).filter(command => theme.criteria(command)));
 }
 
 export function validateSessionThemes(value) {

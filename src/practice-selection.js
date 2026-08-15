@@ -1,4 +1,5 @@
 import { readinessForCatalog } from './readiness.js';
+import { activeCommands } from './catalog.js';
 
 // The medium default is sized so a mixed simulated drive carries enough
 // ordinary driving commands for cruise transitions and an occasional null
@@ -164,7 +165,7 @@ export function selectPracticeCommands(commands, {
   rng = Math.random
 }) {
   // Phase filtering first, while enforcing stable command identity.
-  let eligibleCommands = uniqueCommands(commands);
+  let eligibleCommands = uniqueCommands(activeCommands(commands));
   if (phase !== 'mixed') {
     eligibleCommands = eligibleCommands.filter(c => c.phase === phase);
   }
@@ -192,7 +193,14 @@ export function selectPracticeCommands(commands, {
   const readinessRecords = readinessForCatalog(eligibleCommands, attempts, lessonFlags, now);
 
   // Select by target - pass original commands for command target lookup
-  let selected = selectByTarget(eligibleCommands, readinessRecords, lessonFlags, target, now, commands);
+  let selected = selectByTarget(
+    eligibleCommands,
+    readinessRecords,
+    lessonFlags,
+    target,
+    now,
+    activeCommands(commands)
+  );
 
   // For command target, validate it's in the eligible phase
   if (target.kind === 'command') {

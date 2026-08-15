@@ -1,6 +1,5 @@
 import { translate } from './i18n.js';
 import { drivingScene } from './driving-scenes.js';
-import { renderPostAnswerMotion } from './post-answer-motion-view.js';
 import { assertNonOverlappingTargets, svgRoadPath, targetBox } from './surface-geometry.js';
 import { createSurfaceModel, seededRandom } from './surface-model.js';
 
@@ -273,11 +272,9 @@ export function renderManoeuvreSurface(model, locale, state = {}) {
   const resultLabel = state.reveal
     ? `<p class="surface-result-label">${escapeHtml(translate(locale, usesRoadTargets ? 'surface.correctRoute' : 'surface.correctSpace'))}</p>`
     : '';
-  const postAnswerMotion = renderPostAnswerMotion(state.postAnswerMotion);
-  // The car glyph is the whole route indicator once it's eligible to animate;
-  // the static line is only a fallback for ineligible/reduced-motion cases.
-  // A controller-confirmed playable clip draws neither.
-  const correctRoute = state.reveal && model.geometry.correctRoute && !postAnswerMotion
+  // A playable clip demonstrates the route. Every other reveal retains the
+  // static route as its accessible fallback.
+  const correctRoute = state.reveal && model.geometry.correctRoute
     && state.turnClipWillPlay !== true
     ? `<path data-correct-route d="${escapeAttribute(svgRoadPath(model.geometry.correctRoute))}"/>`
     : '';
@@ -291,7 +288,6 @@ export function renderManoeuvreSurface(model, locale, state = {}) {
         ${manoeuvreDrawing(model, Boolean(scene))}
         ${correctRoute}
       </svg>
-      ${postAnswerMotion}
       ${model.targets.map(target => targetButton(
         target,
         model,

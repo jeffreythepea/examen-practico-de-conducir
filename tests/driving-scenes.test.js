@@ -13,6 +13,7 @@ const EXPECTED = Object.freeze({
   'four-way-intersection-photo-v1': './assets/driving/four-way-intersection-photo-v1.webp',
   'roundabout-four-photo-v2': './assets/driving/roundabout-four-photo-v2.webp',
   'roundabout-five-photo-v1': './assets/driving/roundabout-five-photo-v1.webp',
+  'roundabout-four-photo-v3': './assets/driving/roundabout-four-photo-v3.webp',
   'parallel-parking-gap-photo-v1': './assets/driving/parallel-parking-gap-photo-v1.webp',
   'urban-roadside-photo-v1': './assets/driving/urban-roadside-photo-v1.webp',
   'urban-roadside-photo-v2': './assets/driving/urban-roadside-photo-v2.webp',

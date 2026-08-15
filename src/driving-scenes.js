@@ -4,6 +4,7 @@ export const DRIVING_SCENE_IDS = Object.freeze([
   'four-way-intersection-photo-v1',
   'roundabout-four-photo-v2',
   'roundabout-five-photo-v1',
+  'roundabout-four-photo-v3',
   'parallel-parking-gap-photo-v1',
   'urban-roadside-photo-v1',
   'urban-roadside-photo-v2',
@@ -54,6 +55,15 @@ export const DRIVING_SCENES = deepFreeze({
     alt: {
       en: 'Illustrative roundabout with a bottom entry and five outgoing exits',
       es: 'Glorieta ilustrativa con entrada inferior y cinco salidas'
+    }
+  },
+  'roundabout-four-photo-v3': {
+    id: 'roundabout-four-photo-v3',
+    asset: './assets/driving/roundabout-four-photo-v3.webp',
+    provenance: 'ai-generated-illustrative',
+    alt: {
+      en: 'Illustrative roundabout with one bottom entry branch, three numbered exits, and physical lane separators on every branch',
+      es: 'Glorieta ilustrativa con un ramal de entrada inferior, tres salidas numeradas y separadores físicos de carril en todos los ramales'
     }
   },
   'parallel-parking-gap-photo-v1': {

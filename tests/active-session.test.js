@@ -204,6 +204,28 @@ test('resolution restores the exact selected phrasing, voice, and speed', () => 
   assert.equal(resolved.experience.modeId, 'practice');
 });
 
+test('resolution preserves a retired roundabout command in an already-saved session', () => {
+  const retired = {
+    id: 'c-rot4', active: false, actionId: 'roundabout-exit-4', phase: 'driving',
+    surfaceId: 'roundabout-v2',
+    phrasings: [{ id: 'c-rot4-canonical', es: 'Cuarta salida', en: 'fourth exit' }]
+  };
+  const variant = {
+    id: 'audio-retired', commandId: 'c-rot4', phrasingId: 'c-rot4-canonical',
+    voiceId: 'voice-a', speed: 0.9, provider: 'elevenlabs', path: 'audio/retired.mp3'
+  };
+  const stored = session({
+    items: [{ commandId: 'c-rot4', phrasingId: 'c-rot4-canonical', voiceId: 'voice-a', speed: 0.9 }]
+  });
+  const resolved = resolveActiveSession(stored, {
+    commands: [...commands, retired],
+    audioManifest: [...audioManifest, variant]
+  });
+  assert.equal(resolved.sessionItems[0].id, 'c-rot4');
+  assert.equal(resolved.sessionItems[0].actionId, 'roundabout-exit-4');
+  assert.equal(resolved.sessionItems[0].active, false);
+});
+
 test('resolution restores continuity route progress without exposing mutable state', () => {
   const resolved = resolveActiveSession(session({ continuity: continuity() }), { commands, audioManifest });
   assert.deepEqual(resolved.continuity, continuity());

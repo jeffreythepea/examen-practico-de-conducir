@@ -1,12 +1,20 @@
-import { POST_ANSWER_MOTION_FAMILIES } from './post-answer-motion.js';
 import { drivingScene } from './driving-scenes.js';
 
 const CORRECT_OUTCOMES = new Set(['unaided', 'assisted']);
+const TURN_THROUGH_FAMILIES = new Set([
+  'junction',
+  'roundabout',
+  'parking',
+  'stopping',
+  'u-turn',
+  'overtake',
+  'join-traffic'
+]);
 
-// Real driving clips of the turn, per junction scene and chosen direction.
-// Only the four-way slice is registered; every other scene falls back to the
-// CSS turn-through-pan (the no-clip path, kept deliberately). Durations are
-// the trimmed clip lengths; auto-advance derives from them, never hardcoded.
+// Real driving clips of the manoeuvre, per scene and accepted result.
+// Any unregistered scene/result pair falls back to the CSS turn-through-pan.
+// Durations are the measured clip lengths; auto-advance derives from them,
+// never from a duplicated timer.
 // A clip that ends with the car at rest holds its last frame before the
 // transition moves on. Without it the manoeuvre cuts straight from the car
 // still moving into the cruise footage, and the stop never reads as a stop.
@@ -29,8 +37,8 @@ export const TURN_CLIPS = Object.freeze({
     'turn-right': turnClip('four-way-turn-right-v1', 3917),
     'continue-forward': turnClip('four-way-straight-v1', 4000)
   }),
-  // Manoeuvre clips (2026-08-14): the clip demonstrates the accepted
-  // manoeuvre, so these scenes draw no gold glyph or route line.
+  // Manoeuvre clips: the clip demonstrates the accepted manoeuvre, so these
+  // scenes draw no competing animated overlay or route line.
   'parallel-parking-gap-photo-v1': Object.freeze({
     park: turnClip('parallel-parking-v1', 4000, { endsStationary: true })
   }),
@@ -40,6 +48,18 @@ export const TURN_CLIPS = Object.freeze({
   }),
   'urban-roadside-photo-v2': Object.freeze({
     'voluntary-stop': turnClip('roadside-stop-v1', 4833, { endsStationary: true })
+  }),
+  'u-turn-photo-v1': Object.freeze({
+    'change-direction': turnClip('regular-u-turn-v1', 6000)
+  }),
+  'join-traffic-photo-v1': Object.freeze({
+    'join-traffic': turnClip('join-traffic-merge-v1', 5000)
+  }),
+  'roundabout-four-photo-v3': Object.freeze({
+    'roundabout-exit-1': turnClip('roundabout-first-exit-v1', 4000),
+    'roundabout-exit-2': turnClip('roundabout-second-exit-v1', 5000),
+    'roundabout-exit-3': turnClip('roundabout-third-exit-v1', 6000),
+    'roundabout-change-direction': turnClip('roundabout-change-direction-v1', 6000)
   })
 });
 // A scene+result with a registered clip is demonstrated by the clip alone:
@@ -56,7 +76,10 @@ const CLIP_SURFACE_SCENES = Object.freeze({
   'junction-v2': 'four-way-intersection-photo-v1',
   'parking-v1': 'parallel-parking-gap-photo-v1',
   'overtake-v1': 'overtaking-photo-v1',
-  'stopping-v1': 'urban-roadside-photo-v2'
+  'u-turn-v1': 'u-turn-photo-v1',
+  'join-traffic-v1': 'join-traffic-photo-v1',
+  'stopping-v1': 'urban-roadside-photo-v2',
+  'roundabout-v2': 'roundabout-four-photo-v3'
 });
 
 /**
@@ -118,7 +141,7 @@ export function turnThroughIntro({
   if (nextStepKind !== 'transition') return null;
   if (motionEnabled !== true) return null;
   if (!surfaceModel || typeof surfaceModel !== 'object') return null;
-  if (!POST_ANSWER_MOTION_FAMILIES.includes(surfaceModel.family)) return null;
+  if (!TURN_THROUGH_FAMILIES.has(surfaceModel.family)) return null;
   const target = Array.isArray(surfaceModel.targets)
     ? surfaceModel.targets.find(candidate => candidate?.id === selectedTargetId)
     : null;

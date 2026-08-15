@@ -7,14 +7,24 @@ const commands = JSON.parse(await readFile(new URL('../data/commands.json', impo
 
 test('catalog contains the complete safe atomic command inventory', () => {
   assert.doesNotThrow(() => validateCatalog(commands));
-  assert.equal(commands.length, 39);
-  assert.equal(commands.reduce((total, command) => total + command.phrasings.length, 0), 81);
-  assert.equal(commandsForPhase(commands, 'driving').length, 21);
+  assert.equal(commands.length, 40);
+  assert.equal(commands.reduce((total, command) => total + command.phrasings.length, 0), 84);
+  assert.equal(commandsForPhase(commands, 'driving').length, 20);
   assert.equal(commandsForPhase(commands, 'precheck').length, 18);
-  assert.equal(commandsForPhase(commands, 'mixed').length, 39);
-  assert.equal(new Set(commands.map(command => command.id)).size, 39);
-  assert.equal(new Set(commands.map(command => command.actionId)).size, 39);
+  assert.equal(commandsForPhase(commands, 'mixed').length, 38);
+  assert.equal(new Set(commands.map(command => command.id)).size, 40);
+  assert.equal(new Set(commands.map(command => command.actionId)).size, 40);
   assert.equal(commands.some(command => command.id === 'c-pre-deposito-b'), false);
+});
+
+test('road and roundabout changes of direction remain distinct while retired IDs stay reserved', () => {
+  const road = commandById(commands, 'c-sentido');
+  const roundabout = commandById(commands, 'c-sentido-rotonda');
+  assert.deepEqual([road.actionId, road.surfaceId], ['change-direction', 'u-turn-v1']);
+  assert.deepEqual([roundabout.actionId, roundabout.surfaceId], ['roundabout-change-direction', 'roundabout-v2']);
+  assert.deepEqual(roundabout.phrasings.map(({ es }) => es), road.phrasings.map(({ es }) => es));
+  assert.equal(commandById(commands, 'c-rot4').active, false);
+  assert.equal(commandById(commands, 'c-rot5').active, false);
 });
 
 test('simulated-exam continuity commands preserve approved wording, semantics, and provenance', () => {

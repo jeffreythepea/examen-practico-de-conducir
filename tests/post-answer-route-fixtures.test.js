@@ -76,24 +76,22 @@ test('junction fixtures expose one retained entry-to-accepted-target route for e
   assert.deepEqual([...exposureGaps], [], 'Production route exposure gaps must be resolved before animation integration');
 });
 
-test('four- and five-exit roundabout fixtures retain circle, lane join, and exact accepted endpoint', () => {
+test('canonical roundabout fixtures retain circle, lane join, and exact accepted endpoint', () => {
   const exposureGaps = new Set();
-  const sceneIds = { 4: 'roundabout-four-photo-v2', 5: 'roundabout-five-photo-v1' };
-
-  for (const exitCount of [4, 5]) {
-    for (let ordinal = 1; ordinal <= exitCount; ordinal += 1) {
-      const result = `roundabout-exit-${ordinal}`;
+  const results = ['roundabout-exit-1', 'roundabout-exit-2', 'roundabout-exit-3', 'roundabout-change-direction'];
+  for (const [index, result] of results.entries()) {
       const command = commandFor('roundabout-v2', result);
       for (const seed of SWEEP_SEEDS) {
-        const model = generateSpatialSurface(command, seed, { exitCount });
+        const model = generateSpatialSurface(command, seed);
         const target = acceptedTarget(model);
         const circle = model.geometry.routeCircle;
-        const join = model.geometry.exitJoins[ordinal - 1];
-        const context = `${exitCount}-exit ${command.id} seed ${seed}`;
+        const join = model.geometry.exitJoins[index];
+        const context = `${result} ${command.id} seed ${seed}`;
 
-        assert.equal(model.geometry.exitCount, exitCount, `${context} must retain its generated exit count`);
-        assert.equal(model.geometry.sceneId, sceneIds[exitCount], `${context} must retain its audited scene`);
-        assert.equal(model.geometry.exitJoins.length, exitCount, `${context} needs one lane join per exit`);
+        assert.equal(model.geometry.physicalBranchCount, 4, `${context} must retain four physical branches`);
+        assert.equal(model.geometry.numberedExitCount, 3, `${context} must retain three numbered exits`);
+        assert.equal(model.geometry.sceneId, 'roundabout-four-photo-v3', `${context} must retain its audited scene`);
+        assert.equal(model.geometry.exitJoins.length, 4, `${context} needs one lane join per outcome`);
         assert.ok(circle && Number.isFinite(circle.x) && Number.isFinite(circle.y) && Number.isFinite(circle.radius),
           `${context} needs a finite retained route circle`);
         assert.ok(join && Number.isFinite(join.x) && Number.isFinite(join.y),
@@ -109,7 +107,7 @@ test('four- and five-exit roundabout fixtures retain circle, lane join, and exac
         }
 
         assertRoute(route, context);
-        assertPointEqual(route[0], { x: 50, y: 100 }, `${context} learner entry`);
+        assertPointEqual(route[0], { x: 56, y: 100 }, `${context} learner entry`);
         assert.ok(route.some(point =>
           Math.abs(point.x - circle.x) < 1e-9
           && Math.abs(point.y - (circle.y + circle.radius)) < 1e-9
@@ -119,7 +117,6 @@ test('four- and five-exit roundabout fixtures retain circle, lane join, and exac
         assertInsideTarget(route.at(-1), target, `${context} endpoint`);
         assertPointEqual(route.at(-1), target, `${context} exact accepted target`);
       }
-    }
   }
 
   assert.deepEqual([...exposureGaps], [], 'Production route exposure gaps must be resolved before animation integration');

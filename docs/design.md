@@ -153,8 +153,8 @@ ordering; instructor evidence may still correct it.
 Mastery belongs to an underlying action, not to one sentence or recording. A
 single action such as `turn-right` can have multiple validated Spanish
 phrasings and multiple audio variants without multiplying mastery targets. The
-current working catalog contains 39 commands and 81 phrasings, with a complete
-1,215-recording corpus ready for integration.
+current working catalog contains 40 commands and 84 phrasings, with a complete
+1,260-recording corpus ready for integration.
 
 Each action definition includes:
 
@@ -208,8 +208,10 @@ retaining the same targets, scoring, and static reduced-motion fallback:
 
 - **Junction and roundabout:** tap the intended outgoing road, with the vehicle
   entering from the bottom. Photo-backed four-way junctions expose left,
-  straight, and right choices; roundabouts use four- and five-exit geometry.
-- **U-turn and overtaking:** tap the completed direction or overtaking path.
+  straight, and right choices; active roundabouts use one four-branch scene with
+  three numbered exits and a return-through-entry change of direction.
+- **U-turn, incorporation, and overtaking:** tap the completed direction,
+  correct-lane merge, or overtaking path.
 - **Steering:** centre a large on-screen wheel.
 - **Secure vehicle:** follow RGC Article 92 by completing a generic manual
   immobilization state in any control order: stop the engine, apply the hand
@@ -233,16 +235,15 @@ mastery reporting remain deferred until real practice shows that this limited
 motion improves transfer or response time. The current phrasing expansion
 deliberately varies playback while continuing to score the underlying action.
 
-Immediate Learn and Practice reveals add one bounded consequence after a saved
-correct answer: junctions, four- and five-exit roundabouts, parking, and
-voluntary stopping trace the same retained route used by the static reveal and
-move one decorative marker to the accepted target. The movement is purely
-presentational, never blocks Continue, and never changes scoring, readiness,
-session progress, or storage. Incorrect answers, timeouts, audio failures,
-deferred Mock results, unsupported families, Road movement Off, and reduced-
-motion preferences retain the prior static reveal. Physical iPad acceptance
-was completed on 2026-08-08; the complete behavior remains mechanically
-removable through the documented Solo E3 rollback boundary.
+Every active route-backed driving result now has a scene/result motion clip:
+junctions, the canonical four-branch roundabout, regular-road U-turn,
+incorporation, overtaking, parking, and voluntary stopping. Clips are purely
+presentational and never change scoring, readiness, session progress, or
+storage. Incorrect answers, timeouts, audio failures, deferred Mock results,
+Road movement Off, reduced-motion preferences, unavailable media, and video
+failure retain the same static correct-route geometry. The former animated
+gold-car answer layer has been removed; a mid-transition video failure finishes
+through the pre-video continuity fallback and proceeds without stalling.
 
 ### Precheck surfaces
 
@@ -309,12 +310,13 @@ randomized per trial. The setup screen visibly identifies the recordings as
 AI-generated in English and Spanish.
 
 Generate provider-native 0.75x, 0.9x, and 1x assets rather than relying on
-browser time-stretching. The 39 commands and 81 phrasings have a complete
-1,215-variant recorded corpus across five voices and three speeds. The prior
+browser time-stretching. The 40 commands and 84 phrasings have a complete
+1,260-variant recorded corpus across five voices and three speeds. The prior
 five-voice expansion reused 456 variants and added 684 to reach its
 then-complete 1,140-variant baseline; the continuity expansion added the final
-45 recordings; the c-cint (fasten seatbelt) expansion generated the final 30
-recordings. At trial
+45 recordings; the c-cint (fasten seatbelt) expansion generated 30 recordings;
+and the roundabout change-of-direction command checksum-reuses 45 recordings.
+At trial
 start the app randomly selects any playable variant for the command and speed,
 then retains its phrasing and voice through replay, written hint, reveal, and
 attempt logging. Later difficulty settings may expose canonical-versus-varied
@@ -346,7 +348,7 @@ recovery, backup transfer, bilingual UI, touch targets, and feedback sounds. He
 also confirmed no Safari Web Inspector warnings or errors, then approved the
 intentional two-column landscape prompt and reveal layout.
 
-The public build is a deterministic runtime allowlist rather than a copy of the repository. It includes the shell, bilingual interface modules, command and audio manifests, optimized gameplay images, icons, recovery page, service worker, and the complete 1,215-recording corpus for the 39-command, 81-phrasing catalog. Every packaged asset has an exact byte count and SHA-256 digest in `offline-package.json`; tests, plans, references, source images, recovery checkpoints, and credentials are excluded.
+The public build is a deterministic runtime allowlist rather than a copy of the repository. It includes the shell, bilingual interface modules, command and audio manifests, optimized gameplay images, icons, recovery page, service worker, and the complete 1,260-recording corpus for the 40-command, 84-phrasing catalog. Every packaged asset has an exact byte count and SHA-256 digest in `offline-package.json`; tests, plans, references, source images, recovery checkpoints, and credentials are excluded.
 
 Offline storage uses an **active / staging / pointer** architecture. The service worker serves only the integrity-verified active cache. A new package downloads into a distinct staging cache, resumes missing files after interruption, and cannot replace the active pointer until every required file verifies. The prior active package remains available until the replacement is confirmed. A staged update is applied only from setup, never during a practice session. A navigation failure without a valid active package returns the small bilingual recovery page instead of pretending the full game is ready.
 

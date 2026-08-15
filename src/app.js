@@ -46,11 +46,6 @@ import {
   roadMotionView
 } from './road-motion.js';
 import { createOfflineClient } from './offline-client.js';
-import {
-  POST_ANSWER_MOTION_FAMILIES,
-  createPostAnswerMotion,
-  postAnswerMotionView
-} from './post-answer-motion.js';
 import { compactAttempts } from './attempt-compaction.js';
 import {
   challengeById,
@@ -117,11 +112,12 @@ const ROAD_MOTION_SURFACE_IDS = new Set([
   'parking-v1',
   'stopping-v1'
 ]);
-const POST_ANSWER_MOTION_FAMILY_SET = new Set(POST_ANSWER_MOTION_FAMILIES);
-// Hand-tuned per family for a natural-feeling pace, informed by each family's
-// typical correctRoute path length (join-traffic's is a short lateral merge;
-// u-turn's loops back on itself and is by far the longest route of any family).
-const POST_ANSWER_MOTION_DURATIONS = Object.freeze({
+const TURN_CLIP_REVEAL_FAMILIES = new Set([
+  'junction', 'roundabout', 'parking', 'stopping', 'join-traffic', 'overtake', 'u-turn'
+]);
+// Preserve the reviewed result-reading beats that preceded each transition;
+// these values no longer drive or describe an animated answer glyph.
+const REVEAL_DWELL_MS_BY_FAMILY = Object.freeze({
   junction: 1_300,
   roundabout: 1_650,
   parking: 1_450,
@@ -138,51 +134,12 @@ export function promptControlsDisabled(model) {
     || !model.activeSurfaceModel;
 }
 
-export function createSavedPostAnswerMotion({
-  screenModel,
-  attempt,
-  roadMovement,
-  reducedMotion,
-  turnClipWillPlay,
-  startedAt
-} = {}) {
-  const surface = screenModel?.activeSurfaceModel;
-  const family = surface?.family;
-  const eligible = screenModel?.screen === 'reveal'
-    && screenModel.correct === true
-    && screenModel.timeout !== true
-    && ['unaided', 'assisted'].includes(attempt?.outcome)
-    && screenModel.experience?.revealPolicy !== 'session-end'
-    && roadMovement === true
-    && reducedMotion !== true
-    && POST_ANSWER_MOTION_FAMILY_SET.has(family)
-    && Array.isArray(surface?.geometry?.correctRoute)
-    // A clip suppresses the glyph only when this reveal will actually enter it.
-    && turnClipWillPlay !== true;
-  try {
-    return createPostAnswerMotion({
-      eligible,
-      family,
-      route: surface?.geometry?.correctRoute,
-      startedAt,
-      durationMs: POST_ANSWER_MOTION_DURATIONS[family]
-    });
-  } catch {
-    return createPostAnswerMotion();
-  }
-}
-
-// The glyph's own duration was the first dwell tried, on the reasoning that
-// the pause should last as long as the motion it replaced. On device it read
-// as rushed (Jeffrey, 2026-08-14): the learner is reading the result label,
-// not watching a car, and reading takes a beat the animation never needed.
+// The learner is reading the result label before the transition begins.
 const REVEAL_READING_BEAT_MS = 1_200;
 
 /**
- * The complement of createSavedPostAnswerMotion: a clip-backed reveal draws no
- * glyph because the clip demonstrates the manoeuvre, which left it motionless
- * while it waited for a tap. Hold it for the glyph's duration plus a reading
- * beat, then move into the transition — and so the clip — on its own. Correct
+ * A clip-backed reveal holds for its reviewed family dwell plus a reading
+ * beat, then moves into the transition—and therefore the clip—on its own. Correct
  * answers only, and only in a continuous drive where a transition actually
  * follows: a miss needs its reading time and its miss-reason buttons, and mock
  * is excluded with the rest of the clip machinery by the session-end reveal
@@ -210,7 +167,7 @@ export function turnClipWillDemonstrateReveal({
     && roadMovement === true
     && reducedMotion !== true
     && clipsEnabled === true
-    && POST_ANSWER_MOTION_FAMILY_SET.has(family)
+    && TURN_CLIP_REVEAL_FAMILIES.has(family)
     && hasTurnClip(surface?.geometry?.sceneId, surface?.expectedResult);
 }
 
@@ -227,7 +184,7 @@ export function revealAutoAdvanceMs({
   const eligible = turnClipWillDemonstrateReveal({
     screenModel, attempt, nextStepKind, roadMovement, reducedMotion, clipsEnabled
   });
-  return eligible ? POST_ANSWER_MOTION_DURATIONS[family] + REVEAL_READING_BEAT_MS : null;
+  return eligible ? REVEAL_DWELL_MS_BY_FAMILY[family] + REVEAL_READING_BEAT_MS : null;
 }
 
 export function feedbackCueForTransition(before, after, event) {
@@ -568,15 +525,6 @@ function enterNullEventScreen(model, index, event, surfaceGenerator) {
 export function reduceScreen(model, event, { surfaceGenerator = generateSurface } = {}) {
   if (event.type === 'SET_LOCALE') {
     return { ...model, settings: { ...model.settings, locale: event.locale } };
-  }
-  if (event.type === 'POST_ANSWER_MOTION_STARTED' && model.screen === 'reveal') {
-    try {
-      const view = postAnswerMotionView(event.motion, event.motion?.startedAt ?? 0);
-      if (view.phase !== 'running') return model;
-    } catch {
-      return model;
-    }
-    return { ...model, postAnswerMotion: event.motion };
   }
   if (event.type === 'GO_TO_SETUP') {
     return resetTrial({ ...model, screen: 'setup', settings: model.settings, session: [] }, 0);
@@ -1164,7 +1112,6 @@ function resetTrial(model, index) {
     promptStartedAt: null,
     initialAudioPending: false,
     roadMotion: null,
-    postAnswerMotion: createPostAnswerMotion(),
     outcome: null,
     selectedResult: null,
     selectedTargetId: null,
@@ -1841,9 +1788,6 @@ async function bootstrap() {
     const motion = model.roadMotion
       ? roadMotionView(model.roadMotion, Date.now())
       : null;
-    const postAnswerMotion = model.postAnswerMotion
-      ? postAnswerMotionView(model.postAnswerMotion, Date.now())
-      : null;
     const turnClipWillPlay = turnClipWillPlayForReveal(
       state.attempts.find(attempt => attempt.id === currentAttemptId)
     );
@@ -1856,7 +1800,6 @@ async function bootstrap() {
           reveal: true,
           selectedTargetId: model.selectedTargetId,
           motion,
-          postAnswerMotion,
           turnClipWillPlay
         })}</div>
         <div class="gameplay-feedback">
@@ -2614,6 +2557,9 @@ async function bootstrap() {
       }
       return;
     }
+    // Video failure disables further clip attempts only for the session that
+    // observed it. A fresh session gets one clean opportunity to load clips.
+    turnClipFailed = false;
     readinessFilters = { ...readinessFilters, noticeKey: '' };
     const examinerRotation = experience.challengeId === 'five-examiners'
       ? assignExaminerRotation(selectedCommands.length)
@@ -2879,18 +2825,6 @@ async function bootstrap() {
         });
         if (model.screen === 'results') settleSessionEnd();
       }
-      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
-      model = reduceScreen(model, {
-        type: 'POST_ANSWER_MOTION_STARTED',
-        motion: createSavedPostAnswerMotion({
-          screenModel: model,
-          attempt: result.attempt,
-          roadMovement: state.settings.roadMovement,
-          reducedMotion,
-          turnClipWillPlay: turnClipWillPlayForReveal(result.attempt),
-          startedAt: Date.now()
-        })
-      });
     }
     render();
     if (before.experience?.revealPolicy === 'session-end') {
