@@ -527,6 +527,10 @@ test('the app opens on a bilingual title screen that enters setup on one tap', a
   // Looping footage is exactly what reduced motion asks us to stop, and the
   // autoplay attribute alone is unreliable, so playback is asserted in JS.
   assert.match(source, /class="title-scene-media"[\s\S]{0,220}?muted loop playsinline autoplay/);
+  // One footage record, not two: the launch screen used to hardcode the same
+  // paths the transition view already owns, so a v3 bump would split them.
+  assert.match(source, /class="title-scene-media" src="\$\{URBAN_DRIVE_VIDEO\.asset\}"/);
+  assert.doesNotMatch(source, /\.\/assets\/driving\/urban-roadside-drive-v2/);
   assert.match(source, /prefers-reduced-motion: reduce[\s\S]{0,120}?scene\.pause\(\)/);
   assert.match(source, /scene\.playbackRate = 0\.5/);
 });

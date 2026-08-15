@@ -14,6 +14,7 @@ import {
 } from './continuity-controller.js';
 import {
   CONTINUITY_SCENE_FAMILIES,
+  URBAN_DRIVE_VIDEO,
   renderContinuityTransition
 } from './continuity-transition-view.js';
 import { hasTurnClip, turnThroughIntro } from './turn-through.js';
@@ -1542,9 +1543,9 @@ async function bootstrap() {
   function renderTitle() {
     return `<section class="panel title-screen" aria-labelledby="title-screen-heading">
       <div class="title-scene">
-        <video class="title-scene-media" src="./assets/driving/urban-roadside-drive-v2.mp4"
-          poster="./assets/driving/urban-roadside-drive-v2-poster.webp"
-          data-provenance="ai-generated-illustrative"
+        <video class="title-scene-media" src="${URBAN_DRIVE_VIDEO.asset}"
+          poster="${URBAN_DRIVE_VIDEO.poster}"
+          data-provenance="${URBAN_DRIVE_VIDEO.provenance}"
           muted loop playsinline autoplay preload="auto" aria-hidden="true"></video>
         <div class="title-overlay">
           <h2 id="title-screen-heading" data-screen-focus tabindex="-1">${translate(locale(), 'app.title')}</h2>

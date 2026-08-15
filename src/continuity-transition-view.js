@@ -5,7 +5,7 @@ const COPY = Object.freeze({
   es: Object.freeze({ skip: 'Saltar', skipTransition: 'Saltar transición' })
 });
 
-const URBAN_DRIVE_VIDEO = {
+export const URBAN_DRIVE_VIDEO = {
   videoId: 'urban-roadside-drive-v2',
   asset: './assets/driving/urban-roadside-drive-v2.mp4',
   poster: './assets/driving/urban-roadside-drive-v2-poster.webp',

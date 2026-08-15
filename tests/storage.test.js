@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  SCHEMA_VERSION,
   STORAGE_KEY,
+  UNREADABLE_STATE_KEY,
   defaultState,
   exportState,
   importState,
@@ -13,21 +15,30 @@ import { EXAMINER_CHOICE_IDS } from '../src/examiners.js';
 import { SESSION_PRESET_IDS } from '../src/session-presets.js';
 import { THEME_IDS } from '../src/session-themes.js';
 
+// Keyed, because unreadable state is set aside under its own key: a
+// single-valued fixture could not tell "kept the saved payload" from
+// "overwrote it".
 class MemoryStorage {
   constructor(value = null) {
-    this.value = value;
+    this.items = new Map(value === null ? [] : [[STORAGE_KEY, value]]);
     this.writes = 0;
     this.keys = [];
+    this.written = [];
   }
+
+  get value() { return this.items.get(STORAGE_KEY) ?? null; }
+
+  set value(next) { this.items.set(STORAGE_KEY, next); }
 
   getItem(key) {
     this.keys.push(key);
-    return this.value;
+    return this.items.get(key) ?? null;
   }
 
   setItem(key, value) {
     this.keys.push(key);
-    this.value = value;
+    this.written.push(key);
+    this.items.set(key, value);
     this.writes += 1;
   }
 }
@@ -313,7 +324,7 @@ test('migration validates atomically and does not write an invalid candidate', (
   const loaded = loadState(storage);
   assert.match(loaded.recoveryError, /Invalid settings\.speed/);
   assert.equal(storage.value, before);
-  assert.equal(storage.writes, 0);
+  assert.deepEqual(storage.written, [UNREADABLE_STATE_KEY]);
 });
 
 test('future schema remains rejected without mutation', () => {
@@ -321,6 +332,31 @@ test('future schema remains rejected without mutation', () => {
   const before = structuredClone(future);
   assert.throws(() => migrateState(future), /Unsupported schema: 5/);
   assert.deepEqual(future, before);
+});
+
+test('state from a newer build is set aside rather than quietly replaced', () => {
+  // A half-applied update or a second install can leave state this build
+  // cannot read. Loading falls back to defaults and the next save overwrites
+  // the slot, so the newer progress has to be kept somewhere first.
+  const newer = JSON.stringify({ ...defaultState(), schemaVersion: SCHEMA_VERSION + 1 });
+  const storage = new MemoryStorage(newer);
+
+  const state = loadState(storage);
+  assert.match(state.recoveryError, /Unsupported schema/);
+  assert.equal(storage.value, newer, 'the saved payload must survive the failed load');
+  assert.equal(storage.items.get(UNREADABLE_STATE_KEY), newer);
+
+  saveState(storage, state);
+  assert.notEqual(storage.value, newer);
+  assert.equal(storage.items.get(UNREADABLE_STATE_KEY), newer, 'the set-aside copy survives the next save');
+});
+
+test('a storage that refuses the set-aside write still loads defaults', () => {
+  const storage = new MemoryStorage('{not valid JSON');
+  storage.setItem = () => { throw new Error('QuotaExceededError'); };
+  const state = loadState(storage);
+  assert.match(state.recoveryError, /Unexpected token|JSON/);
+  assert.equal(state.schemaVersion, SCHEMA_VERSION);
 });
 
 test('feedback-sound preference persists, validates, and safely defaults for older backups', () => {
@@ -476,7 +512,7 @@ test('recovers from corrupt saved text without overwriting it', () => {
   );
   assert.match(state.recoveryError, /Unexpected token|JSON/);
   assert.equal(storage.value, '{not valid JSON');
-  assert.equal(storage.writes, 0);
+  assert.deepEqual(storage.written, [UNREADABLE_STATE_KEY]);
 });
 
 test('rejects invalid imports before a caller replaces active state', () => {

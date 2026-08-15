@@ -7,6 +7,11 @@ import { SESSION_PRESET_IDS } from './session-presets.js';
 import { THEME_IDS } from './session-themes.js';
 
 export const STORAGE_KEY = 'examen-practico-de-conducir';
+// Where state this build cannot read is set aside. Loading unreadable state
+// falls back to defaults, and the next save overwrites it — so a learner who
+// opened a newer build once (a half-applied update, a second install) would
+// have that newer progress silently replaced by an empty one.
+export const UNREADABLE_STATE_KEY = `${STORAGE_KEY}:unreadable`;
 export const SCHEMA_VERSION = 4;
 
 const LOCALES = new Set(['en', 'es']);
@@ -62,10 +67,23 @@ export function loadState(storage) {
   try {
     return migrateState(JSON.parse(saved));
   } catch (error) {
+    stashUnreadableState(storage, saved);
     return {
       ...defaultState(),
       recoveryError: error instanceof Error ? error.message : String(error)
     };
+  }
+}
+
+// Keep the payload we could not read, so state written by a newer build is
+// recoverable by hand instead of being overwritten by the next save. Only the
+// most recent one is kept, and a storage that refuses the write must not take
+// the app down with it — the fallback to defaults still has to happen.
+function stashUnreadableState(storage, saved) {
+  try {
+    storage.setItem(UNREADABLE_STATE_KEY, saved);
+  } catch {
+    // Out of quota, or a storage that rejects writes: nothing further to do.
   }
 }
 
