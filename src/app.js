@@ -89,6 +89,43 @@ export const NULL_EVENT_COMMAND = Object.freeze({
   surfaceId: 'junction-v2'
 });
 export const NULL_EVENT_DWELL_MS = 1_600;
+// Every status the offline client publishes needs its own card: the transient
+// ones used to fall through to the "Online only" copy, which carries a live
+// Download button — the second half of a double tap during an apply started a
+// rival download that could quietly un-apply the update.
+const OFFLINE_RESUME_ACTION = hasProgress => ({
+  action: 'download',
+  labelKey: hasProgress ? 'offline.resumeDownload' : 'offline.download'
+});
+export function offlineCardPresentation({ status, hasProgress = false }) {
+  switch (status) {
+    case 'unsupported':
+      return { messageKey: 'offline.unsupported', action: null };
+    case 'downloading':
+      return { messageKey: 'offline.downloading', action: { action: 'cancel', labelKey: 'offline.cancel' } };
+    case 'cancelling':
+      return { messageKey: 'offline.cancelling', action: null };
+    case 'applying-update':
+      return { messageKey: 'offline.applyingUpdate', action: null };
+    case 'checking-update':
+      return { messageKey: 'offline.checkingUpdate', action: null };
+    // An installed package otherwise offers nothing to press: the only update
+    // check ran at registration, so a running app could not ask again without
+    // being force-quit.
+    case 'ready':
+      return { messageKey: 'offline.ready', action: { action: 'check', labelKey: 'offline.checkForUpdate' } };
+    case 'update-available':
+      return { messageKey: 'offline.updateAvailable', action: { action: 'download', labelKey: 'offline.downloadUpdate' } };
+    case 'update-ready':
+      return { messageKey: 'offline.updateReady', action: { action: 'apply-update', labelKey: 'offline.applyUpdate' } };
+    case 'download-paused':
+      return { messageKey: 'offline.downloadPaused', action: OFFLINE_RESUME_ACTION(hasProgress) };
+    case 'failed':
+      return { messageKey: 'offline.failedRetained', action: OFFLINE_RESUME_ACTION(hasProgress) };
+    default:
+      return { messageKey: 'offline.onlineOnly', action: OFFLINE_RESUME_ACTION(hasProgress) };
+  }
+}
 // How long the end screen ignores a tap that was already travelling when it
 // rendered — long enough to cover one skipped transition, short enough that a
 // learner reaching for Continue never notices it.
@@ -1678,44 +1715,17 @@ async function bootstrap() {
     const completed = offlineState?.completedBytes ?? 0;
     const total = offlineState?.totalBytes ?? 0;
     const progress = total > 0 ? Math.min(completed, total) : 0;
-    const isDownloading = status === 'downloading';
     const hasProgress = (offlineState?.completedAssets ?? 0) > 0;
-    const messageKey = status === 'unsupported'
-      ? 'offline.unsupported'
-      : status === 'checking-update'
-        ? 'offline.checkingUpdate'
-      : status === 'ready'
-        ? 'offline.ready'
-        : status === 'update-available'
-          ? 'offline.updateAvailable'
-        : status === 'update-ready'
-          ? 'offline.updateReady'
-          : status === 'failed'
-            ? 'offline.failedRetained'
-            : isDownloading
-              ? 'offline.downloading'
-              : 'offline.onlineOnly';
-    const actions = status === 'update-ready'
-      ? `<button type="button" data-offline-action="apply-update">${translate(locale(), 'offline.applyUpdate')}</button>`
-      : status === 'update-available'
-        ? `<button type="button" data-offline-action="download">${translate(locale(), 'offline.downloadUpdate')}</button>`
-      : isDownloading
-        ? `<button type="button" data-offline-action="cancel">${translate(locale(), 'offline.cancel')}</button>`
-        : status === 'checking-update'
-          ? ''
-        // An installed package otherwise offers nothing to press: the only
-        // update check ran at registration, so a running app could not ask
-        // again without being force-quit.
-        : status === 'ready'
-          ? `<button type="button" data-offline-action="check">${translate(locale(), 'offline.checkForUpdate')}</button>`
-        : status === 'unsupported'
-          ? ''
-          : `<button type="button" data-offline-action="download">${translate(locale(), hasProgress ? 'offline.resumeDownload' : 'offline.download')}</button>`;
+    const { messageKey, action } = offlineCardPresentation({ status, hasProgress });
+    const actions = action
+      ? `<button type="button" data-offline-action="${action.action}">${translate(locale(), action.labelKey)}</button>`
+      : '';
     return `<section class="offline-card" aria-labelledby="offline-title">
       <h3 id="offline-title">${translate(locale(), 'offline.title')}</h3>
       <div role="status" aria-live="polite">
         <p>${translate(locale(), messageKey)}</p>
         ${offlineState?.activeVersion ? `<p class="offline-version">${translate(locale(), 'offline.activeVersion', { hash: offlineState.activeVersion.slice(0, 8) })}</p>` : ''}
+        ${offlineState?.checkFailed ? `<p class="offline-checked">${translate(locale(), 'offline.checkUnavailable')}</p>` : ''}
         ${offlineUpToDate && status === 'ready' ? `<p class="offline-checked">${translate(locale(), 'offline.upToDate')}</p>` : ''}
         ${total > 0 ? `<p>${translate(locale(), 'offline.bytes', { completed: formatBytes(completed), total: formatBytes(total) })}</p>` : ''}
       </div>
@@ -2072,13 +2082,21 @@ async function bootstrap() {
     app.querySelector('[data-action="discard-session"]')?.addEventListener('click', discardSession);
     app.querySelector('[data-offline-action="download"]')?.addEventListener('click', () => void offlineClient.download());
     app.querySelector('[data-offline-action="cancel"]')?.addEventListener('click', () => void offlineClient.cancelDownload());
-    app.querySelector('[data-offline-action="apply-update"]')?.addEventListener('click', () => void offlineClient.applyUpdate());
+    app.querySelector('[data-offline-action="apply-update"]')?.addEventListener('click', () => {
+      // An apply that throws before it can reload leaves the card mid-apply
+      // with no button; report it instead of swallowing the rejection.
+      void offlineClient.applyUpdate().catch(error => {
+        console.error(error);
+        render();
+      });
+    });
     app.querySelector('[data-offline-action="check"]')?.addEventListener('click', () => {
       offlineUpToDate = false;
       void offlineClient.checkForUpdate().then(next => {
         // Finding an update moves the card to its own state and buttons; only
-        // an unchanged 'ready' needs saying out loud.
-        offlineUpToDate = next?.status === 'ready';
+        // an unchanged 'ready' needs saying out loud — and only when the check
+        // actually reached the network.
+        offlineUpToDate = next?.status === 'ready' && !next?.checkFailed;
         render();
       });
     });

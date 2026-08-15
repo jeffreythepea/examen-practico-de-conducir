@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { offlineCardPresentation } from '../src/app.js';
+import { OFFLINE_STATUSES } from '../src/offline-client.js';
+import { translate } from '../src/i18n.js';
 
 test('static shell exposes the localized application mount', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
@@ -309,19 +312,66 @@ test('the end screen acknowledges the round and waits for Continue or Retry', as
   assert.match(source, /function tapArrivedWithTheScreen\(\) \{\s*\n\s*return Date\.now\(\) - resultsShownAt < RESULTS_TAP_GUARD_MS;/);
 });
 
+test('every status the offline client can publish renders a card that says something true', () => {
+  // The transient statuses had no branch and fell through to the "Online
+  // only" copy — which carries a live Download button, so the second half of
+  // a double tap during an apply started a rival download.
+  const seen = new Set();
+  for (const status of OFFLINE_STATUSES) {
+    for (const hasProgress of [false, true]) {
+      const { messageKey, action } = offlineCardPresentation({ status, hasProgress });
+      seen.add(messageKey);
+      if (status !== 'online-only') {
+        assert.notEqual(messageKey, 'offline.onlineOnly', `${status} falls through to the online-only copy`);
+      }
+      for (const locale of ['en', 'es']) {
+        const copy = translate(locale, messageKey);
+        assert.notEqual(copy, messageKey, `${messageKey} is missing ${locale} copy`);
+      }
+      if (action) assert.notEqual(translate('es', action.labelKey), action.labelKey);
+    }
+  }
+  // Nothing to press while the worker is mid-command: an action offered here
+  // races the command already running.
+  for (const status of ['applying-update', 'cancelling', 'checking-update', 'unsupported']) {
+    assert.equal(offlineCardPresentation({ status }).action, null, `${status} must offer no action`);
+  }
+  assert.equal(offlineCardPresentation({ status: 'downloading' }).action.action, 'cancel');
+  assert.equal(offlineCardPresentation({ status: 'download-paused', hasProgress: true }).action.labelKey, 'offline.resumeDownload');
+  // A status the client never publishes is the only thing left on the default
+  // branch, so the sweep above has to have covered every distinct message.
+  assert.equal(seen.size, OFFLINE_STATUSES.length);
+});
+
+test('the offline card shows the installed package hash the device check reads', async () => {
+  // The hash on the card is how a device pass tells an applied update from an
+  // old page running under a new package (task #17, 2026-08-14).
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+  assert.match(
+    source,
+    /offlineState\?\.activeVersion \? `<p class="offline-version">\$\{translate\(locale\(\), 'offline\.activeVersion', \{ hash: offlineState\.activeVersion\.slice\(0, 8\) \}\)\}/
+  );
+  for (const locale of ['en', 'es']) {
+    assert.match(translate(locale, 'offline.activeVersion', { hash: 'abcd1234' }), /abcd1234/);
+  }
+});
+
 test('an installed offline package can be asked for updates without a relaunch', async () => {
   const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
 
   // 'ready' used to render no button at all, so the only update check was the
   // one at registration — unreachable without force-quitting the app.
-  assert.match(source, /status === 'ready'\s*\n?\s*\? `<button type="button" data-offline-action="check">/);
+  assert.deepEqual(offlineCardPresentation({ status: 'ready' }), {
+    messageKey: 'offline.ready',
+    action: { action: 'check', labelKey: 'offline.checkForUpdate' }
+  });
   assert.match(source, /data-offline-action="check"\]'\)[\s\S]{0,260}?checkForUpdate\(\)/);
   // A check that finds nothing returns to the same state, so it has to say so.
-  assert.match(source, /offlineUpToDate = next\?\.status === 'ready'/);
+  assert.match(source, /offlineUpToDate = next\?\.status === 'ready' && !next\?\.checkFailed/);
   assert.match(source, /offlineUpToDate && status === 'ready'[\s\S]{0,120}?'offline\.upToDate'/);
   // The pending status needs its own line, or the card reads "online only"
   // mid-check, as though the package had vanished.
-  assert.match(source, /status === 'checking-update'\s*\n?\s*\? 'offline\.checkingUpdate'/);
+  assert.equal(offlineCardPresentation({ status: 'checking-update' }).messageKey, 'offline.checkingUpdate');
 });
 
 test('daily-practice controls and SVG response targets preserve 44px touch minimums', async () => {
