@@ -39,7 +39,7 @@ export function defaultState() {
       timed: false,
       feedbackSounds: true,
       roadMovement: true,
-      ambience: false,
+      ambience: true,
       continuousDrive: true,
       length: 'medium',
       mode: 'recommended',
@@ -185,7 +185,10 @@ function validateState(value) {
 function validateSettings(settings) {
   if (settings.feedbackSounds === undefined) settings.feedbackSounds = true;
   if (settings.roadMovement === undefined) settings.roadMovement = true;
-  if (settings.ambience === undefined) settings.ambience = false;
+  // Cabin ambience is on for a new install: it is the engine under the
+  // drive, not a novelty. A saved preference always wins, so anyone who
+  // turned it off keeps it off.
+  if (settings.ambience === undefined) settings.ambience = true;
   if (settings.continuousDrive === undefined) settings.continuousDrive = true;
   if (settings.challengeId === undefined) settings.challengeId = null;
   if (!LOCALES.has(settings.locale)) throw new Error('Invalid settings.locale');

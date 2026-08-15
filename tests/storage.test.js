@@ -94,7 +94,7 @@ test('creates fresh version 4 defaults with recommended practice and an empty le
       timed: false,
       feedbackSounds: true,
       roadMovement: true,
-      ambience: false,
+      ambience: true,
       continuousDrive: true,
       length: 'medium',
       mode: 'recommended',
