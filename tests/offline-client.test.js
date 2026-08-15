@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createOfflineClient } from '../src/offline-client.js';
+import { readFile } from 'node:fs/promises';
+import { createOfflineClient, OFFLINE_STATUSES } from '../src/offline-client.js';
 
 function respondingWorker(onMessage = () => ({})) {
   return {
@@ -127,7 +128,7 @@ test('a download outliving the reply timeout still lands its completion state', 
         requestId: message.requestId,
         ok: true,
         state: message.type === 'DOWNLOAD_OFFLINE'
-          ? { activeVersion: 'v1', stagedVersion: 'v2' }
+          ? { activeVersion: 'v1', stagedVersion: 'v2', stagedComplete: true }
           : { activeVersion: 'v1', stagedVersion: null }
       });
       if (message.type === 'DOWNLOAD_OFFLINE') setTimeout(reply, 60);
@@ -301,6 +302,179 @@ test('a successfully booted active package confirms and releases its retained pr
   assert.equal(state.activeConfirmed, true);
   assert.equal(state.previousVersion, null);
   assert.deepEqual(types, ['GET_OFFLINE_STATE', 'CONFIRM_ACTIVE', 'CHECK_FOR_UPDATE']);
+});
+
+test('a slow registration check cannot overwrite a download the learner already started', async () => {
+  // register()'s CHECK_FOR_UPDATE can resolve minutes in, after a Download
+  // was tapped. Publishing its pre-download snapshot dropped the card back to
+  // "update available": progress events were then discarded, Cancel was
+  // replaced by Download, and a second 60 MB download was one tap away.
+  const worker = controlledWorker();
+  const fixture = browserFixture({ worker });
+  // controlledWorker answers registration's reads immediately; hold the
+  // update check so the download can overtake it.
+  const held = [];
+  fixture.serviceWorker.controller = {
+    postMessage(message, ports) {
+      const reply = response => ports?.[0]?.postMessage({ requestId: message.requestId, ...response });
+      if (message.type === 'GET_OFFLINE_STATE') {
+        queueMicrotask(() => reply({ ok: true, state: { activeVersion: 'v1', stagedVersion: null } }));
+        return;
+      }
+      held.push({ message, reply });
+    }
+  };
+  const client = createOfflineClient(fixture);
+  const registering = client.register();
+  const waitFor = async type => {
+    while (!held.some(request => request.message.type === type)) {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    return held.find(request => request.message.type === type);
+  };
+  const check = await waitFor('CHECK_FOR_UPDATE');
+  const downloading = client.download();
+  assert.equal(client.getState().status, 'downloading');
+
+  check.reply({ ok: true, state: { activeVersion: 'v1', stagedVersion: null }, updateAvailable: true });
+  await registering;
+  assert.equal(client.getState().status, 'downloading');
+
+  (await waitFor('DOWNLOAD_OFFLINE'))
+    .reply({ ok: true, state: { activeVersion: 'v1', stagedVersion: 'v2', stagedComplete: true } });
+  const state = await downloading;
+  assert.equal(state.status, 'update-ready');
+  assert.deepEqual(held.map(request => request.message.type), ['CHECK_FOR_UPDATE', 'DOWNLOAD_OFFLINE']);
+});
+
+test('a staged package still downloading is not offered for applying', async () => {
+  // stagedVersion is claimed at download start, so a reload mid-update showed
+  // an Apply button for a package that was not on disk yet.
+  const fixture = browserFixture({ worker: respondingWorker(() => ({
+    state: { activeVersion: 'v1', stagedVersion: 'v2', stagedComplete: false },
+    updateAvailable: true
+  })) });
+  const client = createOfflineClient(fixture);
+  const state = await client.register();
+  assert.equal(state.status, 'download-paused');
+  assert.equal(state.stagedComplete, false);
+});
+
+test('resuming a download drops the staged version its progress no longer belongs to', async () => {
+  // A resume can land on a newer package than the one staged here; keeping
+  // the old version made the progress guard reject every event.
+  const worker = controlledWorker();
+  const fixture = browserFixture({ worker });
+  const client = createOfflineClient(fixture);
+  await client.register();
+  const download = client.download();
+  fixture.listeners.get('message')({ data: {
+    type: 'OFFLINE_PROGRESS', version: 'v2',
+    state: { stagedVersion: 'v2', completedAssets: 3, totalAssets: 10 }
+  } });
+  assert.equal(client.getState().completedAssets, 3);
+  assert.equal(client.getState().stagedVersion, 'v2');
+  worker.requests.find(request => request.message.type === 'DOWNLOAD_OFFLINE')
+    .reply({ ok: true, state: { activeVersion: 'v2', stagedVersion: null } });
+  await download;
+});
+
+test('an apply slower than the ordinary reply timeout still activates and reloads', async () => {
+  // Sweeping a 60 MB cache outruns the 5 s reply timeout on an iPad. The
+  // client showed "failed" and never reloaded, while the worker had in fact
+  // activated the update — old JS, new package hash.
+  let reloads = 0;
+  const worker = {
+    postMessage(message, ports) {
+      const reply = () => ports?.[0]?.postMessage({
+        requestId: message.requestId,
+        ok: true,
+        state: message.type === 'APPLY_UPDATE'
+          ? { activeVersion: 'v2', stagedVersion: null }
+          : { activeVersion: 'v1', stagedVersion: 'v2', stagedComplete: true }
+      });
+      if (message.type === 'APPLY_UPDATE') setTimeout(reply, 40);
+      else queueMicrotask(reply);
+    }
+  };
+  const fixture = browserFixture({ worker });
+  fixture.windowRef.location.reload = () => { reloads += 1; };
+  const client = createOfflineClient({ ...fixture, timeoutMs: 10, applyTimeoutMs: 5_000 });
+  await client.register();
+  const state = await client.applyUpdate();
+  assert.equal(state.status, 'ready');
+  assert.equal(state.activeVersion, 'v2');
+  assert.equal(reloads, 1);
+});
+
+test('an apply reloads even when the worker takes over before the page is listening', async () => {
+  // controllerchange fired between send and subscribe reached nobody, and the
+  // page sat on the old package for good.
+  let reloads = 0;
+  const fixture = browserFixture({ worker: respondingWorker(() => ({
+    state: { activeVersion: 'v2', stagedVersion: null }
+  })) });
+  fixture.registration.waiting = {
+    postMessage(message, ports) {
+      // Hand over immediately, before the reply that would let a
+      // listener-attached-after implementation subscribe.
+      fixture.listeners.get('controllerchange')?.();
+      queueMicrotask(() => ports?.[0]?.postMessage({ requestId: message.requestId, ok: true }));
+    }
+  };
+  fixture.windowRef.location.reload = () => { reloads += 1; };
+  const client = createOfflineClient({ ...fixture, controllerChangeTimeoutMs: 50 });
+  await client.register();
+  await client.applyUpdate();
+  assert.equal(reloads, 1);
+});
+
+test('an apply whose worker never hands over reloads anyway', async () => {
+  let reloads = 0;
+  const fixture = browserFixture({ worker: respondingWorker(() => ({
+    state: { activeVersion: 'v2', stagedVersion: null }
+  })) });
+  fixture.registration.waiting = respondingWorker();
+  fixture.windowRef.location.reload = () => { reloads += 1; };
+  const client = createOfflineClient({ ...fixture, controllerChangeTimeoutMs: 20 });
+  await client.register();
+  await client.applyUpdate();
+  assert.equal(reloads, 1);
+});
+
+test('a manual update check that cannot reach the network leaves the installed package alone', async () => {
+  // Publishing 'failed' made the card say "The offline download failed" about
+  // a package sitting healthy on disk.
+  let allowCheck = true;
+  const fixture = browserFixture({ worker: {
+    postMessage(message, ports) {
+      const reply = response => ports?.[0]?.postMessage({ requestId: message.requestId, ...response });
+      if (message.type === 'CHECK_FOR_UPDATE' && !allowCheck) {
+        queueMicrotask(() => reply({ ok: false, error: 'network unavailable' }));
+        return;
+      }
+      queueMicrotask(() => reply({ ok: true, state: { activeVersion: 'v1', stagedVersion: null }, updateAvailable: false }));
+    }
+  } });
+  const client = createOfflineClient(fixture);
+  await client.register();
+  assert.equal(client.getState().status, 'ready');
+
+  allowCheck = false;
+  const state = await client.checkForUpdate();
+  assert.equal(state.status, 'ready');
+  assert.equal(state.activeVersion, 'v1');
+  assert.equal(state.checkFailed, true);
+  assert.equal(state.error, null);
+});
+
+test('the client only ever publishes statuses the offline card knows how to render', async () => {
+  const source = await readFile(new URL('../src/offline-client.js', import.meta.url), 'utf8');
+  const published = [...source.matchAll(/status: '([a-z-]+)'/g)].map(match => match[1]);
+  assert.ok(published.length >= 5);
+  for (const status of published) {
+    assert.ok(OFFLINE_STATUSES.includes(status), `${status} is published but not declared`);
+  }
 });
 
 test('standalone detects either iOS navigator state or display mode', () => {

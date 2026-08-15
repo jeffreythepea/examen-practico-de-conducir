@@ -1,5 +1,23 @@
 const freezeState = state => Object.freeze({ ...state });
 
+// Every status this client can publish. The offline card renders from this
+// list, so a status added here without a card branch fails its test rather
+// than silently falling through to the "Online only" copy and its live
+// Download button.
+export const OFFLINE_STATUSES = Object.freeze([
+  'unsupported',
+  'online-only',
+  'downloading',
+  'download-paused',
+  'cancelling',
+  'ready',
+  'checking-update',
+  'update-available',
+  'update-ready',
+  'applying-update',
+  'failed'
+]);
+
 function isSupported(navigatorRef, windowRef) {
   const hostname = windowRef?.location?.hostname ?? '';
   const secure = windowRef?.isSecureContext === true || ['localhost', '127.0.0.1', '::1'].includes(hostname);
@@ -14,7 +32,12 @@ export function createOfflineClient({
   navigatorRef = globalThis.navigator,
   windowRef = globalThis.window,
   MessageChannelCtor = globalThis.MessageChannel,
-  timeoutMs = 5_000
+  timeoutMs = 5_000,
+  // Activation sweeps a 60 MB cache asset by asset; on an iPad that outruns
+  // the ordinary reply timeout, and a timed-out apply left the card claiming
+  // failure while the worker had in fact activated the update.
+  applyTimeoutMs = 120_000,
+  controllerChangeTimeoutMs = 3_000
 } = {}) {
   const supported = isSupported(navigatorRef, windowRef);
   const standalone = Boolean(
@@ -29,10 +52,12 @@ export function createOfflineClient({
     availableVersion: null,
     updateAvailable: false,
     stagedVersion: null,
+    stagedComplete: false,
     completedAssets: 0,
     totalAssets: 0,
     completedBytes: 0,
     totalBytes: 0,
+    checkFailed: false,
     error: null
   });
   let operationGeneration = 0;
@@ -97,8 +122,23 @@ export function createOfflineClient({
     };
   }
 
+  // A staged version alone only says a download claimed the slot; without
+  // stagedComplete the package on disk is a partial one, and offering Apply
+  // for it hands activation a package that is not there.
+  function statusForChanges(changes) {
+    if (changes.stagedVersion && changes.stagedComplete) return 'update-ready';
+    if (changes.stagedVersion) return 'download-paused';
+    if (!changes.activeVersion) return 'online-only';
+    return changes.updateAvailable ? 'update-available' : 'ready';
+  }
+
   async function register() {
     if (!supported) return state;
+    // Registration is slow and its update check slower; a Download tapped
+    // while it runs owns the card from then on, so a late registration
+    // publish must not overwrite 'downloading' with a pre-download snapshot.
+    const generation = operationGeneration;
+    const superseded = () => generation !== operationGeneration;
     try {
       registration = await navigatorRef.serviceWorker.register('./sw.js', {
         scope: './',
@@ -107,6 +147,7 @@ export function createOfflineClient({
       });
       navigatorRef.serviceWorker.addEventListener?.('message', onWorkerMessage);
       const response = await send('GET_OFFLINE_STATE');
+      if (superseded()) return state;
       let installed = publish({
         status: response.state?.activeVersion ? 'ready' : 'online-only',
         ...responseChanges(response),
@@ -114,51 +155,68 @@ export function createOfflineClient({
       });
       if (installed.activeVersion && installed.previousVersion && installed.activeConfirmed === false) {
         const confirmed = await send('CONFIRM_ACTIVE', { version: installed.activeVersion });
+        if (superseded()) return state;
         installed = publish({ status: 'ready', ...responseChanges(confirmed), error: null });
       }
       try {
         const available = await send('CHECK_FOR_UPDATE');
+        if (superseded()) return state;
         const changes = responseChanges(available);
-        return publish({
-          status: changes.stagedVersion
-            ? 'update-ready'
-            : changes.activeVersion && changes.updateAvailable
-              ? 'update-available'
-              : changes.activeVersion ? 'ready' : 'online-only',
-          ...changes,
-          error: null
-        });
+        return publish({ status: statusForChanges(changes), ...changes, error: null });
       } catch {
-        return installed;
+        return superseded() ? state : installed;
       }
     } catch (error) {
+      if (superseded()) return state;
       return publish({ status: 'online-only', error: error?.message ?? String(error) });
     }
   }
 
   async function command(type, pendingStatus, payload, replyTimeoutMs = timeoutMs, operation = ++operationGeneration) {
-    activeDownloadOperation = type === 'DOWNLOAD_OFFLINE' ? operation : 0;
-    publish({ status: pendingStatus, error: null });
+    const isDownload = type === 'DOWNLOAD_OFFLINE';
+    activeDownloadOperation = isDownload ? operation : 0;
+    publish({
+      status: pendingStatus,
+      error: null,
+      checkFailed: false,
+      // A resume may move to a newer package version than the one staged
+      // here; keeping the old one would make the progress guard discard
+      // every event the new download broadcasts.
+      ...(isDownload ? { stagedVersion: null, stagedComplete: false } : {})
+    });
     try {
       const response = await send(type, payload, workerTarget(), replyTimeoutMs);
       if (operation !== operationGeneration) return state;
       const changes = responseChanges(response);
-      const nextStatus = changes.activeVersion
-        ? changes.stagedVersion
-          ? 'update-ready'
-          : changes.updateAvailable ? 'update-available' : 'ready'
-        : changes.stagedVersion ? 'download-paused' : 'online-only';
-      return publish({ status: nextStatus, ...changes, error: null });
+      return publish({ status: statusForChanges(changes), ...changes, error: null });
     } catch (error) {
       if (operation !== operationGeneration) return state;
       return publish({ status: 'failed', error: error?.message ?? String(error) });
     }
   }
 
+  async function checkForUpdate() {
+    const operation = ++operationGeneration;
+    // An installed package is no less installed for the network being down.
+    // Failing the whole card claimed "the offline download failed" about a
+    // package sitting healthy on disk.
+    const restore = { status: state.status, error: state.error };
+    publish({ status: 'checking-update', error: null, checkFailed: false });
+    try {
+      const response = await send('CHECK_FOR_UPDATE');
+      if (operation !== operationGeneration) return state;
+      const changes = responseChanges(response);
+      return publish({ status: statusForChanges(changes), ...changes, error: null, checkFailed: false });
+    } catch {
+      if (operation !== operationGeneration) return state;
+      return publish({ ...restore, checkFailed: true });
+    }
+  }
+
   async function applyUpdate() {
     const version = state.stagedVersion;
     const operation = ++operationGeneration;
-    const response = await command('APPLY_UPDATE', 'applying-update', { version }, timeoutMs, operation);
+    const response = await command('APPLY_UPDATE', 'applying-update', { version }, applyTimeoutMs, operation);
     if (operation !== operationGeneration) return response;
     if (response.status === 'failed') return response;
     // The worker now serves the newly activated package, but this page is still
@@ -166,11 +224,32 @@ export function createOfflineClient({
     // an update — a package-only update leaves no waiting worker at all — so
     // the reload must not be conditional on one, or the new assets get judged
     // against old code while the card truthfully reports the new hash.
-    if (registration?.waiting) {
-      await send('SKIP_WAITING', {}, registration.waiting);
-      await new Promise(resolve => navigatorRef.serviceWorker.addEventListener('controllerchange', resolve, { once: true }));
+    const waiting = registration?.waiting;
+    if (waiting) {
+      // Listen before asking: a worker that claims its clients between the
+      // send and the subscribe fires controllerchange into nobody, and the
+      // page never reloads. The timer covers the handover never happening.
+      const handover = new Promise(resolve => {
+        navigatorRef.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
+      });
+      try {
+        await send('SKIP_WAITING', {}, waiting);
+      } catch {
+        // A worker that will not step aside still must not strand the page on
+        // the old package: reload onto whatever the worker is serving.
+      }
+      await Promise.race([
+        handover,
+        new Promise(resolve => setTimeout(resolve, controllerChangeTimeoutMs))
+      ]);
     }
-    windowRef.location.reload();
+    try {
+      windowRef.location.reload();
+    } catch (error) {
+      // Say so rather than leaving the card on "Applying the update" forever.
+      if (operation !== operationGeneration) return state;
+      return publish({ status: 'failed', error: error?.message ?? String(error) });
+    }
     return response;
   }
 
@@ -198,7 +277,7 @@ export function createOfflineClient({
     subscribe(listener) { subscribers.add(listener); return () => subscribers.delete(listener); },
     register,
     download: () => command('DOWNLOAD_OFFLINE', 'downloading', {}, 0),
-    checkForUpdate: () => command('CHECK_FOR_UPDATE', 'checking-update'),
+    checkForUpdate,
     applyUpdate,
     cancelDownload: () => command('CANCEL_DOWNLOAD', 'cancelling'),
     storageEstimate
