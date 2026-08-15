@@ -561,6 +561,26 @@ test('a silent junction answered correctly carries the straight clip into its tr
   }).turnThrough, null);
 });
 
+test('a mock silent junction withholds the turn-through even when answered correctly', () => {
+  // The intro pan only follows a correct answer, so in mock its presence
+  // would leak the correctness the neutral notice deliberately hides.
+  const nullEvent = reduceScreen(
+    {
+      ...promptModel(),
+      screen: 'mock-transition',
+      experience: { revealPolicy: 'session-end' },
+      session: [{ id: 'c-der' }, { id: 'c-izq' }]
+    },
+    { type: 'CONTINUITY_SYNC', index: 0, stepKind: 'null-event', motionEnabled: true, startedAt: 0 }
+  );
+  const straight = nullEvent.activeSurfaceModel.targets.find(t => t.resultId === 'continue-forward');
+  const answered = reduceScreen(nullEvent, {
+    type: 'NULL_EVENT_SELECT', targetId: straight.id, completedAt: 1_000
+  });
+  assert.equal(answered.nullEvent.state, 'correct');
+  assert.equal(answered.turnThrough, null, 'mock must never leak correctness through the intro');
+});
+
 test('initial moving audio failure is unscored and all trial resets clear motion fields', () => {
   const loading = reduceScreen(setupModel(), { type: 'START_SESSION', session });
   const started = reduceScreen(loading, {

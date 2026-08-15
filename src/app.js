@@ -908,7 +908,9 @@ export function reduceScreen(model, event, { surfaceGenerator = generateSurface 
       roadMotion,
       // Driving straight on through a silent junction earns the same clip a
       // spoken "siga recto" does; a wrong answer earns none, as at any reveal.
-      turnThrough: correct
+      // Mock withholds it entirely: the intro pan only plays after a correct
+      // answer, so its presence would leak what the neutral notice hides.
+      turnThrough: correct && model.experience?.revealPolicy !== 'session-end'
         ? {
             sceneId: model.activeSurfaceModel.geometry?.sceneId ?? null,
             family: model.activeSurfaceModel.family,
