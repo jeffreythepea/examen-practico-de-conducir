@@ -9,6 +9,7 @@ import {
   renderManoeuvreSurface
 } from '../src/manoeuvre-surfaces.js';
 import { SUPPORTED_SURFACE_IDS, supportedCommands } from '../src/surfaces.js';
+import { roadMotionProfile } from '../src/road-motion.js';
 
 function command(action, surfaceId) {
   return {
@@ -639,4 +640,61 @@ test('the side road is described by what it is, never by whether it is right', (
   }
   assert.match(renderManoeuvreSurface(model, 'en'), /data-result="side-road"[^>]*aria-label="Side road on the left"/);
   assert.match(renderManoeuvreSurface(model, 'es'), /data-result="side-road"[^>]*aria-label="Vía lateral a la izquierda"/);
+});
+
+test('the overtake question offers a third response that survives the approach zoom', () => {
+  // Two responses made it a coin flip. Passing on the right is the lesson
+  // this scene cannot teach — perspective puts the right edge line at x≈58
+  // beside the lead car, leaving no asphalt — and a target behind the learner
+  // cannot be placed either: a 44px box that survives the approach zoom must
+  // be centred at y <= 90.5, which puts its top inside the car. Leaving the
+  // carriageway is the wrong action this plate can show honestly.
+  const profile = roadMotionProfile('overtaking-photo-v1');
+  const seen = new Set();
+  for (let seed = 1; seed <= 32; seed += 1) {
+    const model = generateManoeuvreSurface(command('overtake', 'overtake-v1'), seed);
+    assert.ok(model.targets.length >= 3, `seed ${seed} offers only ${model.targets.length} responses`);
+
+    const verge = model.targets.find(target => target.resultId === 'leave-road');
+    assert.ok(verge, `seed ${seed} has no pull-off response`);
+    assert.notEqual(verge.resultId, model.expectedResult, 'leaving the road must never be accepted');
+
+    const passing = model.targets.find(target => target.resultId === 'overtake');
+    assert.ok(verge.x > passing.x, 'the verge lies right of the carriageway, opposite the passing lane');
+    // Right of the right-hand edge line, which perspective puts near x 70 at
+    // this depth: a "pull off the road" target on the road teaches nothing.
+    assert.ok(verge.x > 70, `pull-off must sit off the carriageway (x ${verge.x})`);
+
+    // The approach zooms about (originX, originY); a target box whose edge
+    // leaves the stage under that transform cannot be seen or tapped.
+    for (const [edge, value] of [
+      ['bottom', verge.y + verge.height / 2],
+      ['right', verge.x + verge.width / 2]
+    ]) {
+      const axis = edge === 'bottom' ? profile.originY : profile.originX;
+      const zoomed = axis + (value - axis) * profile.endScale;
+      assert.ok(zoomed <= 100, `pull-off ${edge} is clipped at ${zoomed.toFixed(1)} under the approach zoom`);
+    }
+    seen.add(model.geometry.templateId);
+  }
+  assert.equal(seen.size, 2, 'both overtake templates must be exercised');
+});
+
+test('every road-choice manoeuvre question offers at least three responses', () => {
+  // The ≥3 minimum, now that u-turn and overtake have their third answers:
+  // a two-option question is answerable by a coin flip.
+  for (const [result, surfaceId] of [
+    ['change-direction', 'u-turn-v1'],
+    ['overtake', 'overtake-v1'],
+    ['join-traffic', 'join-traffic-v1'],
+    ['park', 'parking-v1'],
+    ['voluntary-stop', 'stopping-v1']
+  ]) {
+    for (let seed = 1; seed <= 12; seed += 1) {
+      const model = generateManoeuvreSurface(command(result, surfaceId), seed);
+      assert.ok(model.targets.length >= 3, `${surfaceId} seed ${seed} offers ${model.targets.length}`);
+      const accepted = model.targets.filter(target => target.resultId === model.expectedResult);
+      assert.equal(accepted.length, 1, `${surfaceId} must accept exactly one response`);
+    }
+  }
 });

@@ -17,6 +17,7 @@ const FEATURE_LABEL_KEYS = Object.freeze({
   'side-road': 'surface.feature.sideRoad',
   'passing-lane': 'surface.feature.passingLane',
   'follow-lane': 'surface.feature.followLane',
+  'roadside-verge': 'surface.feature.roadsideVerge',
   'correct-travel-lane': 'surface.feature.correctTravelLane',
   'right-curb-start': 'surface.feature.curbsidePosition',
   'opposing-lane': 'surface.feature.opposingLane',
@@ -79,7 +80,15 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       ],
       targets: [
         { id: 'passing-lane', resultId: 'overtake', kind: 'overtaking-route', feature: 'passing-lane', x: 44, y: 37 },
-        { id: 'following-position', resultId: 'follow-vehicle', kind: 'lane-choice', feature: 'follow-lane', x: 58.5, y: 54 }
+        { id: 'following-position', resultId: 'follow-vehicle', kind: 'lane-choice', feature: 'follow-lane', x: 58.5, y: 54 },
+        // Leaving the carriageway instead of passing: a distinct wrong action
+        // rather than another flavour of waiting. Passing on the right cannot
+        // be offered here — perspective puts the right edge line at x≈58
+        // beside the lead car, so there is no asphalt to place it on — and a
+        // target behind the learner cannot be placed either: a 44px box that
+        // survives the approach zoom (endScale 1.18 about 54,86) must be
+        // centred at y ≤ 90.5, which puts its top inside the car.
+        { id: 'verge-pull-off', resultId: 'leave-road', kind: 'lane-choice', feature: 'roadside-verge', x: 80, y: 84 }
       ]
     },
     {
@@ -93,7 +102,8 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       ],
       targets: [
         { id: 'passing-path', resultId: 'overtake', kind: 'overtaking-route', feature: 'passing-lane', x: 44, y: 39 },
-        { id: 'wait-behind', resultId: 'follow-vehicle', kind: 'lane-choice', feature: 'follow-lane', x: 58.5, y: 56 }
+        { id: 'wait-behind', resultId: 'follow-vehicle', kind: 'lane-choice', feature: 'follow-lane', x: 58.5, y: 56 },
+        { id: 'verge-gap', resultId: 'leave-road', kind: 'lane-choice', feature: 'roadside-verge', x: 80, y: 84 }
       ]
     }
   ],
