@@ -26,6 +26,7 @@ import {
   reduceScreen
 } from './screen-reducer.js';
 import { nullEventClipWillDemonstrate, revealDecision } from './reveal-policy.js';
+import { offlineCardPresentation, renderOfflineCard as renderOfflineCardView } from './offline-card-view.js';
 import { commandsForPhase, validateCatalog } from './catalog.js';
 import {
   ACCOMPLISHMENTS,
@@ -88,14 +89,6 @@ import { selectCoverageAwareVariant } from './variant-coverage.js';
 
 export const TRIAL_TIME_MS = 8_000;
 export const NULL_EVENT_DWELL_MS = 1_600;
-// Every status the offline client publishes needs its own card: the transient
-// ones used to fall through to the "Online only" copy, which carries a live
-// Download button — the second half of a double tap during an apply started a
-// rival download that could quietly un-apply the update.
-const OFFLINE_RESUME_ACTION = hasProgress => ({
-  action: 'download',
-  labelKey: hasProgress ? 'offline.resumeDownload' : 'offline.download'
-});
 /**
  * Timers that advance the drive on their own. The drive is self-advancing
  * now: a clip-backed reveal auto-advances into Continue, the transition times
@@ -131,35 +124,6 @@ export function createAdvanceScheduler({ documentRef, windowRef }) {
   return scheduler;
 }
 
-export function offlineCardPresentation({ status, hasProgress = false }) {
-  switch (status) {
-    case 'unsupported':
-      return { messageKey: 'offline.unsupported', action: null };
-    case 'downloading':
-      return { messageKey: 'offline.downloading', action: { action: 'cancel', labelKey: 'offline.cancel' } };
-    case 'cancelling':
-      return { messageKey: 'offline.cancelling', action: null };
-    case 'applying-update':
-      return { messageKey: 'offline.applyingUpdate', action: null };
-    case 'checking-update':
-      return { messageKey: 'offline.checkingUpdate', action: null };
-    // An installed package otherwise offers nothing to press: the only update
-    // check ran at registration, so a running app could not ask again without
-    // being force-quit.
-    case 'ready':
-      return { messageKey: 'offline.ready', action: { action: 'check', labelKey: 'offline.checkForUpdate' } };
-    case 'update-available':
-      return { messageKey: 'offline.updateAvailable', action: { action: 'download', labelKey: 'offline.downloadUpdate' } };
-    case 'update-ready':
-      return { messageKey: 'offline.updateReady', action: { action: 'apply-update', labelKey: 'offline.applyUpdate' } };
-    case 'download-paused':
-      return { messageKey: 'offline.downloadPaused', action: OFFLINE_RESUME_ACTION(hasProgress) };
-    case 'failed':
-      return { messageKey: 'offline.failedRetained', action: OFFLINE_RESUME_ACTION(hasProgress) };
-    default:
-      return { messageKey: 'offline.onlineOnly', action: OFFLINE_RESUME_ACTION(hasProgress) };
-  }
-}
 // How long the end screen ignores a tap that was already travelling when it
 // rendered — long enough to cover one skipped transition, short enough that a
 // learner reaching for Continue never notices it.
@@ -1186,37 +1150,22 @@ async function bootstrap() {
   }
 
   function renderOfflineCard() {
-    const status = offlineState?.status ?? 'unsupported';
-    const completed = offlineState?.completedBytes ?? 0;
-    const total = offlineState?.totalBytes ?? 0;
-    const progress = total > 0 ? Math.min(completed, total) : 0;
-    const hasProgress = (offlineState?.completedAssets ?? 0) > 0;
-    const { messageKey, action } = offlineCardPresentation({ status, hasProgress });
-    if ((action?.action ?? null) !== offlineActionShown) {
-      offlineActionShown = action?.action ?? null;
+    const card = renderOfflineCardView({
+      offlineState,
+      locale: locale(),
+      standalone: Boolean(offlineClient?.standalone),
+      upToDate: offlineUpToDate
+    });
+    // The card offers one button in one slot, so note when the offered action
+    // changed rather than when it last rendered: progress re-renders must not
+    // keep re-arming the guard.
+    if (card.action !== offlineActionShown) {
+      offlineActionShown = card.action;
       offlineActionShownAt = Date.now();
     }
-    const actions = action
-      ? `<button type="button" data-offline-action="${action.action}">${translate(locale(), action.labelKey)}</button>`
-      : '';
-    return `<section class="offline-card" aria-labelledby="offline-title">
-      <h3 id="offline-title">${translate(locale(), 'offline.title')}</h3>
-      <div role="status" aria-live="polite">
-        <p>${translate(locale(), messageKey)}</p>
-        ${offlineState?.activeVersion ? `<p class="offline-version">${translate(locale(), 'offline.activeVersion', { hash: offlineState.activeVersion.slice(0, 8) })}</p>` : ''}
-        ${offlineState?.checkFailed ? `<p class="offline-checked">${translate(locale(), 'offline.checkUnavailable')}</p>` : ''}
-        ${offlineUpToDate && status === 'ready' ? `<p class="offline-checked">${translate(locale(), 'offline.upToDate')}</p>` : ''}
-        ${total > 0 ? `<p>${translate(locale(), 'offline.bytes', { completed: formatBytes(completed), total: formatBytes(total) })}</p>` : ''}
-      </div>
-      <progress data-offline-progress value="${progress}" max="${total || 1}" ${total > 0 ? '' : 'hidden'}></progress>
-      ${actions}
-      ${offlineClient?.standalone ? '' : `<details>
-        <summary>${translate(locale(), 'offline.installTitle')}</summary>
-        <p>${translate(locale(), 'offline.installSafari')}</p>
-        <p>${translate(locale(), 'offline.transferProgress')}</p>
-      </details>`}
-    </section>`;
+    return card.html;
   }
+
 
   function renderLoading() {
     return `<section class="panel loading" aria-labelledby="loading-title">
@@ -2518,9 +2467,6 @@ function resumableSettings(settings) {
   };
 }
 
-function formatBytes(value) {
-  return `${(Number(value) / 1_000_000).toFixed(1)} MB`;
-}
 
 function attributeSelector(attribute, value) {
   const escaped = String(value).replaceAll('\\', '\\\\').replaceAll('"', '\\"');
