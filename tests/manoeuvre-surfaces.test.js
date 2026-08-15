@@ -664,6 +664,9 @@ test('the overtake question offers a third response that survives the approach z
     // Right of the right-hand edge line, which perspective puts near x 70 at
     // this depth: a "pull off the road" target on the road teaches nothing.
     assert.ok(verge.x > 70, `pull-off must sit off the carriageway (x ${verge.x})`);
+    // Ahead of the learner, whose bonnet is around y 63. A verge target level
+    // with the car could only be reached by reversing onto it.
+    assert.ok(verge.y < 60, `pull-off must lie ahead of the car (y ${verge.y})`);
 
     // The approach zooms about (originX, originY); a target box whose edge
     // leaves the stage under that transform cannot be seen or tapped.
