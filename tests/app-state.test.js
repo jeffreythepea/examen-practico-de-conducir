@@ -21,11 +21,13 @@ import {
   sessionStartEligibility,
   generateSurfaceWithRetries,
   nextSurfaceSeed,
-  reduceScreen,
+  reduceScreen
+} from '../src/app.js';
+import {
   revealAutoAdvanceMs,
   revealDecision,
   turnClipWillDemonstrateReveal
-} from '../src/app.js';
+} from '../src/reveal-policy.js';
 import { EXAMINERS, selectTodaysExaminer } from '../src/examiners.js';
 import { defaultState, loadState, saveState } from '../src/storage.js';
 import { renderSurfaceModel } from '../src/surfaces.js';

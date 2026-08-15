@@ -8,7 +8,7 @@ import {
   TURN_THROUGH_FAMILIES,
   turnThroughIntro
 } from '../src/turn-through.js';
-import { REVEAL_DWELL_MS_BY_FAMILY } from '../src/app.js';
+import { REVEAL_DWELL_MS_BY_FAMILY } from '../src/reveal-policy.js';
 import { generateSurface } from '../src/surfaces.js';
 import { activeCommands } from '../src/catalog.js';
 import commands from '../data/commands.json' with { type: 'json' };
