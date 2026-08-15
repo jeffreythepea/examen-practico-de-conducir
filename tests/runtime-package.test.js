@@ -8,6 +8,7 @@ import {
   collectRuntimeAssets,
   isRecordedCorpusComplete
 } from '../scripts/runtime-package.mjs';
+import { ACTION_SOUNDS } from '../src/action-sounds.js';
 import { AMBIENCE_CLIPS } from '../src/ambience.js';
 import { CONTINUITY_SCENE_FAMILIES } from '../src/continuity-transition-view.js';
 import { DRIVING_SCENES } from '../src/driving-scenes.js';
@@ -32,7 +33,7 @@ test('runtime asset discovery is deterministic, complete, and excludes developme
   // code rather than in the manifest.
   assert.equal(
     paths.filter(path => path.endsWith('.mp3')).length,
-    audioManifest.length + Object.keys(AMBIENCE_CLIPS).length
+    audioManifest.length + Object.keys(AMBIENCE_CLIPS).length + Object.keys(ACTION_SOUNDS).length
   );
   assert.ok(paths.includes('assets/driving/urban-roadside-drive-v2.mp4'));
   assert.ok(paths.includes('assets/driving/urban-roadside-drive-v2-poster.webp'));
@@ -66,7 +67,7 @@ test('runtime package is integrity-addressed and copies only declared assets', a
     assert.equal(result.totalAssets, result.assets.length);
     assert.equal(
       result.assets.filter(asset => asset.path.endsWith('.mp3')).length,
-      audioManifest.length + Object.keys(AMBIENCE_CLIPS).length
+      audioManifest.length + Object.keys(AMBIENCE_CLIPS).length + Object.keys(ACTION_SOUNDS).length
     );
     assert.deepEqual(result.assets, result.assets.toSorted((a, b) => a.path.localeCompare(b.path)));
     assert.equal((await stat(resolve(outDir, 'offline-package.json'))).isFile(), true);
@@ -131,6 +132,7 @@ test('every asset a code registry references ships in the package', async () => 
 
   const registered = [
     ['ambience', Object.values(AMBIENCE_CLIPS)],
+    ['action sound', Object.values(ACTION_SOUNDS)],
     ['driving scene', Object.values(DRIVING_SCENES).map(scene => scene.asset)],
     ['precheck scene', Object.values(PRECHECK_SCENES).map(scene => scene.asset)],
     ['cruise video', Object.values(CONTINUITY_SCENE_FAMILIES)
