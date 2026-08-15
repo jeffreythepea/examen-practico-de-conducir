@@ -1,6 +1,7 @@
-tmp/audio-audition/
-tmp/audio-ambience/
-tmp/.DS_Store
+# Scratch space for prototypes and generated media: hundreds of megabytes
+# that one careless `git add -A` would otherwise commit.
+tmp/
+.DS_Store
 .superpowers/
 node_modules/
 dist/

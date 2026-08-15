@@ -78,16 +78,63 @@ function assertSafeReleaseDocumentation(path, text) {
   }
 }
 
+// Each pattern carries a planted sample so the sweep below can be shown to
+// detect something: a pattern that matched nothing would pass this audit on
+// every file for ever, which is exactly how the Google key slipped its net.
+const FORBIDDEN_CREDENTIALS = [
+  {
+    label: 'OpenAI key assignment',
+    matches: text => text.includes('OPENAI_API_KEY' + '='),
+    sample: () => `${'OPENAI_API_KEY'}=value`
+  },
+  {
+    label: 'ElevenLabs key assignment',
+    matches: text => text.includes('ELEVENLABS_API_KEY' + '='),
+    sample: () => `${'ELEVENLABS_API_KEY'}=value`
+  },
+  {
+    label: 'provider key value',
+    matches: text => new RegExp(`\\b${'s' + 'k-'}[A-Za-z0-9_-]{8,}`).test(text),
+    sample: () => `${'s' + 'k-'}${'a'.repeat(20)}`
+  },
+  {
+    label: 'ElevenLabs key header',
+    matches: text => text.includes('xi-' + 'api-key'),
+    sample: () => `${'xi-' + 'api-key'}: value`
+  },
+  // Veo/Gemini is the primary generation provider now, and the audit could
+  // not see a Google key at all.
+  {
+    label: 'Gemini key assignment',
+    matches: text => text.includes('GEMINI_API_KEY' + '='),
+    sample: () => `${'GEMINI_API_KEY'}=value`
+  },
+  {
+    label: 'Google key assignment',
+    matches: text => text.includes('GOOGLE_API_KEY' + '='),
+    sample: () => `${'GOOGLE_API_KEY'}=value`
+  },
+  {
+    label: 'OpenRouter key assignment',
+    matches: text => text.includes('OPENROUTER_API_KEY' + '='),
+    sample: () => `${'OPENROUTER_API_KEY'}=value`
+  },
+  {
+    label: 'Google key value',
+    matches: text => new RegExp(`${'AI' + 'za'}[0-9A-Za-z_-]{33}`).test(text),
+    sample: () => `${'AI' + 'za'}${'B'.repeat(33)}`
+  }
+];
+
+test('every credential pattern detects the credential it is named for', () => {
+  for (const pattern of FORBIDDEN_CREDENTIALS) {
+    assert.equal(pattern.matches(pattern.sample()), true, `${pattern.label} matches nothing`);
+    assert.equal(pattern.matches('a clean release candidate'), false, pattern.label);
+  }
+});
+
 test('release candidate contains no credential-shaped text', async () => {
-  const forbidden = [
-    { label: 'OpenAI key assignment', matches: text => text.includes('OPENAI_API_KEY' + '=') },
-    { label: 'ElevenLabs key assignment', matches: text => text.includes('ELEVENLABS_API_KEY' + '=') },
-    {
-      label: 'provider key value',
-      matches: text => new RegExp(`\\b${'s' + 'k-'}[A-Za-z0-9_-]{8,}`).test(text)
-    },
-    { label: 'ElevenLabs key header', matches: text => text.includes('xi-' + 'api-key') }
-  ];
+  const forbidden = FORBIDDEN_CREDENTIALS;
   for (const path of await candidateTextFiles()) {
     const text = await readFile(path, 'utf8');
     for (const pattern of forbidden) {
@@ -107,10 +154,12 @@ test('built runtime contains no development files or credential-shaped text', as
     assert.equal(paths.some(path => path.endsWith('.png') && !path.startsWith('icons/')), false);
     for (const path of await candidateTextFiles(outDir)) {
       const text = await readFile(path, 'utf8');
-      assert.equal(text.includes('OPENAI_API_KEY' + '='), false);
-      assert.equal(text.includes('ELEVENLABS_API_KEY' + '='), false);
-      assert.equal(text.includes('xi-' + 'api-key'), false);
-      assert.doesNotMatch(text, new RegExp(`\\b${'s' + 'k-'}[A-Za-z0-9_-]{8,}`));
+      // The same list the repository sweep uses: the browser-delivered build
+      // is the half that must never carry a key, so it cannot be the half
+      // with the older, narrower patterns.
+      for (const pattern of FORBIDDEN_CREDENTIALS) {
+        assert.equal(pattern.matches(text), false, `${relative(outDir, path)}: ${pattern.label}`);
+      }
     }
   } finally {
     await rm(fixture, { recursive: true, force: true });
