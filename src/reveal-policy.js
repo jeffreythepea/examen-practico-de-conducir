@@ -23,11 +23,13 @@ const TURN_CLIP_REVEAL_FAMILIES = new Set(Object.keys(REVEAL_DWELL_MS_BY_FAMILY)
 // The learner is reading the result label before the transition begins.
 const REVEAL_READING_BEAT_MS = 1_200;
 
-// Jeffrey's device pass 2026-08-15 judged the wait before the clip takes over
-// a little slow and asked for about a third less. One knob scales every
-// family together, so the relative pacing he calibrated per family — and the
+// Jeffrey's device passes 2026-08-15: first a third off, then lower again to
+// around a second. The correct-answer chime is the cue that the answer landed,
+// so the clip arriving sooner reads as continuous driving rather than as an
+// interruption waiting to be dismissed. One knob scales every family
+// together, so the relative pacing he calibrated per family — and the
 // reviewed beats above — survive the change instead of being retyped.
-const REVEAL_PACE_SCALE = 2 / 3;
+const REVEAL_PACE_SCALE = 1 / 2;
 
 // Rounded to a hundredth of a second: these are perceived beats, and a
 // timer of 1666.6667 ms only pretends to a precision the eye does not have.

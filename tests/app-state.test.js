@@ -485,19 +485,19 @@ test('a clip-backed reveal advances itself after the reviewed result-reading dwe
   // on device (the learner reads the label rather than watching the car), and
   // dwell-plus-full-beat then read as slow before the clip took over.
   assert.equal(revealAutoAdvanceMs(eligible), revealHoldMs('junction'));
-  assert.equal(revealHoldMs('junction'), 1_670);
+  assert.equal(revealHoldMs('junction'), 1_250);
   assert.equal(revealAutoAdvanceMs({
     ...eligible,
     screenModel: { ...eligible.screenModel, activeSurfaceModel: parking }
-  }), 1_770);
+  }), 1_330);
   assert.equal(revealAutoAdvanceMs({
     ...eligible,
     screenModel: { ...eligible.screenModel, activeSurfaceModel: uTurn }
-  }), 2_000);
+  }), 1_500);
   assert.equal(revealAutoAdvanceMs({
     ...eligible,
     screenModel: { ...eligible.screenModel, activeSurfaceModel: joinTraffic }
-  }), 1_530);
+  }), 1_150);
 
   const clipless = {
     ...junction,
@@ -2166,21 +2166,24 @@ test('a fresh trial does not share its reset arrays with the trial before it', (
   assert.notStrictEqual(first.allowedMissReasons, second.allowedMissReasons);
 });
 
-test('every family waits two thirds of its reviewed beat before the clip takes over', () => {
-  // Jeffrey's device pass 2026-08-15: dwell plus the full reading beat read
-  // as slow. The scale is one knob so the relative pacing between families —
-  // a roundabout gets longer than a junction — survives any retune.
+test('every family waits half its reviewed beat before the clip takes over', () => {
+  // Jeffrey's device passes 2026-08-15: dwell plus the full reading beat read
+  // as slow, and two thirds still did. The chime already says the answer
+  // landed, so the clip can arrive close behind it. The scale is one knob so
+  // the relative pacing between families — a roundabout gets longer than a
+  // junction — survives any retune.
   const holds = [];
   for (const [family, dwell] of Object.entries(REVEAL_DWELL_MS_BY_FAMILY)) {
     const hold = revealHoldMs(family);
     assert.ok(Number.isInteger(hold), `${family} hold must be a whole ms`);
     assert.equal(hold % 10, 0, `${family} hold must be a round beat, got ${hold}`);
     assert.ok(
-      Math.abs(hold / (dwell + 1_200) - 2 / 3) < 0.01,
-      `${family} must wait about two thirds of its reviewed beat (${hold} of ${dwell + 1_200})`
+      Math.abs(hold / (dwell + 1_200) - 1 / 2) < 0.01,
+      `${family} must wait about half its reviewed beat (${hold} of ${dwell + 1_200})`
     );
-    // Long enough to read the outcome label, short enough not to feel stalled.
-    assert.ok(hold >= 1_500 && hold <= 2_100, `${family} hold ${hold} is outside the reviewed range`);
+    // Long enough to register the outcome behind the chime, short enough that
+    // the drive reads as continuous rather than interrupted.
+    assert.ok(hold >= 1_000 && hold <= 1_600, `${family} hold ${hold} is outside the reviewed range`);
     holds.push([family, hold]);
   }
   // The order Jeffrey calibrated: the busiest scenes hold longest.
