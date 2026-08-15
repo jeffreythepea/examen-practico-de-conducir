@@ -11,6 +11,7 @@ import {
   writeFile
 } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
+import { AMBIENCE_CLIPS } from '../src/ambience.js';
 import { CONTINUITY_SCENE_FAMILIES } from '../src/continuity-transition-view.js';
 import { DRIVING_SCENES } from '../src/driving-scenes.js';
 import { PRECHECK_SCENES } from '../src/precheck-scenes.js';
@@ -104,6 +105,11 @@ export async function collectRuntimeAssets({ root, catalog, audioManifest }) {
   const turnClipAssets = Object.values(TURN_CLIPS)
     .flatMap(scene => Object.values(scene))
     .flatMap(clip => [clip.asset, clip.poster]);
+  // Cabin ambience is registered in code rather than in the audio manifest,
+  // which is how its clips were shipping as JS with no sound behind them: the
+  // installed app had the player and none of the files. What the registry
+  // references ships, like every other registry here.
+  const ambienceAssets = Object.values(AMBIENCE_CLIPS);
   const audioPaths = audioManifest.map(item => normalizeRuntimePath(item.path));
   if (new Set(audioPaths).size !== audioPaths.length) {
     throw new Error('Audio manifest contains duplicate runtime paths');
@@ -114,6 +120,7 @@ export async function collectRuntimeAssets({ root, catalog, audioManifest }) {
     ...sceneAssets,
     ...continuityVideoAssets,
     ...turnClipAssets,
+    ...ambienceAssets,
     ...audioPaths
   ].map(normalizeRuntimePath);
   const paths = [...new Set(candidates)].sort((a, b) => a.localeCompare(b));

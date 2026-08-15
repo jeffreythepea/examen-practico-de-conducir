@@ -8,6 +8,11 @@ import {
   collectRuntimeAssets,
   isRecordedCorpusComplete
 } from '../scripts/runtime-package.mjs';
+import { AMBIENCE_CLIPS } from '../src/ambience.js';
+import { CONTINUITY_SCENE_FAMILIES } from '../src/continuity-transition-view.js';
+import { DRIVING_SCENES } from '../src/driving-scenes.js';
+import { PRECHECK_SCENES } from '../src/precheck-scenes.js';
+import { TURN_CLIPS } from '../src/turn-through.js';
 
 const ROOT = resolve(new URL('..', import.meta.url).pathname);
 
@@ -23,7 +28,12 @@ test('runtime asset discovery is deterministic, complete, and excludes developme
   assert.ok(paths.includes('src/app.js'));
   assert.ok(paths.includes('src/road-motion.js'));
   assert.equal(paths.includes('src/junction-motion.js'), false);
-  assert.equal(paths.filter(path => path.endsWith('.mp3')).length, audioManifest.length);
+  // Command recordings plus the cabin-ambience clips, which are registered in
+  // code rather than in the manifest.
+  assert.equal(
+    paths.filter(path => path.endsWith('.mp3')).length,
+    audioManifest.length + Object.keys(AMBIENCE_CLIPS).length
+  );
   assert.ok(paths.includes('assets/driving/urban-roadside-drive-v2.mp4'));
   assert.ok(paths.includes('assets/driving/urban-roadside-drive-v2-poster.webp'));
   assert.ok(paths.includes('assets/driving/overtaking-drive-v2.mp4'));
@@ -54,7 +64,10 @@ test('runtime package is integrity-addressed and copies only declared assets', a
     const audioManifest = JSON.parse(await readFile(resolve(ROOT, 'data/audio-manifest.json'), 'utf8'));
     assert.equal(result.recordedCorpusComplete, isRecordedCorpusComplete({ catalog, audioManifest }));
     assert.equal(result.totalAssets, result.assets.length);
-    assert.equal(result.assets.filter(asset => asset.path.endsWith('.mp3')).length, audioManifest.length);
+    assert.equal(
+      result.assets.filter(asset => asset.path.endsWith('.mp3')).length,
+      audioManifest.length + Object.keys(AMBIENCE_CLIPS).length
+    );
     assert.deepEqual(result.assets, result.assets.toSorted((a, b) => a.path.localeCompare(b.path)));
     assert.equal((await stat(resolve(outDir, 'offline-package.json'))).isFile(), true);
     assert.equal((await stat(resolve(outDir, 'index.html'))).isFile(), true);
@@ -105,4 +118,33 @@ test('corpus completeness rejects duplicate or incomplete audio inventories', as
   assert.equal(isRecordedCorpusComplete({ catalog, audioManifest: audioManifest.slice(1) }), false);
 
   assert.equal(isRecordedCorpusComplete({ catalog, audioManifest: [...audioManifest, audioManifest[0]] }), false);
+});
+
+test('every asset a code registry references ships in the package', async () => {
+  // Cabin ambience shipped its player and none of its sound: the clips live in
+  // a code registry that the package builder never consulted, so the installed
+  // app had audio/ambience/*.mp3 missing while the hosted app played them. The
+  // builder now reads each registry, and this asserts it kept reading them.
+  const catalog = JSON.parse(await readFile(resolve(ROOT, 'data/commands.json'), 'utf8'));
+  const audioManifest = JSON.parse(await readFile(resolve(ROOT, 'data/audio-manifest.json'), 'utf8'));
+  const paths = new Set(await collectRuntimeAssets({ root: ROOT, catalog, audioManifest }));
+
+  const registered = [
+    ['ambience', Object.values(AMBIENCE_CLIPS)],
+    ['driving scene', Object.values(DRIVING_SCENES).map(scene => scene.asset)],
+    ['precheck scene', Object.values(PRECHECK_SCENES).map(scene => scene.asset)],
+    ['cruise video', Object.values(CONTINUITY_SCENE_FAMILIES)
+      .flatMap(family => family.video ? [family.video.asset, family.video.poster] : [])],
+    ['turn clip', Object.values(TURN_CLIPS)
+      .flatMap(scene => Object.values(scene))
+      .flatMap(clip => [clip.asset, clip.poster])]
+  ];
+
+  for (const [label, assets] of registered) {
+    assert.ok(assets.length > 0, `the ${label} registry is empty, so this proves nothing`);
+    for (const asset of assets) {
+      const path = asset.replace(/^\.\//, '');
+      assert.ok(paths.has(path), `${label} asset is registered but not packaged: ${path}`);
+    }
+  }
 });
