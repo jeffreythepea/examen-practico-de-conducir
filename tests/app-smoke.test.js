@@ -743,3 +743,30 @@ test('an update reload never lands on a drive or the end screen', async () => {
   );
   assert.doesNotMatch(source, /createOfflineClient\(\{ navigatorRef: navigator, windowRef: window \}\)/);
 });
+
+test('a tap in flight cannot act on the offline button that replaced its target', async () => {
+  // Device report 2026-08-15: double-tapping Download VERY fast paused the
+  // download. The card renders one button in one slot, so starting a download
+  // swaps Download for Cancel under the finger — the second tap cancelled the
+  // download the first had just started.
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  // The clock restarts whenever the offered action changes, not on every
+  // render: progress re-renders must not keep re-arming the guard.
+  assert.match(
+    source,
+    /if \(\(action\?\.action \?\? null\) !== offlineActionShown\) \{\s*\n\s*offlineActionShown = action\?\.action \?\? null;\s*\n\s*offlineActionShownAt = Date\.now\(\);/
+  );
+  assert.match(
+    source,
+    /function offlineActionArrivedWithTheButton\(\) \{\s*\n\s*return Date\.now\(\) - offlineActionShownAt < OFFLINE_ACTION_GUARD_MS;/
+  );
+  // Every action on the card shares the slot, so every one of them is guarded.
+  const binder = source.match(/function bindSetupEvents\(\)[\s\S]*?\n  \}/)?.[0] ?? '';
+  assert.ok(binder, 'bindSetupEvents not found');
+  for (const action of ['download', 'cancel', 'apply-update', 'check']) {
+    // The guard must be the first thing the handler does, before any work.
+    const handler = binder.match(new RegExp(`data-offline-action="${action}"\\][\\s\\S]{0,120}?=> \\{\\s*\\n\\s*([^\\n]+)`))?.[1] ?? '';
+    assert.match(handler, /if \(offlineActionArrivedWithTheButton\(\)\) return;/, `${action} is unguarded`);
+  }
+});

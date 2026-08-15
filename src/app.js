@@ -167,6 +167,13 @@ const RESULTS_TAP_GUARD_MS = 600;
 // Screens where a page reload costs the learner nothing: no drive in flight,
 // no results still being read.
 const RELOAD_SAFE_SCREENS = new Set(['title', 'setup']);
+// The offline card renders one button in one slot, so a status change swaps
+// the control under the learner's finger — Download becomes Cancel the moment
+// a download starts. A second tap of a fast double-tap landed on Cancel and
+// paused the download it had just asked for. Same remedy as the end screen: a
+// timestamp, so the button still works a moment later rather than being
+// disabled by something that might never re-enable it.
+const OFFLINE_ACTION_GUARD_MS = 600;
 const ROAD_MOTION_SURFACE_IDS = new Set([
   'junction-v2',
   'roundabout-v2',
@@ -687,6 +694,8 @@ async function bootstrap() {
   // learner is still reading. The reload waits for a screen where losing the
   // page costs nothing.
   let reloadWhenIdle = false;
+  let offlineActionShownAt = 0;
+  let offlineActionShown = null;
   const heldAdvances = createAdvanceScheduler({ documentRef: document, windowRef: window });
   let readinessFilters = { phase: 'mixed', state: 'all', flag: 'all', editor: null, noticeKey: '' };
 
@@ -1183,6 +1192,10 @@ async function bootstrap() {
     const progress = total > 0 ? Math.min(completed, total) : 0;
     const hasProgress = (offlineState?.completedAssets ?? 0) > 0;
     const { messageKey, action } = offlineCardPresentation({ status, hasProgress });
+    if ((action?.action ?? null) !== offlineActionShown) {
+      offlineActionShown = action?.action ?? null;
+      offlineActionShownAt = Date.now();
+    }
     const actions = action
       ? `<button type="button" data-offline-action="${action.action}">${translate(locale(), action.labelKey)}</button>`
       : '';
@@ -1553,9 +1566,16 @@ async function bootstrap() {
     app.querySelector('[data-action="open-collection"]')?.addEventListener('click', openCollection);
     app.querySelector('[data-action="resume-session"]')?.addEventListener('click', resumeSession);
     app.querySelector('[data-action="discard-session"]')?.addEventListener('click', discardSession);
-    app.querySelector('[data-offline-action="download"]')?.addEventListener('click', () => void offlineClient.download());
-    app.querySelector('[data-offline-action="cancel"]')?.addEventListener('click', () => void offlineClient.cancelDownload());
+    app.querySelector('[data-offline-action="download"]')?.addEventListener('click', () => {
+      if (offlineActionArrivedWithTheButton()) return;
+      void offlineClient.download();
+    });
+    app.querySelector('[data-offline-action="cancel"]')?.addEventListener('click', () => {
+      if (offlineActionArrivedWithTheButton()) return;
+      void offlineClient.cancelDownload();
+    });
     app.querySelector('[data-offline-action="apply-update"]')?.addEventListener('click', () => {
+      if (offlineActionArrivedWithTheButton()) return;
       // An apply that throws before it can reload leaves the card mid-apply
       // with no button; report it instead of swallowing the rejection.
       void offlineClient.applyUpdate().catch(error => {
@@ -1564,6 +1584,7 @@ async function bootstrap() {
       });
     });
     app.querySelector('[data-offline-action="check"]')?.addEventListener('click', () => {
+      if (offlineActionArrivedWithTheButton()) return;
       offlineUpToDate = false;
       void offlineClient.checkForUpdate().then(next => {
         // Finding an update moves the card to its own state and buttons; only
@@ -1926,6 +1947,12 @@ async function bootstrap() {
   // timestamp rather than a disabled state or pointer-events: if anything about
   // this goes wrong the buttons still work, where a control left disabled by a
   // throttled timer or animation would strand the learner on the screen.
+  // A tap already travelling when the offline card swapped its button must not
+  // act on the control that replaced the one it was aimed at.
+  function offlineActionArrivedWithTheButton() {
+    return Date.now() - offlineActionShownAt < OFFLINE_ACTION_GUARD_MS;
+  }
+
   function tapArrivedWithTheScreen() {
     return Date.now() - resultsShownAt < RESULTS_TAP_GUARD_MS;
   }

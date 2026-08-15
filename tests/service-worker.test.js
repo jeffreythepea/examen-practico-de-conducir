@@ -208,3 +208,24 @@ test('an update check refuses a manifest the download path would have rejected',
     assert.equal(download.ok, false, `${label} was downloadable`);
   }
 });
+
+test('two taps in the same tick still download once and finish complete', async () => {
+  // Device report: double-tapping Download VERY fast left the card paused for
+  // resumption. The dedupe guard is set after `await fetchPackageManifest()`,
+  // so two taps in one tick both pass it and both enqueue a run.
+  const gate = deferred();
+  gateAssetFetch = gate.promise;
+  const first = send('DOWNLOAD_OFFLINE');
+  const second = send('DOWNLOAD_OFFLINE');
+  gate.resolve();
+
+  const [a, b] = await Promise.all([first, second]);
+  assert.equal(a.ok, true, JSON.stringify(a));
+  assert.equal(b.ok, true, JSON.stringify(b));
+  assert.deepEqual(assetFetches.sort(), ['audio/test.mp3', 'index.html'],
+    'the package must be fetched once, not once per tap');
+  for (const reply of [a, b]) {
+    assert.equal(reply.state.activeVersion, 'v1');
+    assert.equal(reply.state.error, null, 'a second tap must not land an error state');
+  }
+});
