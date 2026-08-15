@@ -67,7 +67,7 @@ async function writeState(cacheStorage, state) {
   return next;
 }
 
-function assertPackageManifest(manifest) {
+export function assertPackageManifest(manifest) {
   if (!manifest || manifest.schemaVersion !== 1 || !/^[A-Za-z0-9._-]+$/.test(manifest.version ?? '')) {
     throw new Error('Invalid offline package manifest');
   }

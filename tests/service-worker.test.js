@@ -44,6 +44,7 @@ function manifestFor(version) {
 }
 
 const listeners = new Map();
+let manifestOverride = null;
 let manifestVersion = 'v1';
 let gateAssetFetch = null;
 const assetFetches = [];
@@ -62,7 +63,7 @@ globalThis.fetch = async request => {
   const url = request instanceof URL ? request : new URL(typeof request === 'string' ? request : request.url);
   const path = url.pathname.replace('/app/', '');
   if (path === 'offline-package.json') {
-    return new Response(JSON.stringify(manifestFor(manifestVersion)), { status: 200 });
+    return new Response(JSON.stringify(manifestOverride ?? manifestFor(manifestVersion)), { status: 200 });
   }
   assetFetches.push(path);
   if (gateAssetFetch) await gateAssetFetch;
@@ -91,6 +92,7 @@ function deferred() {
 
 test.beforeEach(() => {
   globalThis.caches = new MemoryCacheStorage();
+  manifestOverride = null;
   manifestVersion = 'v1';
   gateAssetFetch = null;
   assetFetches.length = 0;
@@ -175,4 +177,25 @@ test('an update download stages completely before it is offered for applying', a
   assert.equal(applied.state.stagedComplete, false);
   assert.equal(applied.state.stagedVersion, null);
   assert.ok((await caches.keys()).includes(runtimeCacheName('v2')));
+});
+
+test('an update check refuses a manifest the download path would have rejected', async () => {
+  // CHECK_FOR_UPDATE reported a version and byte total straight from an
+  // unvalidated manifest, then offered to download it: the two consumers of
+  // the same file must share one trust boundary.
+  const valid = manifestFor('v2');
+  for (const [label, broken] of [
+    ['wrong schema', { ...valid, schemaVersion: 2 }],
+    ['unsafe version', { ...valid, version: '../escape' }],
+    ['byte total disagreeing with its assets', { ...valid, totalBytes: valid.totalBytes + 1 }],
+    ['asset without a digest', { ...valid, assets: valid.assets.map(asset => ({ ...asset, sha256: 'nope' })) }]
+  ]) {
+    manifestOverride = broken;
+    const checked = await send('CHECK_FOR_UPDATE');
+    assert.equal(checked.ok, false, `${label} was accepted`);
+    assert.match(checked.error, /Invalid offline (package|asset)|byte total does not match/, label);
+
+    const download = await send('DOWNLOAD_OFFLINE');
+    assert.equal(download.ok, false, `${label} was downloadable`);
+  }
 });

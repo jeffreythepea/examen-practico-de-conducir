@@ -1,5 +1,6 @@
 import {
   activatePackage,
+  assertPackageManifest,
   confirmActivePackage,
   downloadPackage,
   matchActiveRequest,
@@ -36,7 +37,12 @@ async function fetchPackageManifest() {
   const url = new URL('./offline-package.json', self.registration.scope);
   const response = await fetch(url, { cache: 'no-store' });
   if (!response.ok) throw new Error(`Offline package manifest failed (${response.status})`);
-  return { manifest: await response.json(), url: url.href };
+  const manifest = await response.json();
+  // Both consumers share the download path's trust boundary: an update check
+  // used to report a version and byte total from a manifest nothing had
+  // validated, and offer to download it.
+  assertPackageManifest(manifest);
+  return { manifest, url: url.href };
 }
 
 async function runDownload(manifest, url) {
