@@ -2424,8 +2424,17 @@ async function bootstrap() {
         render();
       });
     });
-    app.querySelector('[data-action="open-readiness"]')?.addEventListener('click', openReadiness);
-    app.querySelector('[data-action="open-collection"]')?.addEventListener('click', openCollection);
+    // Every exit from the end screen is guarded, not just the two that
+    // return home: an in-flight tap landing on Readiness or Collection loses
+    // the round's results just as irrecoverably.
+    app.querySelector('[data-action="open-readiness"]')?.addEventListener('click', () => {
+      if (tapArrivedWithTheScreen()) return;
+      openReadiness();
+    });
+    app.querySelector('[data-action="open-collection"]')?.addEventListener('click', () => {
+      if (tapArrivedWithTheScreen()) return;
+      openCollection();
+    });
     app.querySelector('[data-action="setup"]').addEventListener('click', () => {
       if (tapArrivedWithTheScreen()) return;
       returnHomeFromResults();
