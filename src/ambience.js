@@ -1,4 +1,5 @@
 export const AMBIENCE_CLIPS = Object.freeze({
+  engine: 'audio/ambience/engine.mp3',
   city: 'audio/ambience/city.mp3',
   rural: 'audio/ambience/rural.mp3'
 });
@@ -67,6 +68,10 @@ export function createAmbiencePlayer({ AudioCtor = globalThis.Audio } = {}) {
   return Object.freeze({ start, stop, isPlaying, activeClip });
 }
 
-export function pickAmbienceClip(rng = Math.random) {
-  return rng() < 0.5 ? 'city' : 'rural';
+// The cabin, not the street: the learner is inside the car for the whole
+// session, and every driving clip in the app is muted, so this engine bed is
+// the only thing under the drive. The street textures stay registered for
+// scenes that might want them, but nothing picks them today.
+export function pickAmbienceClip() {
+  return 'engine';
 }

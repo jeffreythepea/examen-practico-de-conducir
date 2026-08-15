@@ -25,11 +25,11 @@ function fakeAudioCtor(log) {
   };
 }
 
-test('exposes exactly the two generated ambience clips', () => {
-  assert.deepEqual(Object.keys(AMBIENCE_CLIPS).sort(), ['city', 'rural']);
+test('exposes the generated ambience clips, engine bed included', () => {
+  assert.deepEqual(Object.keys(AMBIENCE_CLIPS).sort(), ['city', 'engine', 'rural']);
   assert.equal(Object.isFrozen(AMBIENCE_CLIPS), true);
   for (const path of Object.values(AMBIENCE_CLIPS)) {
-    assert.match(path, /^audio\/ambience\/(city|rural)\.mp3$/);
+    assert.match(path, /^audio\/ambience\/(city|engine|rural)\.mp3$/);
   }
 });
 
@@ -103,9 +103,12 @@ test('missing AudioCtor is a silent no-op', () => {
   assert.equal(player.isPlaying(), false);
 });
 
-test('clip picker is deterministic under an injected rng and covers both clips', () => {
-  assert.equal(pickAmbienceClip(() => 0), 'city');
-  assert.equal(pickAmbienceClip(() => 0.49), 'city');
-  assert.equal(pickAmbienceClip(() => 0.5), 'rural');
-  assert.equal(pickAmbienceClip(() => 0.99), 'rural');
+test('the bed is the cabin, and it does not vary between sessions', () => {
+  // The learner is inside the car the whole time and every driving clip is
+  // muted, so the engine is the only thing under the drive. A street texture
+  // arriving at random would contradict the scene it plays over.
+  assert.equal(pickAmbienceClip(), 'engine');
+  assert.equal(pickAmbienceClip(() => 0), 'engine');
+  assert.equal(pickAmbienceClip(() => 0.99), 'engine');
+  assert.equal(AMBIENCE_CLIPS.engine, 'audio/ambience/engine.mp3');
 });
