@@ -722,3 +722,24 @@ test('the silent junction render path asks whether its clip will demonstrate the
     'renderNullEvent must pass a real clip decision, not omit it'
   );
 });
+
+test('an update reload never lands on a drive or the end screen', async () => {
+  // APPLY_UPDATE is allowed two minutes to sweep a 60 MB cache, so its reply
+  // — and the reload that follows — can arrive long after the tap that asked
+  // for it. Reloading then would take the page out from under a question, or
+  // off the end screen the learner is still reading.
+  const source = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /const RELOAD_SAFE_SCREENS = new Set\(\['title', 'setup'\]\)/);
+  // The client is handed a facade, not window, so its reload has to ask.
+  assert.match(
+    source,
+    /reload: \(\) => \{\s*\n\s*if \(RELOAD_SAFE_SCREENS\.has\(model\.screen\)\) window\.location\.reload\(\);\s*\n\s*else reloadWhenIdle = true;/
+  );
+  // And a deferred reload is taken at the next screen where nothing is lost.
+  assert.match(
+    source,
+    /if \(reloadWhenIdle && RELOAD_SAFE_SCREENS\.has\(model\.screen\)\) \{\s*\n\s*reloadWhenIdle = false;\s*\n\s*window\.location\.reload\(\);/
+  );
+  assert.doesNotMatch(source, /createOfflineClient\(\{ navigatorRef: navigator, windowRef: window \}\)/);
+});

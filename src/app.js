@@ -164,6 +164,9 @@ export function offlineCardPresentation({ status, hasProgress = false }) {
 // rendered — long enough to cover one skipped transition, short enough that a
 // learner reaching for Continue never notices it.
 const RESULTS_TAP_GUARD_MS = 600;
+// Screens where a page reload costs the learner nothing: no drive in flight,
+// no results still being read.
+const RELOAD_SAFE_SCREENS = new Set(['title', 'setup']);
 const ROAD_MOTION_SURFACE_IDS = new Set([
   'junction-v2',
   'roundabout-v2',
@@ -678,6 +681,12 @@ async function bootstrap() {
   let resultsShownAt = 0;
   // The reveal decision for the render pass in flight; null off the reveal.
   let revealPass = null;
+  // An apply that resolves late must not reload the page out from under a
+  // drive. APPLY_UPDATE is allowed two minutes to sweep a 60 MB cache, so its
+  // reply can land long after the tap — mid-question, or on the end screen the
+  // learner is still reading. The reload waits for a screen where losing the
+  // page costs nothing.
+  let reloadWhenIdle = false;
   const heldAdvances = createAdvanceScheduler({ documentRef: document, windowRef: window });
   let readinessFilters = { phase: 'mixed', state: 'all', flag: 'all', editor: null, noticeKey: '' };
 
@@ -712,7 +721,22 @@ async function bootstrap() {
     player = createAudioPlayer({ AudioCtor: window.Audio, document });
     feedbackPlayer = createFeedbackCuePlayer();
     ambiencePlayer = createAmbiencePlayer({ AudioCtor: window.Audio });
-    offlineClient = createOfflineClient({ navigatorRef: navigator, windowRef: window });
+    offlineClient = createOfflineClient({
+      navigatorRef: navigator,
+      // A facade rather than window itself: the client reads only these, and
+      // the reload it performs has to answer to the screen the learner is on.
+      windowRef: {
+        isSecureContext: window.isSecureContext,
+        location: {
+          hostname: window.location.hostname,
+          reload: () => {
+            if (RELOAD_SAFE_SCREENS.has(model.screen)) window.location.reload();
+            else reloadWhenIdle = true;
+          }
+        },
+        matchMedia: query => window.matchMedia?.(query)
+      }
+    });
     offlineState = offlineClient.getState();
     offlineClient.subscribe(nextState => {
       offlineState = nextState;
@@ -808,6 +832,12 @@ async function bootstrap() {
     document.querySelector('#skip-link').textContent = translate(locale(), 'app.skip');
     // Decided once for this pass and read by both the reveal's markup and its
     // auto-advance, rather than derived twice from inputs assembled twice.
+    // A deferred update reload takes the first screen where nothing is lost.
+    if (reloadWhenIdle && RELOAD_SAFE_SCREENS.has(model.screen)) {
+      reloadWhenIdle = false;
+      window.location.reload();
+      return;
+    }
     revealPass = model.screen === 'reveal' ? currentRevealDecision() : null;
     const screen = model.screen === 'title'
       ? renderTitle()
