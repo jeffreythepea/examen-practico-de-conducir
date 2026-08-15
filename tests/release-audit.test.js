@@ -294,8 +294,11 @@ test('release identity, isolation, scope, and bilingual AI voice disclosure are 
     readFile(resolve(ROOT, 'references/fermin-atomic-command-inventory.md'), 'utf8')
   ]);
 
-  assert.match(i18n, /'audio\.disclosure': 'These voices are AI-generated\.'/);
-  assert.match(i18n, /'audio\.disclosure': 'Estas voces han sido generadas por inteligencia artificial\.'/);
+  // The disclosure must name everything synthetic the learner meets, not just
+  // the voices: the driving footage has been AI-generated since the cruise
+  // clips landed.
+  assert.match(i18n, /'audio\.disclosure': 'These voices and videos are AI-generated\.'/);
+  assert.match(i18n, /'audio\.disclosure': 'Estas voces y vídeos han sido generados por inteligencia artificial\.'/);
   assert.match(app, /translate\(locale\(\), 'audio\.disclosure'\)/);
   assert.match(html, /<title>Examen Práctico de Conducir<\/title>/);
   assert.match(i18n, /'app\.shortTitle': 'Examen Práctico'/);

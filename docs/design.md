@@ -306,8 +306,9 @@ George, Matilda, and Eric provider voices after all three passed Jeffrey's
 listening review. Character-facing Spanish display names are Roger, Sara,
 Jorge, Matilde, and Eric; provider names remain unchanged in audio provenance.
 The five voices are
-randomized per trial. The setup screen visibly identifies the recordings as
-AI-generated in English and Spanish.
+randomized per trial. The setup screen and the launch
+screen visibly identify the recordings and the driving footage as AI-generated
+in English and Spanish.
 
 Generate provider-native 0.75x, 0.9x, and 1x assets rather than relying on
 browser time-stretching. The 40 commands and 84 phrasings have a complete
