@@ -607,3 +607,36 @@ function modelForTemplate(action, surfaceId, templateId) {
   }
   throw new Error(`No seed produced ${templateId}`);
 }
+
+test('the U-turn question offers a third response so it is not a coin flip', () => {
+  // Two targets make the question answerable by guessing. The side road is
+  // the honest third: "cambio de sentido" means reverse direction, not turn
+  // off, and that is the mistake a learner actually makes. Its placement was
+  // verified against u-turn-photo-v1 — the mouth of the left branch.
+  const seen = new Map();
+  for (let seed = 1; seed <= 32; seed += 1) {
+    const model = generateManoeuvreSurface(command('change-direction', 'u-turn-v1'), seed);
+    assert.ok(model.targets.length >= 3, `seed ${seed} offers only ${model.targets.length} responses`);
+
+    const sideRoad = model.targets.find(target => target.resultId === 'side-road');
+    assert.ok(sideRoad, `seed ${seed} has no side-road response`);
+    assert.notEqual(sideRoad.resultId, model.expectedResult, 'the side road must never be accepted');
+    // Left of the road the learner is on, and short of the turnaround gap.
+    assert.ok(sideRoad.x < 30, `side road must sit on the left branch (x ${sideRoad.x})`);
+    assert.ok(sideRoad.y > 25 && sideRoad.y < 45, `side road must sit at the branch mouth (y ${sideRoad.y})`);
+    seen.set(model.geometry.templateId, (seen.get(model.geometry.templateId) ?? 0) + 1);
+  }
+  assert.equal(seen.size, 2, 'both U-turn templates must be exercised');
+});
+
+test('the side road is described by what it is, never by whether it is right', () => {
+  const model = generateManoeuvreSurface(command('change-direction', 'u-turn-v1'), 5);
+  for (const locale of ['en', 'es']) {
+    const markup = renderManoeuvreSurface(model, locale);
+    const label = markup.match(/data-result="side-road"[^>]*aria-label="([^"]+)"/)?.[1];
+    assert.ok(label, `${locale} side-road target must carry an accessible label`);
+    assert.doesNotMatch(label, /correct|incorrect|wrong|correcto|incorrecto/i, label);
+  }
+  assert.match(renderManoeuvreSurface(model, 'en'), /data-result="side-road"[^>]*aria-label="Side road on the left"/);
+  assert.match(renderManoeuvreSurface(model, 'es'), /data-result="side-road"[^>]*aria-label="Vía lateral a la izquierda"/);
+});

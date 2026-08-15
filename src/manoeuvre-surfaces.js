@@ -14,6 +14,7 @@ const POSITION_JITTER = 1.5;
 const FEATURE_LABEL_KEYS = Object.freeze({
   'reverse-direction': 'surface.feature.reverseDirection',
   'straight-route': 'surface.feature.straightRoute',
+  'side-road': 'surface.feature.sideRoad',
   'passing-lane': 'surface.feature.passingLane',
   'follow-lane': 'surface.feature.followLane',
   'correct-travel-lane': 'surface.feature.correctTravelLane',
@@ -43,7 +44,12 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       ],
       targets: [
         { id: 'reverse-lane-endpoint', resultId: 'change-direction', kind: 'manoeuvre-route', feature: 'reverse-direction', x: 40, y: 82 },
-        { id: 'continue-ahead', resultId: 'continue-forward', kind: 'route-choice', feature: 'straight-route', x: 60, y: 14 }
+        { id: 'continue-ahead', resultId: 'continue-forward', kind: 'route-choice', feature: 'straight-route', x: 60, y: 14 },
+        // Reversing direction is not turning off: the side road is the answer
+        // a learner gives when they hear "cambio de sentido" as any way out of
+        // the road they are on. Placement verified against the photo — the
+        // mouth of the left branch, well clear of both other targets.
+        { id: 'side-road-mouth', resultId: 'side-road', kind: 'route-choice', feature: 'side-road', x: 22, y: 33 }
       ]
     },
     {
@@ -56,7 +62,8 @@ export const MANOEUVRE_TEMPLATES = freezeTemplates({
       ],
       targets: [
         { id: 'junction-reverse-endpoint', resultId: 'change-direction', kind: 'manoeuvre-route', feature: 'reverse-direction', x: 42, y: 82 },
-        { id: 'junction-ahead', resultId: 'continue-forward', kind: 'route-choice', feature: 'straight-route', x: 58, y: 14 }
+        { id: 'junction-ahead', resultId: 'continue-forward', kind: 'route-choice', feature: 'straight-route', x: 58, y: 14 },
+        { id: 'junction-side-road', resultId: 'side-road', kind: 'route-choice', feature: 'side-road', x: 22, y: 33 }
       ]
     }
   ],
