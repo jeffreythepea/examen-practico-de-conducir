@@ -7,7 +7,8 @@ import commands from '../data/commands.json' with { type: 'json' };
 import {
   GLYPH_AUDIT_SEEDS,
   auditGoldGlyphConsumers,
-  formatGoldGlyphAudit
+  formatGoldGlyphAudit,
+  sweepGoldGlyphConsumers
 } from '../scripts/audit-gold-glyph.mjs';
 
 const COMPLETED_BACKLOG = Object.freeze([
@@ -33,6 +34,20 @@ test('gold-glyph audit covers a fixed seed sweep and reports zero active consume
   assert.equal(GLYPH_AUDIT_SEEDS.length, 100);
   assert.deepEqual(GLYPH_AUDIT_SEEDS, Array.from({ length: 100 }, (_, seed) => seed));
   assert.deepEqual(auditGoldGlyphConsumers(commands), []);
+});
+
+test('a clean gold-glyph sweep is a sweep that actually looked at the catalog', () => {
+  // The audit skips any surface without a correctRoute array and passes on
+  // zero findings, so a generator that stopped emitting routes — or an empty
+  // catalog — would report the same clean bill as a fixed one.
+  const sweep = sweepGoldGlyphConsumers(commands);
+  assert.deepEqual(sweep.findings, []);
+  assert.ok(sweep.routeBackedSurfaces > 0, 'the sweep visited no route-backed surface');
+  assert.ok(sweep.clipMatches > 0, 'the sweep matched no registered clip');
+  assert.equal(sweep.clipMatches, sweep.routeBackedSurfaces);
+  assert.deepEqual(sweepGoldGlyphConsumers([]), {
+    findings: [], routeBackedSurfaces: 0, clipMatches: 0
+  });
 });
 
 test('gold-glyph audit deduplicates seeds and excludes inactive commands', () => {

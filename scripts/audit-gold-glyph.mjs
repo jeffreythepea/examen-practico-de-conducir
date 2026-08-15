@@ -10,22 +10,30 @@ export const GLYPH_AUDIT_SEEDS = Object.freeze(
 );
 
 /**
- * Find active route-backed commands whose normal correct reveal still uses
- * the animated post-answer car because no scene/result clip is registered.
+ * Sweep every active command over the seed list, reporting both the findings
+ * and what the sweep actually looked at. A zero-findings pass means nothing
+ * on its own: a generator change that stopped producing correctRoute arrays,
+ * or a catalog that went empty, would skip every surface and still "pass".
  */
-export function auditGoldGlyphConsumers(catalog, seeds = GLYPH_AUDIT_SEEDS) {
+export function sweepGoldGlyphConsumers(catalog, seeds = GLYPH_AUDIT_SEEDS) {
   if (!Array.isArray(seeds) || seeds.length === 0 || seeds.some(seed => !Number.isInteger(seed))) {
     throw new Error('Gold-glyph audit requires a nonempty integer seed list');
   }
 
   const findings = new Map();
+  let routeBackedSurfaces = 0;
+  let clipMatches = 0;
   for (const command of activeCommands(catalog)) {
     for (const seed of seeds) {
       const surface = generateSurface(command, seed);
       if (!Array.isArray(surface?.geometry?.correctRoute)) continue;
+      routeBackedSurfaces += 1;
       const sceneId = surface.geometry.sceneId;
       const resultId = surface.expectedResult;
-      if (hasTurnClip(sceneId, resultId)) continue;
+      if (hasTurnClip(sceneId, resultId)) {
+        clipMatches += 1;
+        continue;
+      }
 
       const key = [command.id, command.surfaceId, sceneId, resultId].join('\u0000');
       if (!findings.has(key)) {
@@ -41,11 +49,23 @@ export function auditGoldGlyphConsumers(catalog, seeds = GLYPH_AUDIT_SEEDS) {
     }
   }
 
-  return Object.freeze([...findings.values()].sort((left, right) => (
-    left.commandId.localeCompare(right.commandId)
-      || left.sceneId.localeCompare(right.sceneId)
-      || left.resultId.localeCompare(right.resultId)
-  )));
+  return Object.freeze({
+    findings: Object.freeze([...findings.values()].sort((left, right) => (
+      left.commandId.localeCompare(right.commandId)
+        || left.sceneId.localeCompare(right.sceneId)
+        || left.resultId.localeCompare(right.resultId)
+    ))),
+    routeBackedSurfaces,
+    clipMatches
+  });
+}
+
+/**
+ * Find active route-backed commands whose normal correct reveal still uses
+ * the animated post-answer car because no scene/result clip is registered.
+ */
+export function auditGoldGlyphConsumers(catalog, seeds = GLYPH_AUDIT_SEEDS) {
+  return sweepGoldGlyphConsumers(catalog, seeds).findings;
 }
 
 export function formatGoldGlyphAudit(findings) {
