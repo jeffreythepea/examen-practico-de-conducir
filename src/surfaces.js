@@ -131,13 +131,18 @@ export function renderSurfaceModel(model, responseState = {}, locale, options = 
 }
 
 /**
- * Generates the seatbelt precheck model. Photo-backed, single-tap-locate,
- * distinct from the generic Yaris diagram contract system since this content
- * carries no real Toyota manual citation (instructor-plausible provenance,
- * see the scene's own `reference`/`provenance` fields).
+ * Generates a driver-cabin model: one photo of the driver's position, tapped
+ * once to locate. Distinct from the generic Yaris diagram contract system
+ * since this content carries no real Toyota manual citation
+ * (instructor-plausible provenance, see the scene's own
+ * `reference`/`provenance` fields). The surface ID stays `seatbelt-v1` — its
+ * first command — so saved sessions and response provenance keep resolving;
+ * the scene it draws is the whole cabin, not just the belt.
  */
+const CABIN_RESULTS = new Set(['fasten-seatbelt', 'locate-horn']);
+
 function generateSeatbeltSurface(command, seed) {
-  if (command?.actionId !== 'fasten-seatbelt' || command.acceptedResult !== 'fasten-seatbelt') {
+  if (!CABIN_RESULTS.has(command?.actionId) || command.acceptedResult !== command.actionId) {
     throw new Error(`Unsupported seatbelt action: ${command?.actionId}`);
   }
   const scene = PRECHECK_SCENES[SEATBELT_SCENE_ID];

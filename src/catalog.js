@@ -1,7 +1,11 @@
 const PHASES = new Set(['driving', 'precheck', 'mixed']);
 const COMMAND_PHASES = new Set(['driving', 'precheck']);
 const WORDING = new Set(['verbatim', 'source-derived']);
-const PRECHECK_VALIDATION = new Set(['manual-baseline', 'trim-dependent']);
+// A precheck is either drawn from the source guide and the vehicle manual, or
+// it comes from a lesson: something an examiner actually asked Jeffrey that the
+// guide never listed. The third value records that honestly rather than
+// dressing a lesson note up as a manual baseline.
+const PRECHECK_VALIDATION = new Set(['manual-baseline', 'trim-dependent', 'instructor-plausible']);
 
 function requireField(value, commandId, field) {
   if (value === undefined || value === null || value === '') {

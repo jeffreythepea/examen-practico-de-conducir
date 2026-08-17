@@ -16,7 +16,12 @@ import {
 } from '../src/surfaces.js';
 
 const commands = JSON.parse(await readFile(new URL('../data/commands.json', import.meta.url), 'utf8'));
-const precheckCommands = commands.filter(command => command.phase === 'precheck');
+// The horn is the one precheck outside the Yaris manual contract: it came from
+// a lesson rather than the guide, so it answers on the cabin photo instead of a
+// diagram. Every other precheck belongs to the table below.
+const CABIN_PRECHECK_IDS = Object.freeze(['c-pre-claxon']);
+const precheckCommands = commands.filter(command =>
+  command.phase === 'precheck' && !CABIN_PRECHECK_IDS.includes(command.id));
 
 const EXPECTED_YARIS_COMMANDS = Object.freeze({
   'c-pre-aceite': Object.freeze({ diagramId: 'yaris-engine-bay-v2', hotspotId: 'engine-oil', responseMode: 'locate' }),
@@ -88,7 +93,7 @@ test('five original schematic definitions expose stable cited hotspot topology',
   }
 });
 
-test('an independent expected table maps all 18 prechecks to one stable source-grounded hotspot and mode', () => {
+test('an independent expected table maps all 18 manual-cited prechecks to one stable source-grounded hotspot and mode', () => {
   assert.equal(precheckCommands.length, 18);
   assert.deepEqual(Object.keys(EXPECTED_YARIS_COMMANDS).sort(), precheckCommands.map(command => command.id).sort());
   assert.deepEqual(
@@ -375,6 +380,12 @@ test('v2 diagram IDs are exported and every precheck is atomically activated', (
   for (const surfaceId of YARIS_SURFACE_IDS) assert.equal(SUPPORTED_SURFACE_IDS.includes(surfaceId), true);
   assert.ok(precheckCommands.every(command => YARIS_SURFACE_IDS.includes(command.surfaceId)));
   assert.equal(precheckCommands.some(command => command.surfaceId.startsWith('yaris-manual-v1-')), false);
+  for (const id of CABIN_PRECHECK_IDS) {
+    const cabin = commands.find(command => command.id === id);
+    assert.equal(cabin.phase, 'precheck', id);
+    assert.equal(YARIS_SURFACE_IDS.includes(cabin.surfaceId), false, `${id} must stay off the Yaris diagrams`);
+    assert.equal(SUPPORTED_SURFACE_IDS.includes(cabin.surfaceId), true, id);
+  }
 });
 
 test('documentation records photo-backed illustrative provenance and stable IDs', async () => {

@@ -88,6 +88,9 @@ export const SILENT_RESULTS = Object.freeze([
   'steering-straight',
   'exam-finish',
   'locate-battery',
+  // Asked where the horn is, the learner points at the wheel pad; the examiner
+  // did not ask to hear it.
+  'locate-horn',
   'locate-oil-check',
   'locate-coolant-check',
   'locate-brake-fluid',

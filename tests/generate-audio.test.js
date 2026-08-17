@@ -76,10 +76,10 @@ test('production expansion plans and publishes the complete five-voice corpus', 
   const reusable = plan.variants.filter(variant => existingIds.has(variant.id));
   const missing = plan.variants.filter(variant => !existingIds.has(variant.id));
 
-  assert.equal(plan.variants.length, 1260);
-  assert.equal(new Set(plan.variants.map(variant => variant.phrasingId)).size, 84);
+  assert.equal(plan.variants.length, 1290);
+  assert.equal(new Set(plan.variants.map(variant => variant.phrasingId)).size, 86);
   assert.equal(new Set(plan.variants.map(variant => variant.voiceId)).size, 5);
-  assert.equal(productionManifest.length, 1260);
+  assert.equal(productionManifest.length, 1290);
   assert.equal(reusable.length, productionManifest.length);
   assert.equal(missing.length, 0);
 });

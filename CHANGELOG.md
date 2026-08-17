@@ -1,5 +1,15 @@
 # Changelog
 
+- Cut the precheck share of a session to a floored tenth, never more than three
+  and never below one: a real examiner asks one such question. The longest
+  session is now 25 commands rather than 30, sized just above the driving
+  catalog, so its last few places are prechecks until more driving commands
+  land.
+- Added the lesson-derived horn precheck `c-pre-claxon` ("¿Dónde está el
+  claxon?"), answered on the wheel centre pad of the driver-cabin photo. It is
+  the one precheck outside the Toyota manual contract and says so in its
+  provenance. Its two phrasings recorded 30 new variants, taking the five-voice
+  corpus to 1,290.
 - Integrated the canonical four-branch roundabout scene with separate first-, second-, third-exit, and roundabout change-of-direction clips; retired fourth- and fifth-exit questions from new sessions while preserving their stable historical records.
 - Added approved regular-road U-turn and incorporation clips, completing motion-video coverage for every active route-backed driving command. Removed the obsolete animated gold-car answer layer; Road movement Off, reduced motion, video failure, deferred reveal, and historical saved commands retain static routes.
 

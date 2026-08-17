@@ -1414,5 +1414,45 @@
       "answer": "Pulse el interruptor del desempañador de la luneta trasera; algunas versiones también desempañan los retrovisores.",
       "answerEn": "Press the rear-window demister switch; on some versions it also demists the door mirrors."
     }
+  },
+  {
+    "id": "c-pre-claxon",
+    "actionId": "locate-horn",
+    "category": "pre-cab",
+    "phase": "precheck",
+    "responseType": "component-location",
+    "surfaceId": "seatbelt-v1",
+    "icon": "📣",
+    "acceptedResult": "locate-horn",
+    "phrasings": [
+      {
+        "id": "c-pre-claxon-canonical",
+        "es": "¿Dónde está el claxon?",
+        "en": "Where is the horn?",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "lesson-derived 2026-08-17",
+        "sourceText": "Where is the horn",
+        "sourceDocument": "lesson-derived 2026-08-17",
+        "provenanceNote": "lesson-derived 2026-08-17; asked at Jeffrey's first lesson, absent from the Fermín guide"
+      },
+      {
+        "id": "c-pre-claxon-supplementary-1",
+        "es": "Indique dónde está el claxon",
+        "en": "Show me where the horn is",
+        "wording": "source-derived",
+        "validation": "instructor-plausible",
+        "sourcePage": "lesson-derived 2026-08-17",
+        "sourceText": "Where is the horn",
+        "sourceDocument": "lesson-derived 2026-08-17",
+        "provenanceNote": "lesson-derived 2026-08-17; examiner-style variant of the same request"
+      }
+    ],
+    "vehicle": {
+      "page": "lesson-derived 2026-08-17",
+      "reference": "generic-manual-cabin",
+      "answer": "En este habitáculo ilustrativo, el claxon está en la parte central del volante; se pulsa el centro del volante. Confírmelo en el coche del examen.",
+      "answerEn": "In this illustrative cabin, the horn is the centre pad of the steering wheel; you press the middle of the wheel. Confirm it in the test car."
+    }
   }
 ]

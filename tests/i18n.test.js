@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_LOCALE, STRINGS, SUPPORTED_LOCALES, translate } from '../src/i18n.js';
+import { SESSION_LENGTHS } from '../src/practice-selection.js';
 import { readFile } from 'node:fs/promises';
 
 const commands = JSON.parse(await readFile(new URL('../data/commands.json', import.meta.url), 'utf8'));
@@ -173,12 +174,18 @@ test('solo experience and examiner scaffold copy is complete and neutral in both
 test('session lengths state exact command counts in both locales', () => {
   assert.deepEqual(
     ['short', 'medium', 'all'].map(length => translate('en', `length.${length}`)),
-    ['5 commands', '20 commands', '30 commands']
+    ['5 commands', '20 commands', '25 commands']
   );
   assert.deepEqual(
     ['short', 'medium', 'all'].map(length => translate('es', `length.${length}`)),
-    ['5 preguntas', '20 preguntas', '30 preguntas']
+    ['5 preguntas', '20 preguntas', '25 preguntas']
   );
+  // The labels promise a count, so they must track the lengths themselves.
+  for (const [length, count] of Object.entries(SESSION_LENGTHS)) {
+    for (const locale of ['en', 'es']) {
+      assert.match(translate(locale, `length.${length}`), new RegExp(`^${count}\\b`));
+    }
+  }
 });
 
 test('feedback-sound setting is explicit and bilingual', () => {

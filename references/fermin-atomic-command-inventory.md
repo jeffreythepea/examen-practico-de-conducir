@@ -53,6 +53,24 @@ function clearly. This keeps the assessment focused on language comprehension.
 | `yaris-body-v2` | Generic bonnet release, tailgate release, and engine bay | `boot-release`, `bonnet-release`, `battery-under-rear-right-seat` |
 | `yaris-engine-bay-v2` | Generic engine bay | `engine-oil`, `coolant` |
 
+## The lesson-derived horn precheck
+
+`c-pre-claxon` ("¿Dónde está el claxon?") is the one precheck this guide never
+listed. It was added on 2026-08-17 after Jeffrey's first lesson, where the
+examiner asked it, and it therefore carries no Fermín page and no Toyota manual
+citation: its phrasings are labelled `instructor-plausible` with the source
+document `lesson-derived 2026-08-17`, and its vehicle answer cites
+`generic-manual-cabin` rather than a manual page.
+
+It answers on the driver-cabin photo — the same scene the `c-cint` seatbelt
+command uses, under the historical surface ID `seatbelt-v1` — because that is
+the only packaged scene showing a steering wheel. Its `horn` ring sits on the
+wheel centre pad, and the buckle, gear lever, and window switches already in
+that scene serve as its distractors. This is the deliberate exception to the
+rule that every precheck answers on a `yaris-*-v2` diagram; the surface tests
+and the release audit name it explicitly so a second one cannot appear by
+accident.
+
 The active generic conventional baseline places the 12 V battery under the
 bonnet. Its historical hotspot ID remains `battery-under-rear-right-seat` solely
 to preserve progress and response provenance; that name no longer describes the

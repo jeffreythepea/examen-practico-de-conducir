@@ -153,8 +153,8 @@ ordering; instructor evidence may still correct it.
 Mastery belongs to an underlying action, not to one sentence or recording. A
 single action such as `turn-right` can have multiple validated Spanish
 phrasings and multiple audio variants without multiplying mastery targets. The
-current working catalog contains 40 commands and 84 phrasings, with a complete
-1,260-recording corpus ready for integration.
+current working catalog contains 41 commands and 86 phrasings, with a complete
+1,290-recording corpus ready for integration.
 
 Each action definition includes:
 
@@ -311,12 +311,13 @@ screen visibly identify the recordings and the driving footage as AI-generated
 in English and Spanish.
 
 Generate provider-native 0.75x, 0.9x, and 1x assets rather than relying on
-browser time-stretching. The 40 commands and 84 phrasings have a complete
-1,260-variant recorded corpus across five voices and three speeds. The prior
+browser time-stretching. The 41 commands and 86 phrasings have a complete
+1,290-variant recorded corpus across five voices and three speeds. The prior
 five-voice expansion reused 456 variants and added 684 to reach its
 then-complete 1,140-variant baseline; the continuity expansion added the final
 45 recordings; the c-cint (fasten seatbelt) expansion generated 30 recordings;
-and the roundabout change-of-direction command checksum-reuses 45 recordings.
+the lesson-derived horn precheck generated the most recent 30; and the
+roundabout change-of-direction command checksum-reuses 45 recordings.
 At trial
 start the app randomly selects any playable variant for the command and speed,
 then retains its phrasing and voice through replay, written hint, reveal, and
@@ -349,7 +350,7 @@ recovery, backup transfer, bilingual UI, touch targets, and feedback sounds. He
 also confirmed no Safari Web Inspector warnings or errors, then approved the
 intentional two-column landscape prompt and reveal layout.
 
-The public build is a deterministic runtime allowlist rather than a copy of the repository. It includes the shell, bilingual interface modules, command and audio manifests, optimized gameplay images, icons, recovery page, service worker, and the complete 1,260-recording corpus for the 40-command, 84-phrasing catalog. Every packaged asset has an exact byte count and SHA-256 digest in `offline-package.json`; tests, plans, references, source images, recovery checkpoints, and credentials are excluded.
+The public build is a deterministic runtime allowlist rather than a copy of the repository. It includes the shell, bilingual interface modules, command and audio manifests, optimized gameplay images, icons, recovery page, service worker, and the complete 1,290-recording corpus for the 41-command, 86-phrasing catalog. Every packaged asset has an exact byte count and SHA-256 digest in `offline-package.json`; tests, plans, references, source images, recovery checkpoints, and credentials are excluded.
 
 Offline storage uses an **active / staging / pointer** architecture. The service worker serves only the integrity-verified active cache. A new package downloads into a distinct staging cache, resumes missing files after interruption, and cannot replace the active pointer until every required file verifies. The prior active package remains available until the replacement is confirmed. A staged update is applied only from setup, never during a practice session. A navigation failure without a valid active package returns the small bilingual recovery page instead of pretending the full game is ready.
 

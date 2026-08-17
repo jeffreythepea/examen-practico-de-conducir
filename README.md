@@ -59,7 +59,7 @@ junctions are instructional only: they are never scored, never appear in
 Readiness, and never touch attempt history. Faults-style exam scoring remains
 deferred until an instructor-sourced DGT rubric exists.
 
-The app has no runtime dependency on Piso Asturiano and no backend. The source remains a plain static browser application; public releases use a deterministic build step to select and verify only runtime assets. Stage 2 is implemented with an action-matched response model and optional moving-road approaches on suitable realistic scenes. The current working catalog contains 40 commands and 84 Spanish phrasings, with its complete 1,260-recording corpus ready for integration. Deeper phrasing/voice mastery reporting, an instructor-validated sequential examination, and automatic difficulty progression remain deferred.
+The app has no runtime dependency on Piso Asturiano and no backend. The source remains a plain static browser application; public releases use a deterministic build step to select and verify only runtime assets. Stage 2 is implemented with an action-matched response model and optional moving-road approaches on suitable realistic scenes. The current working catalog contains 41 commands and 86 Spanish phrasings, with its complete 1,290-recording corpus ready for integration. Deeper phrasing/voice mastery reporting, an instructor-validated sequential examination, and automatic difficulty progression remain deferred.
 
 ## Readiness and targeted practice
 
@@ -124,7 +124,7 @@ The Task 7 browser automation limitation means export downloads and confirm-plus
 
 ## Audio provenance and disclosure
 
-The current working catalog has a complete 1,260-variant recorded corpus: 40 commands, 84 Spanish phrasings, five voices (Roger, Sarah, George, Matilda, and Eric), and provider-native speeds of 0.75x, 0.9x, and 1x. The prior five-voice expansion reused 456 recordings and added 684 to reach its then-complete 1,140-variant baseline; continuity added 45 recordings; c-cint (fasten seatbelt) generated 30; and the distinct roundabout change-of-direction command checksum-reuses 45 approved recordings with identical wording, voice, and speed. Each trial randomly selects one playable phrasing/voice recording and retains it through replay, Show Spanish, reveal, and attempt logging. Browser speech remains the online fallback if a recording fails. Integrity and provider/model provenance are recorded in `data/audio-manifest.json`; the audition decision is in `references/audio-audition.md`.
+The recorded corpus is complete at 1,290 published variants: 41 commands, 86 Spanish phrasings, five voices (Roger, Sarah, George, Matilda, and Eric), and provider-native speeds of 0.75x, 0.9x, and 1x. The prior five-voice expansion reused 456 recordings and added 684 to reach its then-complete 1,140-variant baseline; continuity added 45 recordings; c-cint (fasten seatbelt) generated 30; the lesson-derived horn precheck (`c-pre-claxon`) generated the most recent 30; and the distinct roundabout change-of-direction command checksum-reuses 45 approved recordings with identical wording, voice, and speed. Each trial randomly selects one playable phrasing/voice recording and retains it through replay, Show Spanish, reveal, and attempt logging. Browser speech remains the online fallback if a recording fails. Integrity and provider/model provenance are recorded in `data/audio-manifest.json`; the audition decision is in `references/audio-audition.md`.
 
 Audio generation is resumable and fail-closed. It checksum-verifies reusable published and recovery assets, checkpoints every new clip outside the browser-delivered tree, and replaces the published audio tree and manifest only after the complete staged corpus validates. An interrupted generation therefore does not create a partially published static corpus.
 
@@ -168,7 +168,7 @@ When finished, remove the variable from the shell with `unset ELEVENLABS_API_KEY
 ## Release checklist
 
 - Run the release check and confirm every test passes with no whitespace errors.
-- Confirm `data/audio-manifest.json` resolves to all 1,260 nonempty, integrity-matching assets before treating the 84-phrasing, five-voice corpus as release-ready.
+- Confirm `data/audio-manifest.json` resolves to all 1,290 nonempty, integrity-matching assets before treating the 86-phrasing, five-voice corpus as release-ready.
 - Exercise English and Spanish setup, playback, hint, response, reveal, results, export, and import in a supported browser.
 - Confirm the AI-generated-voice disclosure is visible in both locales.
 - Confirm no credentials or generated temporary files are included.

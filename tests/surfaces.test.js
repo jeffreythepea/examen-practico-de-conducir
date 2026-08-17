@@ -207,7 +207,17 @@ test('Task 7 atomically activates every eligible model-aware surface and exactly
       .map(command => command.id).sort(),
     ['c-adapte', 'c-detencion', 'c-final']
   );
+  // Every precheck drawn from the guide and the vehicle manual answers on its
+  // Yaris diagram. The horn is the one lesson-derived precheck: no manual
+  // citation backs it, so it answers on the cabin photo instead — and it is
+  // the only precheck allowed to.
+  const cabinPrechecks = ['c-pre-claxon'];
   for (const command of commands.filter(command => command.phase === 'precheck')) {
+    if (cabinPrechecks.includes(command.id)) {
+      assert.equal(command.surfaceId, 'seatbelt-v1', command.id);
+      assert.equal(Object.hasOwn(YARIS_COMMAND_CONTRACT, command.id), false, command.id);
+      continue;
+    }
     assert.equal(command.surfaceId, YARIS_COMMAND_CONTRACT[command.id].diagramId, command.id);
   }
   assert.deepEqual(supportedCommands(commands), commands.filter(command => command.active !== false));

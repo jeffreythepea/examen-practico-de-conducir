@@ -4,23 +4,26 @@ import { activeCommands } from './catalog.js';
 // The medium default is sized so a mixed simulated drive carries enough
 // ordinary driving commands for cruise transitions and an occasional null
 // event, closer to a real exam's pacing.
-export const SESSION_LENGTHS = Object.freeze({ short: 5, medium: 20, all: 30 });
+export const SESSION_LENGTHS = Object.freeze({ short: 5, medium: 20, all: 25 });
 
-// Prechecks are the formality that opens an exam, not the drive itself, and an
-// unconstrained draw served ten of them in a twenty-command session (device
-// pass 2026-08-14). Hold them to a quarter of the session, floored, but never
-// below one so a short session can still open on a check.
-export const PRECHECK_SESSION_SHARE = 0.25;
+// Prechecks are the formality that opens an exam, not the drive itself: at
+// Jeffrey's first lesson (2026-08-17) the examiner asks exactly one. Hold them
+// to a tenth of the session, floored, never more than three, but never below
+// one so a short session can still open on a check.
+export const PRECHECK_SESSION_SHARE = 0.1;
+export const PRECHECK_SESSION_MAX = 3;
 
 export function precheckCap(targetLength) {
-  return Math.max(1, Math.floor(targetLength * PRECHECK_SESSION_SHARE));
+  return Math.min(PRECHECK_SESSION_MAX, Math.max(1, Math.floor(targetLength * PRECHECK_SESSION_SHARE)));
 }
 
 // The cap is a preference for driving commands, not a length limit: when there
 // are too few driving commands to take the freed places — a precheck-only
 // phase, or a target whose whole selection is prechecks — the extra prechecks
-// stay in and the session keeps its length. Relative order is untouched, so
-// the stratified merge above still holds.
+// stay in and the session keeps its length. The longest session is sized just
+// above the driving catalog (25 against 21 driving commands), so its last few
+// places are prechecks until more driving commands land. Relative order is
+// untouched, so the stratified merge above still holds.
 function withPrecheckCap(ordered, targetLength) {
   const drivingAvailable = ordered.filter(command => command.phase !== 'precheck').length;
   const cap = Math.max(precheckCap(targetLength), targetLength - drivingAvailable);

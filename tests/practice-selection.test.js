@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { precheckCap, selectPracticeCommands } from '../src/practice-selection.js';
+import { SESSION_LENGTHS, precheckCap, selectPracticeCommands } from '../src/practice-selection.js';
 
 function utcDate(year, month, day) {
   return Date.UTC(year, month, day);
@@ -548,11 +548,11 @@ test('recommended target with short length returns top 5 by priority', () => {
   assert(!ids.includes('ready-cmd'));
 });
 
-test('prechecks are capped at a floored quarter of the session', () => {
+test('prechecks are capped at a floored tenth of the session, never above three', () => {
   assert.deepEqual(
-    [5, 20, 30].map(precheckCap),
-    [1, 5, 7],
-    'short 5 -> 1, medium 20 -> 5, all 30 -> 7'
+    [5, 20, 25, 30, 40].map(precheckCap),
+    [1, 2, 2, 3, 3],
+    'short 5 -> 1 (the floor), medium 20 -> 2, all 25 -> 2, and never above 3'
   );
 
   // Every command untested, so priority alone would interleave prechecks
@@ -560,17 +560,17 @@ test('prechecks are capped at a floored quarter of the session', () => {
   const pool = [
     ...Array.from({ length: 20 }, (_, index) => command(`pre-${index}`, `pre-action-${index}`, 'precheck')),
     // Enough driving commands to fill every session length, so the cap binds
-    // rather than yielding to the never-shorten rule exercised below.
+    // rather than the session running out of driving content as below.
     ...Array.from({ length: 30 }, (_, index) => command(`drive-${index}`, `drive-action-${index}`, 'driving'))
   ];
 
-  for (const [length, expected] of [['short', 1], ['medium', 5], ['all', 7]]) {
+  for (const [length, expected] of [['short', 1], ['medium', 2], ['all', 2]]) {
     const selected = selectPracticeCommands(pool, {
       phase: 'mixed', length, target: { kind: 'recommended' }, now: NOW, rng: () => 0
     });
     const prechecks = selected.filter(c => c.phase === 'precheck');
     assert.equal(prechecks.length, expected, `${length} session precheck count`);
-    assert.equal(selected.length, { short: 5, medium: 20, all: 30 }[length]);
+    assert.equal(selected.length, SESSION_LENGTHS[length]);
   }
 });
 
@@ -595,6 +595,31 @@ test('the precheck cap never shortens a session it cannot backfill', () => {
   assert.equal(mixedSession.length, 20);
   assert.equal(mixedSession.filter(c => c.phase === 'driving').length, 6);
   assert.equal(mixedSession.filter(c => c.phase === 'precheck').length, 14);
+});
+
+test('the longest session sits just above the driving catalog', () => {
+  // 25 places against 20 active driving commands: the tail is prechecks, and
+  // it shrinks toward the cap of two as driving commands are added. Checked on
+  // a stand-in catalog of exactly the live active driving count.
+  const pool = [
+    ...Array.from({ length: 20 }, (_, index) => command(`drive-${index}`, `drive-action-${index}`, 'driving')),
+    ...Array.from({ length: 20 }, (_, index) => command(`pre-${index}`, `pre-action-${index}`, 'precheck'))
+  ];
+  const selected = selectPracticeCommands(pool, {
+    phase: 'mixed', length: 'all', target: { kind: 'recommended' }, now: NOW, rng: () => 0
+  });
+  assert.equal(selected.length, 25);
+  assert.equal(selected.filter(c => c.phase === 'driving').length, 20);
+  assert.equal(selected.filter(c => c.phase === 'precheck').length, 5);
+
+  // Three more driving commands and the tail is the cap itself.
+  const grown = [...pool, ...Array.from({ length: 3 },
+    (_, index) => command(`later-${index}`, `later-action-${index}`, 'driving'))];
+  const grownSession = selectPracticeCommands(grown, {
+    phase: 'mixed', length: 'all', target: { kind: 'recommended' }, now: NOW, rng: () => 0
+  });
+  assert.equal(grownSession.length, 25);
+  assert.equal(grownSession.filter(c => c.phase === 'precheck').length, 2);
 });
 
 test('returned array is frozen', () => {

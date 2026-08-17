@@ -7,13 +7,13 @@ const commands = JSON.parse(await readFile(new URL('../data/commands.json', impo
 
 test('catalog contains the complete safe atomic command inventory', () => {
   assert.doesNotThrow(() => validateCatalog(commands));
-  assert.equal(commands.length, 40);
-  assert.equal(commands.reduce((total, command) => total + command.phrasings.length, 0), 84);
+  assert.equal(commands.length, 41);
+  assert.equal(commands.reduce((total, command) => total + command.phrasings.length, 0), 86);
   assert.equal(commandsForPhase(commands, 'driving').length, 20);
-  assert.equal(commandsForPhase(commands, 'precheck').length, 18);
-  assert.equal(commandsForPhase(commands, 'mixed').length, 38);
-  assert.equal(new Set(commands.map(command => command.id)).size, 40);
-  assert.equal(new Set(commands.map(command => command.actionId)).size, 40);
+  assert.equal(commandsForPhase(commands, 'precheck').length, 19);
+  assert.equal(commandsForPhase(commands, 'mixed').length, 39);
+  assert.equal(new Set(commands.map(command => command.id)).size, 41);
+  assert.equal(new Set(commands.map(command => command.actionId)).size, 41);
   assert.equal(commands.some(command => command.id === 'c-pre-deposito-b'), false);
 });
 
@@ -234,8 +234,17 @@ test('prechecks retain vehicle evidence and uncertainty status', () => {
     assert.ok(command.vehicle?.answer, `${command.id} needs a vehicle answer`);
     assert.ok(command.vehicle?.answerEn, `${command.id} needs an English vehicle answer`);
     assert.notEqual(command.vehicle.answerEn, command.vehicle.answer, `${command.id} vehicle answers must be explicit per locale`);
-    assert.ok(['manual-baseline', 'trim-dependent'].includes(command.phrasings[0].validation));
+    assert.ok(['manual-baseline', 'trim-dependent', 'instructor-plausible'].includes(command.phrasings[0].validation));
   }
+
+  // A precheck the guide never listed must say where it came from instead of
+  // borrowing a manual baseline it has no claim to.
+  const horn = commandById(commands, 'c-pre-claxon');
+  assert.equal(horn.phrasings[0].validation, 'instructor-plausible');
+  assert.equal(horn.phrasings[0].sourceDocument, 'lesson-derived 2026-08-17');
+  assert.equal(horn.vehicle.reference, 'generic-manual-cabin');
+  assert.match(horn.vehicle.answer, /volante/i);
+  assert.match(horn.vehicle.answerEn, /steering wheel/i);
   const battery = commandById(commands, 'c-pre-bateria');
   assert.equal(battery.vehicle.reference, 'generic-conventional');
   assert.match(battery.vehicle.answer, /bajo el capó/i);

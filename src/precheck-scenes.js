@@ -49,6 +49,12 @@ export const PRECHECK_SCENES = deepFreeze({
         kind: 'window-switch-panel', interaction: 'locate', iconKey: 'native-symbol',
         labelKey: 'surface.seatbelt.windowSwitches', labelPlacement: { x: 14, y: 20, width: 28 },
         anchorDescription: 'Centred on the driver-door window-switch panel'
+      },
+      horn: {
+        resultId: 'locate-horn', x: 44.5, y: 21.5, width: 9, height: 15,
+        kind: 'horn-pad', interaction: 'locate', iconKey: 'native-symbol',
+        labelKey: 'surface.seatbelt.horn', labelPlacement: { x: 44.5, y: 37, width: 26 },
+        anchorDescription: 'Centred on the steering-wheel centre pad, which carries no printed symbol'
       }
     }
   },
