@@ -1,5 +1,8 @@
 # Changelog
 
+- Turned the speed-adaptation button's arrows upward. "Adapte la velocidad a la
+  vía" normally asks for the road's limit rather than for braking, which is
+  what the accelerate confirmation sound has always implied.
 - Cut the precheck share of a session to a floored tenth, never more than three
   and never below one: a real examiner asks one such question. The longest
   session is now 25 commands rather than 30, sized just above the driving

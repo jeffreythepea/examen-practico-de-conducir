@@ -148,7 +148,7 @@ test('semantic reveal shows both the correct response and a selected wrong respo
 
 test('every semantic button renders its stable result icon, decorative and distinct from the reveal marker', () => {
   assert.deepEqual(SEMANTIC_RESULT_ICONS, {
-    'adapt-speed': '⏬',
+    'adapt-speed': '⏫',
     'involuntary-stop': '🚧',
     'exam-finish': '🏁'
   });

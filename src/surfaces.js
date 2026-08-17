@@ -58,7 +58,10 @@ const START_ENGINE_RESULTS = Object.freeze(['start-engine', 'stop-engine', 'soun
 const SEMANTIC_LAYOUT_SEED_SALT = 0x9e3779b9;
 
 export const SEMANTIC_RESULT_ICONS = Object.freeze({
-  'adapt-speed': '⏬',
+  // "Adapte la velocidad a la vía" is normally an instruction to pick the road
+  // up to its limit, not to slow down — which is why a correct answer confirms
+  // itself with the accelerate sample.
+  'adapt-speed': '⏫',
   'involuntary-stop': '🚧',
   'exam-finish': '🏁'
 });

@@ -616,7 +616,7 @@
     "phase": "driving",
     "responseType": "spoken-speed",
     "surfaceId": "option-grid-v1",
-    "icon": "⏬",
+    "icon": "⏫",
     "acceptedResult": "adapt-speed",
     "phrasings": [
       {
